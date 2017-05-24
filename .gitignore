@@ -41,3 +41,4 @@ vignettes/*.tex
 .Rbuildignore
 
 *.Rproj
+.Rproj.user

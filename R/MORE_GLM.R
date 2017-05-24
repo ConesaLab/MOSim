@@ -1,4 +1,5 @@
 #' @include ComputeGLM_function.R
+#' @import parallel pbapply
 NULL
 
 #########################################################################################
@@ -107,7 +108,8 @@ GetGLM = function(GeneExpression,
                   min.variation = 0,
                   correlation = 0.9, action = "mean",
                   min.obs = 10,
-                  epsilon = 0.00001){
+                  epsilon = 0.00001,
+                  mc.cores = 1){
 
   ## Parameters by default
   # TODO: epsilon modified
@@ -333,17 +335,17 @@ GetGLM = function(GeneExpression,
 
 
   ### Computing model for each gene
-  cat("Checking multicollinearity and fitting model for ...\n")
+  cat("Checking multicollinearity and fitting model ...\n")
 
-  for (i in 1:nGenes) {
+  ResultsPerGene <- pbapply::pblapply(1:nGenes, FUN = function(i) {
 
     gene=Allgenes[i]
 
-    ResultsPerGene[[i]] = vector("list", length = 5)
-    names(ResultsPerGene[[i]]) = c("Y", "X", "coefficients", "allRegulators", "significantRegulators")
+    ResultsPerGene.i = vector("list", length = 6)
+    names(ResultsPerGene.i) = c("Y", "X", "coefficients", "allRegulators", "significantRegulators", "GoodnessOfFit")
 
-    cat(paste("Gene", i, "out of", nGenes))
-    cat("\n")
+    # cat(paste("Gene", i, "out of", nGenes))
+    # cat("\n")
 
     RetRegul = GetAllReg(gene=gene, associations=associations)
     RetRegul.gene = RetRegul$Results  ## RetRegul$TableGene: nr reg per omic
@@ -365,9 +367,9 @@ GetGLM = function(GeneExpression,
                          alfa = alfa, stepwise = stepwise, Res.df = Res.df,
                          family = family, epsilon = epsilon, MT.adjust = MT.adjust)
 
-      ResultsPerGene[[i]]$X = des.mat2[,-1]
-      ResultsPerGene[[i]]$significantRegulators = NULL
-      ResultsPerGene[[i]]$allRegulators = NULL
+      ResultsPerGene.i$X = des.mat2[,-1]
+      ResultsPerGene.i$significantRegulators = NULL
+      ResultsPerGene.i$allRegulators = NULL
 
       # GlobalSummary$ReguPerGene  # this is initially set to 0 so no need to modify it
 
@@ -376,14 +378,14 @@ GetGLM = function(GeneExpression,
     }
     else { ## There are regulators for this gene at the beginning
 
-      ResultsPerGene[[i]]$allRegulators = data.frame(RetRegul.gene, rep("Model",nrow(RetRegul.gene)), stringsAsFactors = FALSE)
-      colnames(ResultsPerGene[[i]]$allRegulators) = c("gene","regulator","omic","area","filter")
+      ResultsPerGene.i$allRegulators = data.frame(RetRegul.gene, rep("Model",nrow(RetRegul.gene)), stringsAsFactors = FALSE)
+      colnames(ResultsPerGene.i$allRegulators) = c("gene","regulator","omic","area","filter")
 
       GlobalSummary$ReguPerGene[gene, grep("-Ini", colnames(GlobalSummary$ReguPerGene))] = as.numeric(RetRegul$TableGene[-1])
       # the rest of columns remain 0
 
       ## Identify which regulators where removed because of missing values or low variation
-      res = RemovedRegulators(RetRegul.gene = ResultsPerGene[[i]]$allRegulators,
+      res = RemovedRegulators(RetRegul.gene = ResultsPerGene.i$allRegulators,
                               myregLV=myregLV, myregNA=myregNA, data.omics=data.omics)
 
       if(length(res$RegulatorMatrix)==0){ ## No regulators left after the filtering to compute the model
@@ -396,9 +398,9 @@ GetGLM = function(GeneExpression,
                            alfa = alfa, stepwise = stepwise, Res.df = Res.df,
                            family = family, epsilon = epsilon, MT.adjust = MT.adjust)
 
-        ResultsPerGene[[i]]$X = des.mat2[,-1]
-        ResultsPerGene[[i]]$significantRegulators = NULL
-        ResultsPerGene[[i]]$allRegulators = res$SummaryPerGene
+        ResultsPerGene.i$X = des.mat2[,-1]
+        ResultsPerGene.i$significantRegulators = NULL
+        ResultsPerGene.i$allRegulators = res$SummaryPerGene
 
       }
       else {  ## Regulators for the model!!
@@ -407,7 +409,7 @@ GetGLM = function(GeneExpression,
         res = CollinearityFilter(data = res$RegulatorMatrix, reg.table = res$SummaryPerGene,
                                  correlation = correlation, action = action)
 
-        ResultsPerGene[[i]]$allRegulators = res$SummaryPerGene
+        ResultsPerGene.i$allRegulators = res$SummaryPerGene
 
 
 
@@ -447,7 +449,7 @@ GetGLM = function(GeneExpression,
         }
 
         des.mat2 = na.omit(des.mat2)
-        ResultsPerGene[[i]]$X = des.mat2[,-1]
+        ResultsPerGene.i$X = des.mat2[,-1]
 
         myGLM = ComputeGLM(matrix.temp = data.frame(des.mat2, check.names = FALSE),
                            alfa = alfa, stepwise = stepwise, Res.df = Res.df,
@@ -456,23 +458,23 @@ GetGLM = function(GeneExpression,
 
         ## Extracting significant regulators and recovering correlated regulators
         myvariables = unlist(strsplit(myGLM$SummaryStepwise$variables, ":", fixed = TRUE))
-        myvariables = intersect(myvariables, rownames(ResultsPerGene[[i]]$allRegulators))
-        ResultsPerGene[[i]]$significantRegulators = myvariables # significant regulators including "new" correlated regulators
-        ResultsPerGene[[i]]$allRegulators = data.frame(res$SummaryPerGene, "Sig" = 0, stringsAsFactors = FALSE)
-        ResultsPerGene[[i]]$allRegulators[myvariables, "Sig"] = 1
-        collin.regulators = intersect(ResultsPerGene[[i]]$significantRegulators, ResultsPerGene[[i]]$allRegulators[,"filter"]) # "new" regulators
+        myvariables = intersect(myvariables, rownames(ResultsPerGene.i$allRegulators))
+        ResultsPerGene.i$significantRegulators = myvariables # significant regulators including "new" correlated regulators
+        ResultsPerGene.i$allRegulators = data.frame(res$SummaryPerGene, "Sig" = 0, stringsAsFactors = FALSE)
+        ResultsPerGene.i$allRegulators[myvariables, "Sig"] = 1
+        collin.regulators = intersect(ResultsPerGene.i$significantRegulators, ResultsPerGene.i$allRegulators[,"filter"]) # "new" regulators
         if (length(collin.regulators) > 0) {  # there were correlated regulators
-          original.regulators = ResultsPerGene[[i]]$allRegulators[ResultsPerGene[[i]]$allRegulators[,"filter"] %in% collin.regulators,"regulator"]
-          ResultsPerGene[[i]]$allRegulators[original.regulators, "Sig"] = 1
-          ResultsPerGene[[i]]$significantRegulators = c(ResultsPerGene[[i]]$significantRegulators, original.regulators)
+          original.regulators = ResultsPerGene.i$allRegulators[ResultsPerGene.i$allRegulators[,"filter"] %in% collin.regulators,"regulator"]
+          ResultsPerGene.i$allRegulators[original.regulators, "Sig"] = 1
+          ResultsPerGene.i$significantRegulators = c(ResultsPerGene.i$significantRegulators, original.regulators)
           if (action == "mean") {
-            ResultsPerGene[[i]]$significantRegulators = setdiff(ResultsPerGene[[i]]$significantRegulators, collin.regulators)
+            ResultsPerGene.i$significantRegulators = setdiff(ResultsPerGene.i$significantRegulators, collin.regulators)
           }
         }
 
         ## Counting original regulators in the model per omic
         if (length(collin.regulators) > 0) {
-          contando = ResultsPerGene[[i]]$allRegulators
+          contando = ResultsPerGene.i$allRegulators
           quitar = which(contando[,"filter"] == "MissingValue")
           if (length(quitar) > 0) contando = contando[-quitar,]
           quitar = which(contando[,"filter"] == "LowVariation")
@@ -480,7 +482,7 @@ GetGLM = function(GeneExpression,
           contando = contando[setdiff(rownames(contando), collin.regulators),]
         }
         else {
-          contando = ResultsPerGene[[i]]$allRegulators[which(ResultsPerGene[[i]]$allRegulators[,"filter"] == "Model"),]
+          contando = ResultsPerGene.i$allRegulators[which(ResultsPerGene.i$allRegulators[,"filter"] == "Model"),]
         }
         contando = table(contando[,"omic"])
         contando = as.numeric(contando[names(data.omics)])
@@ -488,8 +490,8 @@ GetGLM = function(GeneExpression,
         GlobalSummary$ReguPerGene[gene, grep("-Mod", colnames(GlobalSummary$ReguPerGene))] = contando
 
         ## Counting significant regulators per omic
-        if (length(ResultsPerGene[[i]]$significantRegulators) > 0) {
-          contando = ResultsPerGene[[i]]$allRegulators[ResultsPerGene[[i]]$significantRegulators,]
+        if (length(ResultsPerGene.i$significantRegulators) > 0) {
+          contando = ResultsPerGene.i$allRegulators[ResultsPerGene.i$significantRegulators,]
           contando = table(contando[,"omic"])
           contando = as.numeric(contando[names(data.omics)])
           contando[is.na(contando)] = 0
@@ -499,24 +501,36 @@ GetGLM = function(GeneExpression,
 
       } ## Close "else" --> None regulators from begining
 
-      ResultsPerGene[[i]]$Y = data.frame("y" = myGLM$GLMfinal$y, "fitted.y" = myGLM$GLMfinal$fitted.values,
+      ResultsPerGene.i$Y = data.frame("y" = myGLM$GLMfinal$y, "fitted.y" = myGLM$GLMfinal$fitted.values,
                                          "residuals" = residuals(myGLM$GLMfinal))
 
-      ResultsPerGene[[i]]$coefficients = summary(myGLM$GLMfinal)$coefficients[,c("Estimate", "Pr(>|t|)"), drop = FALSE]
-      if (nrow(ResultsPerGene[[i]]$coefficients) > 0) {
-        colnames(ResultsPerGene[[i]]$coefficients) = c("coefficient", "p-value")
+      ResultsPerGene.i$coefficients = summary(myGLM$GLMfinal)$coefficients[,c("Estimate", "Pr(>|t|)"), drop = FALSE]
+      if (nrow(ResultsPerGene.i$coefficients) > 0) {
+        colnames(ResultsPerGene.i$coefficients) = c("coefficient", "p-value")
       }
 
-      GlobalSummary$GoodnessOfFit[gene,] = c(myGLM$SummaryStepwise$"p.value",
-                                             summary(myGLM$GLMfinal)$df.residual,
-                                             myGLM$SummaryStepwise$"R.squared",
-                                             summary(myGLM$GLMfinal)$aic,
-                                             length(ResultsPerGene[[gene]]$significantRegulators))
+      ResultsPerGene.i$GoodnessOfFit <- c(myGLM$SummaryStepwise$"p.value",
+                                               summary(myGLM$GLMfinal)$df.residual,
+                                               myGLM$SummaryStepwise$"R.squared",
+                                               summary(myGLM$GLMfinal)$aic,
+                                               length(ResultsPerGene[[gene]]$significantRegulators))
+
+
+      return(ResultsPerGene.i)
 
     }
 
-  }  ## At this point the loop for all genes is finished
 
+    }, cl = mc.cores)
+
+
+  # Restore GoodnessOfFit to the proper data frame using a simply lapply (not multicore)
+  ResultsPerGene <- lapply(seq_along(ResultsPerGene), function(gene) {
+      GlobalSummary$GoodnessOfFit[gene, ] <<- ResultsPerGene[[gene]]$GoodnessOfFit
+
+      # Remove the sixth element (GoodnessOfFit)
+      return(ResultsPerGene[[gene]][-6])
+  })
 
   myarguments = list(edesign = edesign, degree = degree, Res.df = Res.df, alfa = alfa, family = family,
                      stepwise = stepwise, interactions.exp = interactions.exp, interactions.reg = interactions.reg,
