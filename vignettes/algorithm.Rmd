@@ -1,0 +1,108 @@
+---
+title: "MOSim simulation algorithm"
+author: "Sonia Tarazona, Carlos Martínez"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+The algorithm used by MOSim package could be considered as a series of different omic data simulations that are managed and coordinated by a central independent system, so that the final values of each one adheres to the logic of the generated simulation settings.
+
+Inside the available omics is RNA-seq, providing gene expression measurements. The regulation of those genes can be affected by many different systems, with data given by other omics like DNase-seq, ChIP-seq, etc. So in order to provide simulated datasets similar to the ones that could be obtained from a complex live biological system, those interactions must be modeled.
+
+For an easier understanding of the process some conceptuals boundaries are considered, explaining for one part the simulation regarding gene expression, including RNA-seq, and for the other the simulation of regulators.
+
+## Gene expression
+
+Depending on the experimental design considered, differentially expressed genes can be those that change its expression over time, or which expression levels differs between multiple groups.
+
+Assuming the simplest scenario, in which no time series is considered and 2 conditions are compared, a gene could be classified as differentially expressed when it is clearly expressed on one condition, but completely repressed on the other.
+
+In a design with multiple time points, different expression patterns can be simulated:
+
+- __Continuous induction__: lineal increase of the activity of the gene with time.
+- __Continuous repression__: lineal decrease of the activity of the gene with time.
+- __Transitory induction__: inactive gene at the initial time, with progressive increasing of the activity followed by a decrease.
+- __Transitory repression__: active gene at the initial time, with progressive decreasing of the activity followed by an increase.
+- __Flat__: the activity of the gene remains constant along time.
+
+So in this last scenario with a time series, a gene would be differentially expressed when having anyother pattern different than flat. In this case, for those genes that do not change its activity with time to be considered differentially expressed (expresión rara, cambiar?) would require at least 2 groups with differences in the expression levels, like in the previously mentioned example.
+
+### RNA-seq
+
+At the start of the simulation, an initial RNA-seq dataset containing gene expression count values must be specified, providing also a set of simulation options that will be used to generate the simulation settings.
+
+With all that, first the genes included in the data set are redistributed in 3 different groups:
+
+- Differentially expressed genes (DEG).
+- Non-differentially expressed genes (Non-DEG).
+- Non-expressed genes.
+
+(Esto aparecía como pregunta en los cambios, pendiente de pensar, cómo eliminar el parámetro de diffGenes. ¿Cambiar?)
+
+Then, for each DEG a profile pattern is assigned, leaving the others as flat. In the abscence of a time series in the experimental design, only the flat profile is considered.
+
+Each of those patterns is assigned based on a user configurable probability, but by default it could occur that, for instance, in an experimental design with a time series and 2 groups, a DEG ends with a flat profile on the 2 conditions, so it would be incorrectly tagged as DEG when the simulated expression levels will be similar. To avoid this in this case, as in every other in which is necessary to force the differentially expressed status of a gene, the initial counts values are modified to reflect that.
+
+#### Initial counts modification
+
+Following the previous scenario, with 2 conditions, the initial counts of the affected genes must be modified so that they end being differential. This is achieved by keeping the first condition as reference, and modifying the counts of the second one. For doing so, each of those genes is assigned a random mark indicating if the new value on the second condition must be greater or lower than the original; depending on that tag different upper and lower limits are applied, based on the range of values of the original data, with an exclude margin around the original count to avoid selecting a similar value by chance. 
+
+When multiple conditions are considered the same process is followed, keeping the first group intact as a reference and modifying the value on a random selection of the remaining conditions.
+
+In RNA-seq there is another case that require the modification of the initial data, consisting in assigning a zero count value to those genes classified as non-expressed.
+
+#### Simulating counts
+
+In the simulation process every gene is associated with an expression pattern in each of the groups defined in the experimental design, with "flat" being the default when no other option is possible. When considering multiple times, the combination of patterns along groups requires to define the concept of gene classes, that is, all those genes that share a similar expression pattern considering all conditions; for instance, with 2 conditions, a gene class could be continuous induction assigned on the 2 conditions, with another class being continuous induction on the first condition and flat on the second one. 
+
+Focusing on the available expression patterns, their behaviours can be modeled by the following expressions:
+
+- __Continuous induction__: $a1 + b1 \times t$
+- __Continuous repression__: $a1 - b1 \times t$
+- __Transitory induction__: $a2 + b2 \times t + c2 \times t^2$
+- __Transitory repression__: $a2 - b2 \times t - c2 \times t^2$
+
+Using the provided time series in the expressions, different $\lambda$ values are calculated, one for each pattern. For each gene $g$, with those $\lambda$ values, the formulas used to simulate the new counts ($\mu^g_i$) for one or more time points are the following:
+
+- Flat: $\mu^g_i = \mu_0 + noise$
+- Induction patterns ($\lambda \in [0,1]$): $\mu^g_i = m^g + \lambda (M^g - m^g) + noise$
+- Repression patterns ($\lambda \in [-1,0]$): $\mu^g_i = M^g + \lambda (M^g - m^g) + noise$
+
+($M^g$? y $noise$ o $noise^g$? noise en este punto ya es un vector calculado)
+
+Where $\mu_0$ are the initial counts, and for $m$ and $M$ a new vector of random counts $N$ is generated using the uniform distribution with a range equal to the one of the initial data provided, being $m = min(\mu_0, N)$ and $M = max(\mu_0, N)$.
+
+The noise values ($noise$) are calculated by an user provided function and parameters, using by default a normal distribution with $sd=0.3$.
+
+Finally, to avoid negligible changes, a constraint is applied ensuring that the difference $M - m$ is at least $(percentile90 - percentile10) * 0.1$ of the initial data.
+
+#### Making replicates
+
+All the expression values come from the initial sample ($\mu_0$) in the first place, so a certain noise level is applied using the uniform distribution $U(\mu_i - noise \times \mu_i , \mu_i + noise \times \mu_i)$, applying a restriction of minimum value of 0.1 so the genes without any reads have a chance to appear, and where $noise$ is a user defined value, stablishing the final $\mu^g_i$.
+
+For making replicates a negative binomial distribution is used with the parametrization based on mean and "size", a parameter that obeys $\sigma^2 = \mu + \frac{\mu^2}{size}$ so it can be expressed in terms of mean and variance. The mean parameter is already known, and to calculate the variance, once this final expression value per gene ($\mu_i$) is available, the standard deviation ($\sigma_i$) is calculated using a Gamma distribution $(\sigma_i \sim \Gamma(k_i, \theta_i))$ with parametrization based on shape ($k$) and scale ($\theta$). Where $k_i$ and $\theta_i$ are the values associated to the interval that comprises $\mu_i$ in tables containing the required values made using existing RNA-seq data. (Comentar antes lo de la tabla en lugar de al final? Omitir esta parte simplificando?)
+
+## Gene regulation
+
+Currently, the MOSim package supports the simulation of different regulators:
+
+- ChIP-seq
+- DNase-seq
+- Methyl-seq
+- miRNA-seq
+
+The majority of them follow an essentially identical RNA-seq simulation process like the previously described, however, there are some important differences .
+
+In complex living organisms, like humans, the effect of a regulator can be different depending on many factors, for instance methylation is usually associated with repression when affects the gene promoter, but its presence on the gene body facilitates the transcription, thus producing an enhancing activity. 
+
+So summarizing there are two fundamental effects that a regulator can have on a gene: enhancing and repressing activity. After retrieving the full association list between the regulator IDs and genes, a random effect -the same for all conditions- is assigned to those linked to DEG, allowing the user to restrain the options to chose from, because some regulators only show one type of activity at all times.
+
+Due to that random assigment and the fact that one regulator can affect more than one gene, it could happen that a same regulator tries to regulate genes with opposite gene classes. To avoid that, in the event that multiple gene classes are regulated by the same regulator, the majoritary class, or one at random in case of tie, is selected, nullifying the association with the other genes so no false links are returned (cambiar esto último).
+
+To simulate the counts the same steps as the RNA-seq are applied with one consideration, when the experimental design includes a time series, the effect of the regulator on the gene and the expression pattern of the later are taken into account so they are coordinated. For instance, if the activity of a gene increases with time and the associated regulator has a repression effect, then the regulator values must follow an opposite trend, decreasing when the gene expression increases.
+
+### Particularidades de cada regulador? Metilación...

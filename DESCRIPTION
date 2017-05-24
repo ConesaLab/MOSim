@@ -1,0 +1,38 @@
+Package: MOSim
+Title: What the Package Does (one line, title case)
+Version: 0.0.0.9000
+Authors@R: person("First", "Last", email = "first.last@example.com", role = c("aut", "cre"))
+Description: What the package does (one paragraph).
+Depends:
+    R (>= 3.2.3)
+License: What license is it under?
+LazyData: true
+Imports:
+    HiddenMarkov,
+    zoo,
+    methods,
+    matrixStats,
+    dplyr,
+    stringi
+Suggests:
+    testthat,
+    knitr,
+    rmarkdown,
+    BiocStyle
+Collate:
+    'AllClass.R'
+    'AllGeneric.R'
+    'Simulator.R'
+    'SimulatorRegion.R'
+    'ChIP-seq.R'
+    'DNase-seq.R'
+    'functions.R'
+    'Simulation.R'
+    'MOSim.R'
+    'RNA-seq.R'
+    'simulate_WGBS_functions.R'
+    'methyl-seq.R'
+    'miRNA-seq.R'
+    'zzz.R'
+RoxygenNote: 6.0.1
+VignetteBuilder: knitr

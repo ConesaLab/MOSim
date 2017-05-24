@@ -1,0 +1,2 @@
+#' @include Simulator.R
+NULL

@@ -1,0 +1,306 @@
+---
+title: "Introduction to MOSim"
+author: "Carlos Martínez"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to MOSim}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+MOSim is an integrative multi-omic simulator package that provides great flexibility and many options. Most of the time the advanced features of the package will not be required, hence why some helper methods were included to perform the most conventional usage.
+
+This vignette is divided in two blocks, one explaining the simpler usage using those mentioned convenience methods, and the other with more advanced usages employing directly the S4 classes.
+
+## Basic usage
+
+The simulation process requires two types of input, the omics to simulate and the experimental design to use.
+
+For the simulation algorithm to work, it needs to start from an initial dataset for each omic and, in case of regulators, include the association list with genes as well. In the event that none of that data is provided, the package includes default datasets that will be used. 
+
+The experimental design options are flexible, but there are some unavoidable limitations. To model differentially expressed genes, at least 2 groups must be present when no time series is considered, more information about this can be readed on the algorithm vignette.
+
+Aside from the experimental design, which could be considered as global simulation options shared by the whole process, each omic can have its own configuration parameters.
+
+With that in mind, there are 3 main functions to make it all easier.
+
+### Perform simulation: mosim
+
+The `mosim` function is the one that takes the input and performs the simulation internally. In its most basic usage example, it only requires the list of omics to simulate, leaving the other parameters with the default values.
+
+```{r load, echo=FALSE, eval=TRUE}
+    library(MOSim)
+```
+
+```{r code, echo=TRUE, eval=FALSE}
+    omic_list <- c("RNA-seq")
+
+    rnaseq_simulation <- mosim(omics = omic_list)
+```
+
+The `rnaseq_simulation` value will be a `Simulation` object that can be accessed in the way described later in this document.
+
+Continuing with that basic example, the `mosim` function algo accepts the parameters to control the experimental design. For instance, to simulate an scenario with 2 groups, 1 time point and 4 replicates, the code would be:
+
+```{r code2, echo=TRUE, eval=FALSE}
+    rnaseq_simulation <- mosim(omics = c("RNA-seq"),
+                               times = 0,
+                               numberGroups = 2,
+                               numberReps = 4)
+```
+
+As previously told, if we try to use invalid combinations, the program would stop the execution:
+
+```{r code3, echo=TRUE, eval=TRUE, include=TRUE, error=TRUE}
+    rnaseq_simulation <- mosim(omics = c("RNA-seq"),
+                               times = 0,
+                               numberGroups = 1,
+                               numberReps = 4)
+```
+
+To use more than one omic, it is enough to include it in the list. It should be noted that RNA-seq is mandatory, so if is not provided on the list it will be automatically included at the start of the simulation, so these two simulations would be equivalent:
+
+```{r code4, echo=TRUE, eval=FALSE}
+    multi_simulation <- mosim(omics = c("RNA-seq", "DNase-seq"),
+                               times = 0,
+                               numberGroups = 2,
+                               numberReps = 4)
+
+    dnase_simulation <- mosim(omics = c("DNase-seq"),
+                               times = 0,
+                               numberGroups = 2,
+                               numberReps = 4)
+```
+
+To configure each omic individually, there exists 2 other utility functions: `omicData` and `omicSim`.
+
+### Provide custom data: omicData
+
+As it was stated before, the simulation requires an initial counts dataset, using the default one if not provided. If possible, it is preferred to include a custom dataset of the species under study.
+
+One way to do it is to use `omicData`, providing a data frame with only one column named "Counts" and the omic identifiers used as rownames. For instance, starting with RNA-seq and just for illustration purposes, consider a subset of the data provided by the package as a custom dataset:
+
+```{r code5, echo=TRUE, eval=FALSE,cache=TRUE}
+    custom_rnaseq <- head(sampleData$SimRNAseq$data, 100)
+
+    # In this case, 'custom_rnaseq' is a data frame with
+    # the structure:
+    head(custom_rnaseq)
+    ##                    Counts
+    ## ENSMUSG00000000001   6572
+    ## ENSMUSG00000000003      0
+    ## ENSMUSG00000000028   4644
+    ## ENSMUSG00000000031      8
+    ## ENSMUSG00000000037      0
+    ## ENSMUSG00000000049      0
+    
+    rnaseq_customdata <- omicData("RNA-seq", data = custom_rnaseq)
+
+    rnaseq_simulation <- mosim(omics = list("RNA-seq" = rnaseq_customdata))
+
+```
+
+The result of `omicData` would be an initialized simulator object, that should be passed directly to the `mosim` function, by using the `omics` option passing a `list` like showed.
+
+RNA-seq constitutes an special case of omic because it do not require an association list, however for the rest of them, like DNase-seq, that list should be included along the custom dataset:
+
+```{r code6, echo=TRUE, eval=FALSE}
+    # Select a subset of the available data as a custom dataset
+    custom_dnaseseq <- head(sampleData$SimDNaseseq$data, 100)
+
+    # Create the association list only of those genes 
+    dnase_genes <- sampleData$SimDNaseseq$idToGene
+    dnase_genes <- dnase_genes[dnase_genes$ID %in% rownames(custom_dnaseseq), ]
+
+    # In this case, 'custom_dnaseseq' is a data frame with
+    # the structure:
+    head(custom_dnaseseq)
+    ##                       Counts
+    ## 1_63176480_63177113      513
+    ## 1_125435495_125436168   1058
+    ## 1_128319376_128319506     37
+    ## 1_139067124_139067654    235
+    ## 1_152305595_152305752    105
+    ## 1_172490322_172490824    290
+
+    # The association list 'dnase_genes' is another data frame
+    # with the structure:
+    head(dnase_genes)
+    ##                      ID               Gene
+    ## 29195 1_3670777_3670902 ENSMUSG00000051951
+    ## 29196 1_3873195_3873351 ENSMUSG00000089420
+    ## 29197 1_4332428_4332928 ENSMUSG00000025900
+    ## 29198 1_4346315_4346445 ENSMUSG00000025900
+    ## 29199 1_4416827_4416973 ENSMUSG00000025900
+    ## 29200 1_4516660_4516798 ENSMUSG00000096126
+  
+    dnaseseq_customdata <- omicData("DNase-seq", 
+                                    data = custom_dnaseseq,
+                                    associationList = dnase_genes)
+
+    multi_simulation <- mosim(omics = list("RNA-seq" = rnaseq_customdata,
+                                           "DNase-seq" = dnaseseq_customdata))
+```
+
+
+As seen, the association list should be a data frame with two columns named "ID" and "Gene", so the same ID can be repeated any number of times and affect multiple genes.
+
+
+### Tune omic settings: omicSim
+
+Ths function `omicSim` allows to provide individual configuration parameters to each of the omics in a straightforward way.
+
+Back to the first example using the default dataset, if we wanted to restrict the number of features, the code to use would be:
+
+```{r code7, echo=TRUE, eval=FALSE}
+    omic_list <- c("RNA-seq")
+
+    rnaseq_options <- omicSim("RNA-seq", totalFeatures = 2500)
+
+    rnaseq_simulation <- mosim(omics = omic_list,
+                               omicsOptions = rnaseq_options)
+```
+
+To use this function with multiple omics, it is enough to concatenate the outputs:
+
+```{r code8, echo=TRUE, eval=FALSE}
+
+    omics_list <- c("RNA-seq", "DNase-seq")
+    
+    omics_options <- c(omicSim("RNA-seq", totalFeatures = 2500),
+                       omicSim("DNase-seq", totalFeatures = 1500))
+    
+    multi_simulation <- mosim(omics = omics_list,
+                              omicsOptions = omics_options)
+```
+
+This function is compatible with simulators already initialized using `omicData`:
+
+```{r code9, echo=TRUE, eval=FALSE}
+    rnaseq_customdata <- omicData("RNA-seq", data = custom_rnaseq)
+    rnaseq_options <- omicSim("RNA-seq", totalFeatures = 100)
+
+    rnaseq_simulation <- mosim(omics = list("RNA-seq" = rnaseq_customdata),
+                               omicsOptions = rnaseq_options)
+```
+
+## Accessing the data: omicSettings and omicResults
+
+Once the simulation process has finished, there are two main types of data that should be retrieved; for one part the simulated counts for each omic, and for the other the settings used to generate those counts, for instance the genes marked as differentially expressed.
+
+To access the data matrices, mosim provides the function `omicResults`. Considering the object `multi_simulation` from the previous examples, it could be used as:
+
+```{r code10, echo=TRUE, eval=FALSE}
+    # multi_simulation is an object returned by mosim function.
+
+    # This will be a data frame with RNA-seq counts
+    rnaseq_simulated <- omicResults(multi_simulation, "RNA-seq")
+
+    # This wil be a list containing RNA-seq and DNase-seq counts
+    all_simulated <- omicResults(multi_simulation)
+```
+
+The other function, `omicSettings` returns a data frame will information specific to each omic (expression profiles, genes affected by a regulator...). Its use is pretty straighforward and similar to the previous one:
+
+```{r code10b, echo=TRUE, eval=FALSE}
+    # This will be a data frame with RNA-seq settings (DE flag, profiles)
+    rnaseq_settings <- omicSettings(multi_simulation, "RNA-seq")
+
+    # This wil be a list containing RNA-seq and DNase-seq settings
+    all_settings <- omicSettings(multi_simulation)
+```
+
+In case we also want to retrieve the association lists used, the parameter `association` must be set:
+
+```{r code10c, echo=TRUE, eval=FALSE}
+    # This will be a list with 2 keys: settings and association
+    dnase_settings <- omicSettings(multi_simulation, "DNAse-seq", association = TRUE)
+```
+
+## Advanced usage
+
+Most of the usual needs should be covered by the showed examples, so unless more customized settings are required this section can be skipped.
+
+### Custom noise function
+
+By default the noise function used is `rnorm`, with parameters `sd=0.3`. In case we want to use a different function, the parameters to change would be `noiseFunction` pointing to the definition of the function itself, and `noiseParams` to pass new parameters. Note that the function must accept a numeric parameter called `n`, which indicates the lenght of the numeric vector it should return:
+
+```{r code11, echo=TRUE, eval=FALSE}
+    
+    mynoise <- function(n, customparam) {
+        # Let's just call rnorm 
+        noise.output <- rnorm(n, sd = customparam)
+        
+        return(noise.output)
+    }
+
+    rnaseq_simulation <- mosim(omics = c("RNA-seq"),
+                               times = 0,
+                               numberGroups = 2,
+                               numberReps = 4,
+                               noiseFunction = mynoise,
+                               noiseParams = list("customparam" = 20)
+                               )
+```
+
+In the process of making replicates witht the negative binomial distribution, a certain noise is applied using by default the first parameter of `noiseParams` to simplify things. However, this value can be personalized just by simply including a `NB` element in the `noiseParams` list. This parameter will be ignored in the call to `noiseFunction`:
+
+```{r code12, echo=TRUE, eval=FALSE}
+    
+    # Custom NB noise value
+    rnaseq_simulation <- mosim(omics = c("RNA-seq"),
+                               times = 0,
+                               numberGroups = 2,
+                               numberReps = 4,
+                               noiseParams = list("NB" = 20)
+                               )
+```
+
+Vignettes are long form documentation commonly included in packages. Because they are part of the distribution of the package, they need to be as compact as possible. The `html_vignette` output type provides a custom style sheet (and tweaks some options) to ensure that the resulting html is as small as possible. The `html_vignette` format:
+
+- Never uses retina figures
+- Has a smaller default figure size
+- Uses a custom CSS stylesheet instead of the default Twitter Bootstrap style
+
+## Vignette Info
+
+Note the various macros within the `vignette` section of the metadata block above. These are required in order to instruct R how to build the vignette. Note that you should change the `title` field and the `\VignetteIndexEntry` to match the title of your vignette.
+
+## Styles
+
+The `html_vignette` template includes a basic CSS theme. To override this theme you can specify your own CSS in the document metadata as follows:
+
+    output: 
+      rmarkdown::html_vignette:
+        css: mystyles.css
+
+## Figures
+
+The figure sizes have been customised so that you can easily put two images side-by-side. 
+
+```{r, fig.show='hold'}
+plot(1:10)
+plot(10:1)
+```
+
+You can enable figure captions by `fig_caption: yes` in YAML:
+
+    output:
+      rmarkdown::html_vignette:
+        fig_caption: yes
+
+Then you can use the chunk option `fig.cap = "Your figure caption."` in **knitr**.
+
+## More Examples
+
+You can write math expressions, e.g. $Y = X\beta + \epsilon$, footnotes^[A footnote here.], and tables, e.g. using `knitr::kable()`.
+
+```{r, echo=FALSE, results='asis'}
+knitr::kable(head(mtcars, 10))
+```
+
+Also a quote using `>`:
+
+> "He who gives up [code] safety for [code] speed deserves neither."
+([via](https://twitter.com/hadleywickham/status/504368538874703872))
