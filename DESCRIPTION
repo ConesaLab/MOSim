@@ -13,7 +13,12 @@ Imports:
     methods,
     matrixStats,
     dplyr,
-    stringi
+    stringi,
+    pbapply,
+    glmnet,
+    igraph,
+    MASS,
+    parallel
 Suggests:
     testthat,
     knitr,
@@ -27,6 +32,7 @@ Collate:
     'ChIP-seq.R'
     'ComputeGLM_function.R'
     'DNase-seq.R'
+    'auxFunctions.R'
     'MORE_GLM.R'
     'functions.R'
     'Simulation.R'

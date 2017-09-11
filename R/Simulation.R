@@ -1,4 +1,5 @@
 #' @include Simulator.R functions.R
+#' @import lazyeval
 NULL
 
 #' @rdname initialize-methods
@@ -38,17 +39,23 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
 
             return(sim)
         }, sim = .Object@simulators, data = sampleData[names(.Object@simulators)], SIMPLIFY = FALSE)
+
+        if (! is.null(.Object@TFtoGene)) {
+            .Object@TFtoGene <- sampleData$SimRNAseq$TFtoGene
+        }
     }
 
     # Set random number generator seed
-    set.seed(.Object@randomSeed)
+    # TODO: enable this again
+    # set.seed(.Object@randomSeed)
 
     # Inherited params from simulation
     inheritParams <- list(
         "noiseFunction",
         "noiseParams",
         "depth",
-        "minQuantile"
+        "minMaxQuantile"
+        # "replicateParams" TODO: revert this
         )
 
     # Initialize simulators
@@ -96,7 +103,7 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
     # .Object@exprGenes <- sum(.Object@simulators[['SimRNAseq']]@data$Counts > 0)
     # .Object@exprGenes <- min(.Object@totalGenes, .Object@exprGenes)
     # .Object@diffGenes <- round(.Object@exprGenes * min(.Object@diffGenes, 1))
-    .Object@diffGenes <- round(.Object@totalGenes * min(.Object@diffGenes, 1))
+    .Object@diffGenes <- round(.Object@totalGenes * min(.Object@diffGenes, 0.99))
 
     # Print settings
     simSettings(.Object)
@@ -115,12 +122,40 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
             profileProbs <- replace(profileProbs, profileOptions != 'flat', 0)
         }
 
-        # Assign random gene names to DE
-        sampleDE <- sample(
-            .Object@geneNames,
-            size = .Object@diffGenes,
-            replace = FALSE
+        # If we consider the TF, force that at least 85% of them to be DE
+        if (! is.null(.Object@TFtoGene)) {
+            # Rename columns
+            colnames(.Object@TFtoGene) <- c("Symbol", "TFgene", "LinkedGene")
+
+            # Exclude those not present on gene expression data
+            .Object@TFtoGene <- dplyr::filter(.Object@TFtoGene,
+                                              TFgene %in% .Object@geneNames)
+
+
+            # TF to be DE
+            allGeneTF <- unique(.Object@TFtoGene$TFgene)
+
+            sampleDE <- sample(as.character(allGeneTF),
+                               size = min(round(length(allGeneTF) * 0.85), .Object@diffGenes),
+                               replace = FALSE)
+
+            numDiffGenes <- .Object@diffGenes - length(sampleDE)
+
+            if (numDiffGenes) {
+                sampleDE <- c(sampleDE, sample(
+                    setdiff(.Object@geneNames, sampleDE),
+                    size = numDiffGenes,
+                    replace = FALSE
+                ))
+            }
+        } else {
+            # Assign random gene names to DE
+            sampleDE <- sample(
+                .Object@geneNames,
+                size = .Object@diffGenes,
+                replace = FALSE
             )
+        }
 
         # Assign random gene names to NonDE
         # sampleNonDE <- sample(
@@ -161,7 +196,7 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
                         )
                     ), stringsAsFactors = FALSE)
             else
-                data.frame()
+                stop("There are no DEG profiles available, please increase the amount of DE genes.")
 
         # Randomly assign a profile to every NonDE
         # profilesNonDE <-
@@ -176,22 +211,24 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
         #         data.frame()
 
         profilesNonDE <-
-            if (.Object@totalGenes > .Object@diffGenes)
+            if (length(sampleNonDE))
                 data.frame(
                     ID = sampleNonDE,
                     DE = FALSE,
                     replicate(.Object@numberGroups,
-                              rep('flat', times = .Object@totalGenes - .Object@diffGenes)),
+                              rep('flat', times = length(sampleNonDE))),
                     stringsAsFactors = FALSE)
             else
-                data.frame()
+                stop("There are no non-DEG profiles available, please reduce the amount of DE genes.")
 
         # Set correct colnames
         # Important: pattern "Group[n]" is used to subset with dplyr later
         colNames <- paste0("Group", 1:.Object@numberGroups)
 
         # Symbols needed to split the DF by dplyr
-        dplyrGroup <- c(as.symbol("Effect"), lapply(colNames, as.symbol))
+        # dplyrGroup <- c(as.symbol("Effect"), lapply(colNames, as.symbol))
+        # TODO: why was Effect included in the first place? WHY????!
+        dplyrGroup <- lapply(colNames, as.symbol)
 
         colnames(profilesDE) <- colnames(profilesNonDE) <- c("ID", "DE", colNames)
 
@@ -211,7 +248,7 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
 
             # Skip the process
             if (! nrow(regTable))
-                stop(sprintf("No genes were retrieved from the association list for %s, be sure to provide the correct list."))
+                stop(sprintf("No genes were retrieved from the association list for %s, be sure to provide the correct table.", sim@name))
 
             # Randomly assign an effect to every regulator from the available
             # options defined on every simulator.
@@ -221,9 +258,11 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
                 replace = TRUE
             )
 
-            # Set non-DE expressed or non-expressed genes to <NA>
-            # TODO: same treatment for expressed/non-expressed genes?
+            # Set non-DEG to <NA>
             regTable <- dplyr::mutate(regTable, Effect = replace(Effect, ! Gene %in% sampleDE, NA))
+
+            # Copy the effect to each group
+            regTable[, paste0("Effect.Group", seq(.Object@numberGroups))] <- regTable[, rep("Effect", times =.Object@numberGroups)]
 
             # Allow simulator class to adjust the generated profiles
             # (i.e. methyation using blocks)
@@ -241,34 +280,128 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
             message("- Linking to gene classes...")
 
             if (any(regDupsDE)) {
-                regTable[regDupsDE, ] <- dplyr::group_by(regTable[regDupsDE, ], ID) %>% dplyr::do({
-                    # Select classes of the genes associated with the regulator
-                    # regGenes <- dplyr::semi_join(profilesDE, ., by = c("ID" = "Gene")) %>% dplyr::select(-DE)
-                    # Note: dplyr renames the unneeded ID column of "." to ID.y
-                    regGenes <- dplyr::inner_join(profilesDE, ., by = c("ID" = "Gene")) %>% dplyr::select(-DE, -ID.y)
+                # Reset effect on the duplicated DE
+                regTable[regDupsDE, c("Effect")] <- NA
 
-                    # Split by class and count number of genes on each one.
-                    #
-                    # I.e. 3 conditions:
-                    # induction - induction - repression: X rows
-                    # induction - induction - induction: Y rows
-                    classSplit <-
-                        dplyr::group_by_(regGenes, .dots = dplyrGroup)
+                classifyDups <- function(profileGroup) {
+                    # Assign the regulator effect on the selected class
+                    selEffect <- sample(sim@regulatorEffect, 1)
+                    revEffect <- setdiff(c("enhancer", "repressor"), selEffect)
 
-                    # Select genes of the majoritary class, or one at random in case
-                    # of tie.
-                    #
-                    # Force sampling options to character to prevent a seq when there
-                    # is only a result.
-                    groupSizes <- dplyr::group_size(classSplit)
-                    tieIndexes <- as.character(which(groupSizes == max(groupSizes)))
+                    # Skip the process when there is only one row (regulators affects more than 1 gene
+                    # but the others have been classified has non-DE)
+                    if (nrow(profileGroup) > 1) {
+                        # Select classes of the genes associated with the regulator
+                        # regGenes <- dplyr::semi_join(profilesDE, ., by = c("ID" = "Gene")) %>% dplyr::select(-DE)
+                        # Note: dplyr renames the unneeded ID column of "." to ID.y
+                        regGenes <- dplyr::inner_join(profilesDE, profileGroup, by = c("ID" = "Gene")) %>%
+                            dplyr::select(-DE, -ID.y, -Effect)
+                        regGenes <- regGenes[, - grep("Effect.Group", colnames(regGenes))]
 
-                    selGenes <- dplyr::slice(regGenes,
-                                             which(dplyr::group_indices(classSplit) == sample(tieIndexes, 1)))$ID
+                        # Split by class and count number of genes on each one.
+                        #
+                        # I.e. 3 conditions:
+                        # induction - induction - repression: X rows
+                        # induction - induction - induction: Y rows
+                        classSplit <-
+                            dplyr::group_by_(regGenes, .dots = dplyrGroup)
 
-                    # Set to <NA> those genes not included in the primary class
-                    return(dplyr::mutate(., Effect = replace(Effect, ! Gene %in% selGenes, NA)))
-                })
+                        # Select genes of the majoritary class, or one at random in case
+                        # of tie.
+                        #
+                        # Force sampling options to character to prevent a seq when there
+                        # is only a result.
+                        groupSizes <- dplyr::group_size(classSplit)
+
+                        # If there is only 1 groupSize, skip the process
+                        if (length(groupSizes) > 1) {
+                            tieIndexes <- as.character(which(groupSizes == max(groupSizes)))
+
+                            selGroup <- dplyr::slice(regGenes,
+                                                     which(dplyr::group_indices(classSplit) == sample(tieIndexes, 1)))
+
+                            selGenes <- selGroup$ID
+
+                            # Retrieve the genes that have a totally opposite behaviour in all
+                            # groups, so the contrary effect can be assigned.
+                            # revClass <- paste(
+                            #     stri_replace_all_fixed(
+                            #         selGroup[1, -1], # Remove ID column
+                            #         c(".induction", ".repression", "*"),
+                            #         c("*repression", "*induction", "."),
+                            #         vectorize_all = FALSE
+                            #     ), collapse=" ")
+
+                            # revClass <-
+                            #     stri_replace_all_fixed(
+                            #         selGroup[1, -1], # Remove ID column
+                            #         c(".induction", ".repression", "*"),
+                            #         c("*repression", "*induction", "."),
+                            #         vectorize_all = FALSE
+                            #     )
+
+                            # Retrieve gene IDS with the opposite pattern (considering all groups)
+                            # revIDs <- dplyr::mutate_(regGenes,
+                            #                          Paste = lazyeval::make_call(quote(paste),
+                            #                                                      lazyeval::as.lazy_dots(dplyrGroup))) %>%
+                            #     dplyr::filter(Paste == revClass, ! ID %in% selGenes) %>%
+                            #     dplyr::select(ID) %>% unlist()ENSMUSG00000028127
+
+                            # Save profile info (remove ID column)
+                            groupCols <- regGenes[, - 1]
+
+                            # Append new columns with associated effect
+                            # Add column of effect in Group <i>
+                            matchTable <- match(regGenes$ID, profileGroup$Gene)
+
+                            for (i in seq(.Object@numberGroups)) {
+                                # Opposite class for this group
+                                revClass <- stri_replace_all_fixed(
+                                    selGroup[1, i + 1], # Skip ID column
+                                    c(".induction", ".repression", "*"),
+                                    c("*repression", "*induction", "."),
+                                    vectorize_all = FALSE
+                                )
+
+                                profileGroup[matchTable, paste0("Effect.Group", i)] <- ifelse(
+                                    # Check if group is the same as the selected class in this group
+                                    groupCols[, i] == as.character(selGroup[1, i + 1]),
+                                    # If that is the case, choose selected effect
+                                    selEffect,
+                                    # If not, check if it has the opposite profile
+                                    ifelse(
+                                        groupCols[, i] == revClass,
+                                        # If it has the opposite profile, assign the contrary effect
+                                        revEffect,
+                                        # If not, assign an NA
+                                        NA
+                                    )
+                                )
+                            }
+
+                            #if (length(revIDs)) browser()
+                            # Set to <NA> those genes not included in the primary class unless they have a totally opposite
+                            # behaviour.
+                            # The column "Effect" will be the one used to model the profile of the regulator, whereas "Effect.Linked"
+                            # should be the final one returned in settings, as it reflects the real "correlation" with gene expression.
+                            # return(dplyr::mutate(.,
+                            #                      Effect.Linked =  ifelse(Gene %in% selGenes, selEffect,
+                            #                                          ifelse(Gene %in% revIDs, revEffect, NA)),
+                            #                      Effect = ifelse(Gene %in% selGenes, selEffect, NA)))
+
+                            # Return value
+                            return(dplyr::mutate(profileGroup, Effect = ifelse(Gene %in% selGenes, selEffect, NA)))
+                        }
+                    }
+
+                    # Add N groups Effect.Group
+                    profileGroup[, paste0("Effect.Group", seq(.Object@numberGroups))] <- selEffect
+
+                    # Return value
+                    return(dplyr::mutate(profileGroup, Effect = selEffect))
+                }
+
+                regTable[regDupsDE, ] <- dplyr::group_by(regTable[regDupsDE, ], ID) %>% dplyr::do(classifyDups(.))
             }
 
             message("- Adjusting regulator effect")
@@ -284,9 +417,29 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
             # a 'regex' criteria (starts_with). Prevent this by selecting only those when they
             # are truly present.
             if (any(startsWith(colnames(condTable), "Keep."))) {
-                subCondTable <- dplyr::select(condTable, ID, Gene, Effect, dplyr::starts_with("Keep."))
+                subCondTable <- dplyr::select(condTable, ID, Gene, Effect, dplyr::starts_with("Effect.Group"), dplyr::starts_with("Keep."))
             } else {
-                subCondTable <- dplyr::select(condTable, ID, Gene, Effect)
+                subCondTable <- dplyr::select(condTable, ID, Gene, Effect, dplyr::starts_with("Effect.Group"))
+            }
+
+            # Add those regulators not associated with any gene
+            allIds <- rownames(sim@data)
+
+            if (! sim@pregenerated) {
+                notInTable <- allIds[!allIds %in% condTable$ID]
+
+                subCondTable <- dplyr::bind_rows(subCondTable, data.frame(ID = notInTable))
+                condTable <- dplyr::bind_rows(condTable, data.frame(ID = notInTable))
+            } else {
+                # TODO: we assume that Keeps.* is the one including the original ID like methyl-seq simulator
+                colID <- colnames(regTable)[grep("Keep.", colnames(regTable))]
+
+                notInTable <- dplyr::select(dplyr::ungroup(regTable), "ID", colID)
+
+                notInTable <- notInTable[! as.character(notInTable[, colID]) %in% as.character(condTable[, colID]), ]
+
+                subCondTable <- dplyr::bind_rows(subCondTable, notInTable)
+                condTable <- dplyr::bind_rows(condTable, notInTable)
             }
 
             # Modify the profile of every condition based on the regulator effect
@@ -352,13 +505,15 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
             sameCond <- apply(apply(dplyr::select(profilesDE, dplyr::starts_with("Group")), 2, '==', 'flat'), 1, all)
 
             # NULL by default
-            profilesReg$FlatGroups <- NULL
+            # profilesReg$FlatGroups <- NULL
+
+            FlatRNAseq <- NULL
 
             if ((nSameCount <- sum(sameCond))) {
                 message(sprintf("Creating settings to change count values on %d DE genes with the same flat profile on all groups.", nSameCount))
 
-                # Select ID, Group1-GroupN
-                sameCondDE <- t(apply(profilesDE[sameCond, -c(2)], 1, function(geneRow) {
+                # Select ID, Group1-GroupN (remove DE -2nd- column)
+                sameCondDE <- t(apply(profilesDE[sameCond, -c(2), drop = FALSE], 1, function(geneRow) {
                     # TODO: consider DE as one gene that changes in one condition compared to any of the others,
                     # or just consider the fist group as a reference?
                     #
@@ -379,8 +534,24 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
                     return(geneRow)
                 }))
 
-                profilesReg$FlatGroups <- data.frame(sameCondDE, stringsAsFactors = FALSE)
+                # profilesReg$FlatGroups <- data.frame(sameCondDE, stringsAsFactors = FALSE)
+                FlatRNAseq <- data.frame(sameCondDE, stringsAsFactors = FALSE)
             }
+
+            # Generate "FlatGroup" list for each regulator
+            profilesReg$FlatGroups <- lapply(.Object@simulators[names(.Object@simulators) != 'SimRNAseq'], function(regulator) {
+                # Skip if there aren't any flat DEG genes in gene expression
+                if (is.null(FlatRNAseq))
+                    return(NULL)
+
+                profileSubsetID <- dplyr::rename(FlatRNAseq, Gene = ID) %>%
+                    dplyr::inner_join(profilesReg[[class(regulator)]][, c('ID', 'Effect', 'Gene')], by = c("Gene" = "Gene")) %>%
+                    dplyr::filter(! is.na(Effect)) %>% dplyr::select(ID)
+
+                return(profileSubsetID)
+            })
+
+            profilesReg$FlatGroups$SimRNAseq <- FlatRNAseq
         }
 
         # Resolve references of profiles to proper values
@@ -438,6 +609,132 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
 #' @aliases simulate,Simulation
 setMethod("simulate", signature="Simulation", function(object) {
     object@simulators <- sapply(object@simulators, simulate, object)
+
+    # TODO: as a special-case omic, keep it here or move to a proper location?
+    # Return TF <-> gene data
+    if (! is.null(object@TFtoGene) && nrow(object@TFtoGene)) {
+
+        tableTF <- object@TFtoGene
+
+        # TF data (symbol -> geneTF)
+        # Select only genes present in data
+        expression.data <- object@simulators$SimRNAseq@simData
+        expression.settings <- object@simSettings$geneProfiles$SimRNAseq
+        expression.settings.flat <- object@simSettings$geneProfiles$FlatGroups$SimRNAseq
+
+        tableTF.data <- unique(tableTF[, c("Symbol", "TFgene")])
+
+        # Select the proper rows and change the rownames
+        simDataTF <- expression.data[tableTF.data$TFgene, ]
+        rownames(simDataTF) <- tableTF.data$Symbol
+
+        # Generate the association
+
+        # Symbol | LinkedGene | Effect | Effect.Group1 | ... | Effect.GroupX | Group1 | ... | GroupX
+        message("Generating settings for TF based on gene expression settings...")
+
+        settingsTF <- dplyr::inner_join(tableTF, expression.settings, by = c("TFgene" = "ID")) %>%
+            dplyr::inner_join(expression.settings, by = c("LinkedGene" = "ID"), suffix = c(".TF", ".Gene")) %>%
+            dplyr::left_join(expression.settings.flat, by = c("TFgene" = "ID")) %>%
+            dplyr::left_join(expression.settings.flat, by = c("LinkedGene" = "ID"), suffix = c(".FlatTF", ".FlatGene")) %>%
+            dplyr::select(ID = Symbol, Gene = LinkedGene, DE.TF, DE.Gene, starts_with("Group")) %>%
+            dplyr::mutate(Effect = NA)
+
+        # Check effect for every group
+        for (i in seq(object@numberGroups)) {
+
+            # TF profile in this group
+            TFprofile <- as.character(settingsTF[, sprintf("Group%d.TF", i)])
+
+            # Linked genes profiles in this group
+            GeneProfile <- as.character(settingsTF[, sprintf("Group%d.Gene", i)])
+
+            # FLAT TF profile in this group
+            flatTFprofile <- as.character(settingsTF[, sprintf("Group%d.FlatTF", i)])
+
+            # FLAT Linked genes profiles in this group
+            flatGeneProfile <- as.character(settingsTF[, sprintf("Group%d.FlatGene", i)])
+
+            # Opposite effect of linked genes
+            GeneProfile.rev <- stri_replace_all_fixed(
+                GeneProfile,
+                c(".induction", ".repression", "*"),
+                c("*repression", "*induction", "."),
+                vectorize_all = FALSE
+            )
+
+            # Assign the effect in the group
+            settingsTF[, sprintf("Effect.Group%d", i)] <- ifelse(
+                # For a proper effect, both genes (regulator and regulated)
+                # must be DE
+                ! (settingsTF$DE.TF & settingsTF$DE.Gene),
+                NA,
+                ifelse(
+                    # If none of the genes are DE flat, check normally
+                    (is.na(flatTFprofile) & is.na(flatGeneProfile)),
+                    ifelse(
+                        TFprofile == GeneProfile,
+                        "enhancer",
+                        ifelse(
+                            TFprofile == GeneProfile.rev,
+                            "repressor",
+                            NA
+                        )
+                    ),
+                    # If both genes are flat, check if the effect in the
+                    # group is the same or not. Otherwise if one is flat
+                    # and the other not, assign NA
+                    ifelse(
+                        # Both genes DE flat and the effect in the group is different than flat (that is,
+                        # it does not change the original counts in that group, that is kept as reference)
+                        ((! is.na(flatTFprofile)) & (! is.na(flatGeneProfile))) & flatTFprofile != "flat",
+                        ifelse(
+                            flatTFprofile == flatGeneProfile,
+                            "enhancer",
+                            "repressor"
+                        ),
+                        NA
+                    )
+                )
+            )
+
+            # For flat-flat profiles we also need to check the effect
+            # in each group
+
+            # Override the global "Effect" column if it has any effect
+            settingsTF[, "Effect"] <- ifelse(
+                is.na(settingsTF[, "Effect"]),
+                      settingsTF[, sprintf("Effect.Group%d", i)],
+                      settingsTF[, "Effect"]
+            )
+        }
+
+        # Assign an effect
+        settingsTF <- dplyr::select(settingsTF,
+                                    ID, Gene, Effect,
+                                    dplyr::starts_with("Effect"),
+                                    dplyr::ends_with(".TF"))
+
+        # Rename columns
+        colnames(settingsTF) <- gsub(".TF", "", colnames(settingsTF))
+
+        # Assign to the simulation object
+        object@simSettings$geneProfiles$SimTF <- settingsTF
+
+        # Clone the RNA-seq simulator then override some params
+        TFobject <- object@simulators$SimRNAseq
+
+        TFobject@idToGene <- tableTF[, c("Symbol", "LinkedGene")]
+        colnames(TFobject@idToGene) <- c("ID", "Gene")
+
+        TFobject@simData <- simDataTF
+        TFobject@name <- "TF"
+        TFobject@regulator <- TRUE
+
+        class(TFobject) <- "SimTF"
+
+        object@simulators$SimTF <- TFobject
+    }
 
     return(object)
 })

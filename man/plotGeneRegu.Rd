@@ -6,7 +6,8 @@
 \usage{
 plotGeneRegu(x.points, geneValues, reguValues, geneErrorValues, reguErrorValues,
   col = c(1, 2), xlab = "", yylab = c("right", "left"), pch = c(16, 17),
-  main = "", numLines = 0, x.names = NULL, yleftlim, yrightlim)
+  main = "", numLines = 0, x.names = NULL, yleftlim, yrightlim,
+  condi1 = NULL, condi2)
 }
 \arguments{
 \item{yrightlim}{}

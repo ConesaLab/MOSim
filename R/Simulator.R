@@ -14,6 +14,11 @@ setMethod("initialize", signature="Simulator", function(.Object, ...) {
     .Object@idToGene[] <- lapply(.Object@idToGene, as.character)
     .Object@data[] <- lapply(.Object@data, as.numeric)
 
+    # Remove those rownames not present on idToGene association list
+    # if (.Object@regulator) {
+    #     .Object@data <- .Object@data[rownames(.Object@data) %in% .Object@idToGene$ID, ]
+    # }
+
     # # If required, adjust the total number of features to simulate on every omic
     # # sim@totalFeatures <- min(nrow(sim@data), sim@totalFeatures)
     # # TODO: if the object is already initialized this will not be changed
@@ -53,17 +58,177 @@ setMethod("initializeData", signature="Simulator", function(object, simulation) 
 
     # Set min/max values based on provided data
     # TODO: calculate this AFTER adjusting the total number of features to simulate?
-    if (is.declared(object@data)) {
-        object@min <- min(object@data)
-        object@max <- max(object@data)
-
-        dataPerc <- quantile(object@data$Counts, object@minQuantile)
-
-        # Minimum value to change when simulating data
-        # TODO: this does not use indexes anymore but numeric positions instead
-        object@increment <- (dataPerc[2] - dataPerc[1]) * 0.1
+    if (! is.declared(object@data)) {
+        stop(sprintf("Data not declared on simulator %s.", object@name))
     }
 
+    # Adjust counts to depth
+    object@data$Counts <- object@depth * object@data$Counts / sum(object@data$Counts)
+
+    object@min <- min(object@data)
+    object@max <- max(object@data)
+
+    # if (any(object@minMaxQuantile > 0)) {
+    #     dataPerc <- quantile(object@data$Counts, object@minQuantile)
+    #
+    #     # Minimum value to change when simulating data
+    #     # TODO: this does not use indexes anymore but numeric positions instead
+    #     object@increment <- (dataPerc[2] - dataPerc[1]) * 0.1
+    # }
+    dataPerc <- quantile(object@data$Counts, object@minMaxQuantile)
+
+    # TODO: for flat genes, override
+    dataPerc <- quantile(object@data[object@data > 0], object@minMaxQuantile)
+
+    # TODO: this might fail when data does have more than one column (pregenerated?)
+    object@minMaxDist <- list(
+        "min" = dataPerc[1],
+        "max" = dataPerc[2]
+    )
+
+    # Generate a random counts series
+
+
+    # Set to 0 the same amount as in the original data
+    # excluding the DEG
+    # nonExprNumber <- object@data[object@data < 5]
+    #
+    # indexSample <- setdiff(
+    #     seq_along(object@data),
+    #     match(simulation@simSettings$geneSamples$DE, rownames(object@data))
+    # )
+    omicSettings <- simulation@simSettings$geneProfiles[[class(object)]]
+
+    if (object@regulator) {
+        featuresDE <- unique(dplyr::filter(omicSettings, ! is.na(Effect))$ID)
+    } else {
+        featuresDE <- unique(dplyr::filter(omicSettings, DE == TRUE)$ID)
+    }
+
+    features.Flat <- simulation@simSettings$geneProfiles$FlatGroups[[class(object)]]$ID
+
+    featuresDE.notFlat <- setdiff(featuresDE, features.Flat)
+
+    featuresNONDE <- setdiff(rownames(object@data), featuresDE)
+
+    # geneDE.index <- match(geneDE.notFlat, rownames(object@data))
+    # geneNONDE.index <- match(geneNONDE, rownames(object@data))
+
+    # TODO: if we keep the "min.diff" (see below) this code might be redundant.
+    # Remove it or leave it (as it swaps positions with DE so it may keep the "density" more
+    # similar to the original data)
+    minDE.value <- quantile(object@data[object@data > 0], c(0.3))
+
+    #
+    # object@randData[sample(indexSample, min(nonExprNumber, length(indexSample)))] <- 0
+
+    # # TODO: remove this
+    # object@randData <- object@data[sample(rownames(object@data)),]
+
+    kdeOrgData <- density(object@data$Counts, n = length(unique(object@data$Counts)))
+
+    # Avoid negative probs
+    # kdeProbs <- replace(kdeOrgData$y, kdeOrgData$y < 0, 0)
+
+    # TODO: when nrow(data) > range of values in x (should be impossible... but who knows) sample will presumably fail
+    object@randData <- sample(kdeOrgData$x, nrow(object@data), replace = TRUE, prob = kdeOrgData$y)
+    # object@randData <- runif(nrow(object@data),
+    #                          min = object@minMaxDist$min,
+    #                          max = object@minMaxDist$max)
+    names(object@randData) <- rownames(object@data)
+
+    # Replace negative values with 0
+    object@randData[object@randData < 0] <- 0
+
+    # Adjust randomCounts to depth
+    object@randData <- object@depth * object@randData / sum(object@randData)
+
+    # Determine which DE non-flat genes have been assigned a non-expressed status AND have an original
+    # value lower than that, then swap their values with non-DE genes
+    minDEassignments <- names(object@randData)[object@randData < minDE.value] # Keep IDS from randomCounts separate
+    minDEassignments.org <- rownames(object@data)[object@data$Counts < minDE.value]
+
+    badAssignmentDE <- featuresDE.notFlat[featuresDE.notFlat %in% intersect(minDEassignments, minDEassignments.org)]
+    goodAssignmentNONDE <- featuresNONDE[! featuresNONDE %in% minDEassignments]
+# browser()
+    # TODO: what to do when there are not enough IDS to swap
+    if (length(badAssignmentDE) && length(goodAssignmentNONDE)) {
+
+        # Select non-DE IDs to swap. Select the maximum amount available
+        swapID <- sample(as.character(goodAssignmentNONDE),
+                       size = min(length(badAssignmentDE), length(goodAssignmentNONDE)),
+                       replace = FALSE)
+
+        # Take a sample to replace
+        swapID.bad <- sample(as.character(badAssignmentDE),
+                             size = length(swapID),
+                             replace = FALSE)
+
+        swapValues <- object@randData[swapID]
+
+        object@randData[swapID] <- object@randData[swapID.bad]
+        object@randData[swapID.bad] <- swapValues
+
+        # Update bad assignments
+        badAssignmentDE <- setdiff(badAssignmentDE, swapID.bad)
+    }
+
+    # In case there are still bad "DE" cases with too low amount of counts,
+    # replace the random ones with a proper number
+    if (length(badAssignmentDE)) {
+        object@randData[badAssignmentDE] <- rnorm(n = length(badAssignmentDE),
+                                                  mean = minDE.value,
+                                                  sd = 1)
+    }
+
+    # TODO: remove this temp mod
+    random.M <- pmax(object@randData, object@data$Counts)
+    random.m <- pmin(object@randData, object@data$Counts)
+
+    nonzero.org.counts <- object@data[object@data > 0]
+
+    max.diff <- quantile(nonzero.org.counts, c(0.9))
+    min.diff <- quantile(nonzero.org.counts, c(0.3))
+
+    # For flat DEG genes in all groups
+    min.diff.flat <- quantile(nonzero.org.counts, c(0.8))
+    max.diff.flat <- quantile(nonzero.org.counts, c(0.99))
+
+    diff.M <- random.M - random.m
+
+    index.DE <- names(object@randData) %in% featuresDE.notFlat
+
+    # Maximum difference between M and m
+    index.match <- (diff.M > max.diff & index.DE)
+    # Minimum difference between M and m
+    index.min.match <- (diff.M < min.diff & index.DE)
+
+    diff.mask <- (object@randData > object@data$Counts)
+
+
+    # Limit max diffs
+    object@randData[index.match] <- ifelse(diff.mask[index.match],
+                                           # rnorm(length(index.match), mean = max.diff, sd = 0.5),
+                                           object@randData[index.match] - (diff.M[index.match] - max.diff),
+                                           object@randData[index.match] + (diff.M[index.match] - max.diff))
+
+    # Limit min diffs
+    # TODO: when substracting the diff it could be under 0 so it will not assure a "minDE" diff.
+    # Try with this to see how it behaves.
+    object@randData[index.min.match] <- ifelse(diff.mask[index.min.match],
+                                           # rnorm(length(index.match), mean = max.diff, sd = 0.5),
+                                           object@randData[index.min.match] + (min.diff - diff.M[index.min.match]),
+                                           object@randData[index.min.match] - (min.diff - diff.M[index.min.match]))
+
+    # TODO: remove this?
+    # Re-adjust to deptp after changes?
+    # object@randData <- object@depth * object@randData / sum(object@randData)
+
+
+    # filt1 <- sum(object@data[dePos,] == 0)
+    # filt2 <- sum(object@randData[dePos] == 0)
+    # filt3 <- sum(object@data[dePos,] == 0 & object@randData[dePos] == 0)
+    # message(sprintf("Hay %d en originales y %d en random [%d]", filt1, filt2, filt3))
 
     # Clone the base counts for every group
     if (ncol(object@data) < simulation@numberGroups) {
@@ -73,13 +238,18 @@ setMethod("initializeData", signature="Simulator", function(object, simulation) 
     # Important: column names pattern "Counts.Group" is required .
     colnames(object@data) <- paste('Counts.Group', seq(simulation@numberGroups))
 
-    if (! is.null(flatProfiles <- simulation@simSettings$geneProfiles$FlatGroups)) {
+    if (! is.null(flatProfiles <- simulation@simSettings$geneProfiles$FlatGroups$SimRNAseq)) {
 
         # Structure: Gene_ID | Group_1 | ... | Group_N
         # onlyFlat <- (length(simulation@times) > 1)
 
         # Count range to exclude comparing with the reference (group 1)
         excludeMargin <- 10
+
+        # Match positions
+        # TODO: remove this, randData now has names.
+        # TODO: add min/max.diff.de as in regulators
+        flatIndexes <- match(flatProfiles$ID, rownames(object@data))
 
         # Different treatments between RNA-seq and the rest of simulators
         if ( ! object@regulator) {
@@ -88,9 +258,11 @@ setMethod("initializeData", signature="Simulator", function(object, simulation) 
 
             # Iterate over the rows on a unique matrix with the structure:
             # Gene_ID | Profile_Group_1 | ... | Counts_Group_1 | ...
-            object@data[flatProfiles$ID, ] <- t(apply(cbind(flatProfiles, object@data[flatProfiles$ID, ]), 1, function(idRow) {
+            # TODO: change to data instead of randData?
+            # object@data[flatIndexes, ] <- t(apply(cbind(flatProfiles, object@randData[flatIndexes]), 1, function(idRow) {
+            object@data[flatIndexes, ] <- t(apply(cbind(flatProfiles, object@data[flatIndexes, ]), 1, function(idRow) {
                 # Types of profiles (exclude first column)
-                idProfiles <- idRow[seq(2, length.out = simulation@numberGroups)]
+                idProfiles <- as.character(idRow[seq(2, length.out = simulation@numberGroups)])
                 # Count values (columns after profiles)
                 idCounts <- as.numeric(idRow[seq(simulation@numberGroups + 2, length.out = simulation@numberGroups)])
 
@@ -101,10 +273,19 @@ setMethod("initializeData", signature="Simulator", function(object, simulation) 
                        ifelse(idProfiles == 'enhancer',
                               # If the profile is enhancer, generate a new count value in the range
                               # (actual_value + excludeMargin) to maxValue
-                              rep.int(runif(1, min = min(idCounts[1] + excludeMargin, object@max), max = object@max), simulation@numberGroups),
+                              rep.int(runif(1,
+                                            min = min(idCounts[1] + excludeMargin + min.diff.flat, object@max), #object@minMaxDist$max),
+                                            max = min(idCounts[1] + excludeMargin + max.diff.flat, object@max)),
+                                            # max = object@minMaxDist$max),
+                                      simulation@numberGroups),
                               # If the profile is repressor, generate a new count value in the range
                               # minValue to (actual_value - excludeMargin)
-                              rep.int(runif(1, min = object@min, max = max(idCounts[1] - excludeMargin, object@min)), simulation@numberGroups)
+                              rep.int(runif(1,
+                                            # min = object@minMaxDist$min,
+                                            # max = max(idCounts[1] - excludeMargin, object@minMaxDist$min)),
+                                            min = max(idCounts[1] - excludeMargin - max.diff.flat, object@min),
+                                            max = max(idCounts[1] - excludeMargin - min.diff.flat, object@min)),
+                                      simulation@numberGroups)
                               )
                 ))
             }))
@@ -116,16 +297,21 @@ setMethod("initializeData", signature="Simulator", function(object, simulation) 
                 dplyr::select(ID, Effect, dplyr::starts_with("Group")) %>%
                 dplyr::filter(! is.na(Effect))
 
+            # TODO: change object@data with object@randData?
             if (nrow(profileSubset)) {
+                # CAREFUL: the counts value NEED to have the same amount as columns as number of groups, otherwise a NA
+                # will be returned hence assigning the maximum value.
                 object@data[profileSubset$ID, ] <- t(apply(cbind(profileSubset, object@data[profileSubset$ID, ]), 1, function(idRow) {
+                # object@data[profileSubset$ID, ] <- t(apply(cbind(profileSubset, object@randData[profileSubset$ID]), 1, function(idRow) {
                     # Regulator effect
                     regEffect <- idRow[2]
                     # Types of profiles (skip first 2 columns: ID and Effect)
-                    idProfiles <- idRow[seq(3, length.out = simulation@numberGroups)]
+                    idProfiles <- as.character(idRow[seq(3, length.out = simulation@numberGroups)])
                     # Count values (following columns)
                     idCounts <- as.numeric(idRow[seq(simulation@numberGroups + 3, length.out = simulation@numberGroups)])
 
                     # Profiles
+                    # TODO: change to use randData
                     return(ifelse(idProfiles == 'flat',
                                   # If the profile is flat, keep the current value
                                   idCounts,
@@ -134,14 +320,38 @@ setMethod("initializeData", signature="Simulator", function(object, simulation) 
                                   ifelse(idProfiles == regEffect,
                                          # If the profile is enhancer, generate a new count value in the range
                                          # (actual_value + excludeMargin) to maxValue
-                                         rep.int(runif(1, min = min(idCounts[1] + excludeMargin, object@max), max = object@max), simulation@numberGroups),
+                                         # rep.int(runif(1, min = min(idCounts[1] + excludeMargin, object@max), max = object@max), simulation@numberGroups),
+                                         rep.int(runif(1,
+                                                       min = min(idCounts[1] + excludeMargin + min.diff.flat, object@max),
+                                                       max = min(idCounts[1] + excludeMargin + max.diff.flat, object@max)),
+                                                 simulation@numberGroups),
                                          # If the profile is repressor, generate a new count value in the range
                                          # minValue to (actual_value - excludeMargin)
-                                         rep.int(runif(1, min = object@min, max = max(idCounts[1] - excludeMargin, object@min)), simulation@numberGroups)
+                                         rep.int(runif(1,
+                                                       min = max(idCounts[1] - excludeMargin - max.diff.flat, object@min),
+                                                       max = max(idCounts[1] - excludeMargin - min.diff.flat, object@min)),
+                                                 simulation@numberGroups)
                                   )
                     ))
                 }))
             }
+        }
+
+        # Adjust again to depth each column
+        object@data <- apply(object@data, 2, function(x) x * object@depth / sum(x))
+
+        # Make sure that no-DE features have the same mean around groups
+        # TODO: remove this now?
+        if (object@regulator) {
+
+            idDE <- unique(dplyr::filter(simulation@simSettings$geneProfiles[[class(object)]],
+                                  ! is.na(Effect))$ID)
+
+            nonDE <- unique(dplyr::filter(simulation@simSettings$geneProfiles[[class(object)]],
+                                   ! ID %in% idDE)$ID)
+
+            # Replace with a mean value between the groups
+            object@data[nonDE, ] <- apply(object@data[nonDE, ], 1, mean)
         }
     }
 
@@ -156,92 +366,85 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
 
     object <- initializeData(object, simulation)
 
-    makeReplicates <- function(counts, groupInfo, timeInfo) {
+    makeReplicates <- function(counts, groupInfo, timeInfo, profileInfo) {
 
         message(sprintf("\t- Making replicates for group %d on time %s.", groupInfo, timeInfo))
 
-        # Allowing for some noise in the NB mean
-        nbNoise <- if (exists('NB', object@noiseParams)) object@noiseParams$NB else object@noiseParams[[1]]
+        counts[is.na(counts) | counts < 0.1] <- 0.1
 
-        # if (nbNoise > 0) {
-        #     message("\t(NB noise enabled ", nbNoise, ")")
-        #     counts.noise <- t(sapply(counts, function(x) { x + c(-1,1)*nbNoise*x }))
-        #     counts.noise[counts.noise < 0] <- 0
-        #
-        #     mu.noise <- apply(counts.noise, 1, function(x) { runif(1, x[1], x[2]) })
-        # } else {
-        #     message("\t(NB noise disabled)")
-        #     mu.noise <- counts.noise <- counts
-        # }
+        varest <- 10^object@replicateParams$a * (counts + 1)^object@replicateParams$b - 1
 
-        # message("\t(NB noise disabled)")
-        # logging::loginfo("\t(NB noise disabled)")
+        # Flat variance estimation lower to avoid false "time profile changes"
+        # varest.flat <- 10^object@replicateParams$a * (counts + 1)^(object@replicateParams$b/2) - 1
 
-        mu.noise <- counts.noise <- counts
+        # Force a minimum variance
+        varest[varest < 0.03] <- 0.03
 
-        # Transform to CPM (rgamma tables based on CPM bins)
-        mu.noise.cpm <- 10^6 * mu.noise / sum(mu.noise)
 
-        # TODO: disable cpm
-        # mu.noise.cpm <- mu.noise
-
-        # Replace NA for 0
-        mu.noise.cpm[is.na(mu.noise.cpm)] <- 0.1
-        mu.noise.cpm[mu.noise.cpm < 0.1] <- 0.1
-
-        # Counts (not CPM)
-        mu.noise[is.na(mu.noise)] <- 0.1
-        mu.noise[mu.noise < 0.1] <- 0.1
-
-        # Calculate stdev using gamma tables
-        stdev.cpm <- sapply(mu.noise.cpm, function(x) {
-            # Select row of table using mean column as intervals
-            # TODO: revert the +1 and max
-            # rgammaIndex <- min(which.max(x <= object@gammaTable$mean) + 1, length(object@gammaTable$mean))
-            rgammaIndex <- which.max(x <= object@gammaTable$mean)
-
-            rgamma(1, shape=object@gammaTable$shape[rgammaIndex], scale=object@gammaTable$scale[rgammaIndex])
-        })
-
-        # TODO: remove
-        # stdev.which <- sapply(mu.noise.cpm, function(x) which.max(x <= object@gammaTable$mean))
-        stdev <- sum(mu.noise) * stdev.cpm/1E6
+        # varest[flatProfiles] <- varest.flat[flatProfiles]
 
         # Apply to every row:
         #   Param x: [mu.noise.cpm, stdev]
-        # temp <- t(apply(cbind(mu.noise.cpm, stdev.cpm), 1, function (x) {
-        temp <- t(matrix(apply(cbind(mu.noise, stdev), 1, function (x) {
-            if (x[1] == x[2]^2) {
+        temp <- t(matrix(apply(cbind(counts, varest), 1, function (x) {
+            if (x[1] >= x[2]) {
                 replis <- rpois(n = simulation@numberReps, lambda = x[1])
             } else {
-                replis <- rnbinom(n = simulation@numberReps, size = x[1]^2/abs(x[2]^2 - x[1]),  mu = x[1])
+                replis <- rnbinom(n = simulation@numberReps, size = x[1]^2/(x[2] - x[1]),  mu = x[1])
             }
 
             return(replis)
         }), nrow = simulation@numberReps))
 
-        # TODO: reverse CPM here?
-        # Adjust to depth
-        # Note: temp is a matrix, take into account if this is modified with
-        # dynamic values.
+        flatProfiles <- (profileInfo == 'flat')
 
-        # TODO: change this
+        # temp[flatProfiles, ] <- t(apply(cbind(counts[flatProfiles], temp[flatProfiles, ]), 1,
+        #                                       function(geneRow) {
+        #                                           # Original replicate values
+        #                                           mean.original <- geneRow[1]
+        #                                           gene.values <- geneRow[-1]
+        #
+        #                                           diff.mean <- mean(gene.values) - mean.original
+        #
+        #                                           gene.adjusted <- gene.values - diff.mean
+        #
+        #                                           return(gene.adjusted)
+        #                                       }))
+
+
         temp.depth <- apply(temp, 2, function(x) x * object@depth / sum(x))
-        # temp.depth <- temp*object@depth/1E6
-        # temp.depth <- temp
+
+        # For flat profiles row, re-adjust the values so they are centered around the original mean
+        adjusted.means <-  (object@depth * counts) / sum(counts)
+
+        # Generate random means
+        noised.means <- rnorm(n = length(adjusted.means),
+                             mean = adjusted.means,
+                             sd = 0.025 * adjusted.means)
+
+# temp.bak <- temp.depth
+        # temp.depth[flatProfiles, ] <- t(apply(cbind(adjusted.means[flatProfiles], temp.depth[flatProfiles, ]), 1,
+        temp.depth[flatProfiles, ] <- t(apply(cbind(noised.means[flatProfiles], temp.depth[flatProfiles, ]), 1,
+                                              function(geneRow) {
+                                                  # Original replicate values
+                                                  mean.adjusted <- geneRow[1]
+                                                  gene.values <- geneRow[-1]
+
+                                                  # Mean
+                                                  diff.mean <- mean(gene.values) - mean.adjusted
+
+                                                  gene.adjusted <- gene.values - diff.mean
+
+                                                  return(gene.adjusted)
+                                                  }))
 
         object@debugInfo <<- simDebug(
             object,
             simulation,
             method = sprintf("makeReplicates[group=%d,time=%d]", groupInfo, timeInfo),
-            counts.noise,
-            mu.noise,
-            mu.noise.cpm,
-            stdev,
-            stdev.cpm,
             temp,
-            temp.depth
-            # my.size.nb
+            # temp.bak,
+            temp.depth,
+            adjusted.means
         )
 
         return(temp.depth)
@@ -249,6 +452,9 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
 
     # Profile table of simulator
     simProfiles <- simulation@simSettings$geneProfiles[[class(object)]]
+
+    # Flat DE genes
+    flatProfiles <- simulation@simSettings$geneProfiles$FlatGroups[[class(object)]] #$SimRNAseq
 
     # Select only the active rows of the regulator profile table, discarding
     # the duplicated rows (all active rows for a given regulator will have the
@@ -273,6 +479,8 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
         }
     }
 
+    # Filtering step
+    simProfiles <- dplyr::filter(simProfiles, ID %in% rownames(object@data))
 
     # If data is already generated (i.e. methylation simulator) skip some
     # steps like generating random counts or replicates, adjusting also the
@@ -294,6 +502,12 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
         iterationParam <- rep(iterationParam, each = simulation@numberReps)
         idsParam <- simProfiles[, rep('ID', simulation@numberGroups * simulation@numberReps), drop = FALSE]
     }
+
+    # quant.info <- quantile(object@data[[1]], probs = c(0.25, 0.75))
+    # simuRCounts <- runif(nrow(simProfiles), min = quant.info[1], max = quant.info[2])
+    # TODO: remove this
+    # simuRCounts <- jitter(object@data[[1]], factor = 1)
+    # simuRCounts.adj <- sum(object@data[[1]]) * simuRCounts / sum(simuRCounts)
 
     # Generate time series (if any) with replicates
     object@simData <- data.frame(
@@ -320,7 +534,8 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
                 # X = M + lambda(M - m) + noise [for lambda in [-1,0]]
 
                 # Delegate creation of specific simulation parameters
-                simulateParams <- simulateParams(object, simulation, counts, profiles, group, ids)
+                # TODO: prueba temporal fijando random counts entre grupos
+                simulateParams <- simulateParams(object, simulation, counts, profiles, group, ids)#, simuRCounts)
 
                 randomCounts <- simulateParams$randomCounts
                 noiseValues <- simulateParams$noiseValues
@@ -333,22 +548,71 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
                 # Simulate values
                 # Make sure that the result M - m is at least
                 # (P90 - P10) * 0.1 of the initial data
-                simData <-
-                    ifelse(grepl('repression', profiles, fixed = TRUE), M, m) +
-                    (ifelse((M-m) < object@increment, object@increment, M - m) * timeVectors) +
-                    noiseValues
+                # simData <-
+                #     ifelse(grepl('repression', profiles, fixed = TRUE), M, m) +
+                #     (ifelse((M-m) < object@increment, object@increment, M - m) * timeVectors) +
+                #     noiseValues
+
+                repressionMean <- runif(length(M), min = (M+m)/2, max = M)
+                inductionMean <- runif(length(m), min = m, max = (M+m)/2)
+
+                # simData <-
+                #     ifelse(grepl('repression', profiles, fixed = TRUE),
+                #            repressionMean,
+                #            inductionMean) +
+                #     ((M - m) * timeVectors) +
+                #     noiseValues
+
+                if (! object@pregenerated) {
+                    simData <-
+                        ifelse(grepl('repression', profiles, fixed = TRUE),
+                               repressionMean,
+                               inductionMean) +
+                        # ((M - m) * timeVectors) +
+                        ifelse(grepl('repression', profiles, fixed = TRUE),
+                               (repressionMean - m),
+                               (M - inductionMean)) * timeVectors +
+                        noiseValues
+                } else {
+                    # For methylation, avoid using means so that we can replicate the plot showing
+                    # a maximum in 0 and 1 values
+                    simData <-
+                        ifelse(grepl('repression', profiles, fixed = TRUE), M, m) +
+                        ((M - m) * timeVectors) +
+                        noiseValues
+                }
+
 
                 # Overwrite flat rows with the correct value
                 # TODO: use randomCounts or counts?
                 # simData[indexFlat, ] <- counts[indexFlat] + noiseValues[indexFlat, ]
-                simData[indexFlat, ] <- randomCounts[indexFlat] + noiseValues[indexFlat, ]
+                # Note: "initializeData" already modifies the "counts" variable for the required group using the
+                # random counts.
+                # simData[indexFlat, ] <- ifelse(ids[indexFlat] %in% flatProfiles$ID,
+                #                                counts[indexFlat],
+                #                                randomCounts[indexFlat]) + noiseValues[indexFlat, ]
+
+                simData[indexFlat, ] <- ifelse(ids[indexFlat] %in% flatProfiles$ID,
+                                               counts[indexFlat],
+                                               (counts[indexFlat] + randomCounts[indexFlat])/2) + noiseValues[indexFlat, ]
+
+                # TODO: remove this
+                mmnoflat <- (M-m)[! indexFlat]
+
+                debugSimData <- simData
+                rownames(debugSimData) <- ids
 
                 object@debugInfo <<- simDebug(
                     object,
                     simulation,
                     method = sprintf("simData[group=%d]", group),
-                    simData
+                    debugSimData,
+                    mmnoflat
                 )
+
+                # Calculate a base SD to keep the same between different makeReplicate calls.
+                # That way the flat genes will be more stable during time.
+                # groupStdev <- makeReplicates.generateSD(simData[, 1])
 
                 # If the object is flagged as pregenerated it should already have the
                 # replicates (i.e. methyl seek), so skip this step.
@@ -356,9 +620,12 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
                     simData <-
                         mapply(
                             makeReplicates,
-                            as.data.frame(simData, stringsAsFactors = FALSE),
-                            group,
-                            simulation@times,
+                            counts = as.data.frame(simData, stringsAsFactors = FALSE),
+                            groupInfo = group,
+                            timeInfo = simulation@times,
+                            profileInfo = as.data.frame(profiles)[, rep(1, length(simulation@times))],
+                            # flatPos = as.data.frame(indexFlat)[, rep(1, length(simulation@times))],
+                            # baseStdev = as.data.frame(groupStdev)[, rep(1, length(simulation@times))],
                             SIMPLIFY = FALSE,
                             USE.NAMES = FALSE
                         )
@@ -434,11 +701,10 @@ setMethod("postSimulation", signature="Simulator", function(object, simulation) 
             1:simulation@numberReps
         )
 
-    # simData[simData < object@minValue] <- object@minValue
-    #
-    # if (length(object@maxValue)) {
-    #     simData[simData > object@maxValue] <- object@maxValue
-    # }
+    if (! object@pregenerated) {
+        object@simData[object@simData < object@min] <- object@min
+        object@simData[object@simData > object@max] <- object@max
+    }
 
     # object@simData <- .Simulator.adjustDepth(object, object@simData)
 
@@ -517,8 +783,16 @@ setMethod("IDtoGenes", signature="Simulator", function(object, idNames, simplify
 #'
 setMethod("simulateParams", signature="Simulator", function(object, simulation, counts, profiles, ids) {
     # Generate random counts
-    randomCounts <-
-        runif(length(counts), min = object@min, max = object@max)
+
+    # # TODO: REMOVE THIS? TRYING WITH THE SAME randomCounts between groups
+    # if (! is.null(rcounts)) {
+    #     randomCounts <- rcounts
+    # } else {
+    #     randomCounts <- runif(length(counts), min = object@min, max = object@max)
+    # }
+
+    # Reorder
+    randomCounts <- object@randData[ids]
 
     # Order [m, M]
     m <- pmin(counts, randomCounts)

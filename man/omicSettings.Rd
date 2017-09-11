@@ -5,7 +5,7 @@
 \title{Retrieves the settings used in a simulation}
 \usage{
 omicSettings(simulation, omics = NULL, association = FALSE,
-  reverse = FALSE)
+  reverse = FALSE, only.linked = FALSE, prefix = FALSE)
 }
 \arguments{
 \item{simulation}{A Simulation object.}

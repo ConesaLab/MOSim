@@ -6,10 +6,10 @@
 \usage{
 GetGLM(GeneExpression, associations, data.omics, edesign, cont.var = "Time",
   degree = 1, Res.df = 5, alfa = 0.05, MT.adjust = "none",
-  family = negative.binomial(theta = 10), stepwise = "backward",
-  interactions.exp = TRUE, interactions.reg = TRUE, min.variation = 0,
-  correlation = 0.9, action = "mean", min.obs = 10, epsilon = 1e-05,
-  mc.cores = 1)
+  family = negative.binomial(theta = 10), elasticnet = 1,
+  stepwise = "backward", interactions.exp = TRUE, interactions.reg = 1,
+  min.variation = 0, correlation = 0.9, action = "mean", min.obs = 10,
+  epsilon = 1e-05, mc.cores = 1)
 }
 \arguments{
 \item{GeneExpression}{Data frame containing gene expression data with genes in rows and
@@ -50,6 +50,8 @@ selection procedure. By default, "none". See the different options in ?\code{p.a
 \item{family}{Error distribution and link function to be used in the model (see ?\code{glm}
 for more information). By default, negative.binomial(theta=10).}
 
+\item{elasticnet}{0 = No ElasticNet variable selection; 1 = ElasticNet with ad-hoc penalization; 2 = ElasticNet with optimum penalization}
+
 \item{stepwise}{Stepwise variable selection method to be applied. It can be one of: "backward"
 (default), "forward", "two.ways.backward" or "two.ways.forward".}
 
@@ -60,8 +62,6 @@ are included in the model.}
 variables are included in the model.}
 
 \item{min.variation}{### if NULL, it computes "sd"}
-
-\item{min.obs}{}
 }
 \description{
 \code{GetGLM} fits a regression model for all the genes in the data set to identify

@@ -4,7 +4,7 @@
 \alias{simulateParams}
 \title{simulateParams}
 \usage{
-simulateParams(object, simulation, counts, profiles, group, ids)
+simulateParams(object, simulation, counts, profiles, group, ids, ...)
 }
 \arguments{
 \item{object}{Instance of a simulator class.}
@@ -24,6 +24,8 @@ List with the following elements:
 \describe{
  \item{}{}
 }
+
+TODO: MODIFY THE GENERIC
 }
 \description{
 Method to allow individual simulator classes to change the default behaviour

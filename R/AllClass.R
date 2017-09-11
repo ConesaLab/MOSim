@@ -1,3 +1,4 @@
+#' @import methods stringi matrixStats
 NULL
 
 #'
@@ -52,7 +53,9 @@ setClass(
         noiseParams = "list",
         depth = "numeric",
         debug = "logical",
-        minQuantile = "numeric"
+        minMaxQuantile = "numeric",
+        replicateParams = "list",
+        TFtoGene = "ANY"
     ),
     prototype = list(
         diffGenes = .15,
@@ -78,7 +81,12 @@ setClass(
             transitory.repression = .06,
             flat = .06
         ),
-        minQuantile = c(0.1, 0.9),
+        minMaxQuantile = c(0.25, 0.75),
+        replicateParams = list(
+            "a" = 0.01,
+            "b" = 1.5
+        ),
+        TFtoGene = NULL,
         debug = FALSE
     )
 )
@@ -117,6 +125,7 @@ setClass(
         name = "character",
         data = "ANY",
         simData = "ANY",
+        randData = "ANY",
         regulator = "logical",
         regulatorEffect = "vector",
         idToGene = "ANY",
@@ -134,7 +143,9 @@ setClass(
         roundDigits = "numeric",
         pregenerated = "logical",
         totalFeatures = "numeric",
-        minQuantile = "numeric"
+        minMaxQuantile = "numeric",
+        minMaxDist = "list",
+        replicateParams = "list"
     ),
     prototype = list(
         regulator = TRUE,
@@ -185,6 +196,8 @@ setClass(
     contains = c("Simulator", "VIRTUAL")
 )
 
+
+
 #'
 #' Class to simulate RNA-seq data
 #'
@@ -195,7 +208,11 @@ setClass(
     prototype = list(
         name = "RNA-seq",
         # idToGene = matrix(NA),
-        regulator = FALSE
+        regulator = FALSE,
+        replicateParams = list(
+            "a" = 0.01,
+            "b" = 1.5
+        )
         # gammaTable = list(
         #     mean=c(1,5,10,15,25,50,75,100,500,5000,15000,1e+06),
         #
@@ -212,6 +229,21 @@ setClass(
 )
 
 #'
+#' Class to simulate RNA-seq data
+#'
+#' @export
+#'
+setClass(
+    "SimTF",
+    prototype = list(
+        name = "TF",
+        # idToGene = matrix(NA),
+        regulator = TRUE
+    ),
+    contains = "SimRNAseq"
+)
+
+#'
 #' Class to simulate miRNA-seq
 #'
 #' @export
@@ -222,7 +254,11 @@ setClass(
         name = "miRNA-seq",
         regulator = TRUE,
         idToGene = matrix(),
-        regulatorEffect = c('repressor')
+        regulatorEffect = c('repressor'),
+        replicateParams = list(
+            "a" = -0.065,
+            "b" = 1.566
+        )
         # gammaTable = list(
         #     mean = c(0.5, 1, 2, 30, 1e+06),
         #
@@ -258,7 +294,11 @@ setClass(
         name = "ChIP-seq",
         regulator = TRUE,
         idToGene = matrix(),
-        regulatorEffect = c('enhancer', 'repressor')
+        regulatorEffect = c('enhancer', 'repressor'),
+        replicateParams = list(
+            "a" = -0.042,
+            "b" = 1.265
+        )
         # gammaTable = list(
         #     mean = c(0.5, 1, 3, 5, 10, 20, 1e+06),
         #
@@ -297,7 +337,11 @@ setClass(
         name = "DNase-seq",
         regulator = TRUE,
         idToGene = matrix(),
-        regulatorEffect = c('enhancer', 'repressor')
+        regulatorEffect = c('enhancer', 'repressor'),
+        replicateParams = list(
+            "a" = -0.042,
+            "b" = 1.265
+        )
         # TODO: revert this
         # gammaTable = list(
         #     mean=c(0.5, 1, 5, 10, 15, 25, 50, 75, 100, 500, 5000,15000,1e+06),

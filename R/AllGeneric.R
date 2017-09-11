@@ -96,7 +96,8 @@ setGeneric("IDtoGenes", function(object, idNames, simplify = TRUE) standardGener
 #'  \item{}{}
 #' }
 #'
-setGeneric("simulateParams", function(object, simulation, counts, profiles, group, ids) standardGeneric("simulateParams"))
+#'TODO: MODIFY THE GENERIC
+setGeneric("simulateParams", function(object, simulation, counts, profiles, group, ids, ...) standardGeneric("simulateParams"))
 
 #' adjustProfiles
 #'

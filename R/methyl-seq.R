@@ -16,6 +16,12 @@ setMethod("initialize", signature="SimMethylseq", function(.Object, idToGene, to
 
     .Object <- callNextMethod(.Object, idToGene = idToGene, totalFeatures = totalFeatures, ...)
 
+    # Filter those CHR having less than 2 observations
+    .Object@locs <- dplyr::semi_join(.Object@locs, dplyr::count(.Object@locs, chr)
+                                     %>% dplyr::filter(n > 1),
+                                     by = "chr") %>%
+        dplyr::filter(!is.na(chr))
+
     # Override WGBS function to consider the CpG coordinates instead of the index
     find_adjusted_blocks <- function(a, positions) {
         l <- length(a)
@@ -91,6 +97,10 @@ setMethod("initializeData", signature="SimMethylseq", function(object, simulatio
     object@WGBSparams$number_of_replicas <- simulation@numberReps
     object@WGBSparams$number_of_samples <- simulation@numberGroups
 
+    # TODO: check if M values will be used?
+    object@min <- 0
+    object@max <- 1
+
     make_differential_fixed <- function(state_blocks,percentage,a){
         l<-length(a)
         states<-unique(state_blocks[,3])
@@ -153,7 +163,7 @@ setMethod("initializeData", signature="SimMethylseq", function(object, simulatio
     genesDE <- simulation@simSettings$geneSamples$DE
 
     # Settings for flat on all groups
-    flatProfiles <- simulation@simSettings$geneProfiles$FlatGroups
+    flatProfiles <- simulation@simSettings$geneProfiles$FlatGroups$SimRNAseq
 
     return(with(object@WGBSparams, {
 
@@ -210,7 +220,7 @@ setMethod("initializeData", signature="SimMethylseq", function(object, simulatio
             # diff_methed <- matrix(data=0, nrow=1, ncol=n)
 
             #set the percentage of DM in each block type
-            percs_for_diff <- c(0,0,0,0.5)
+            # percs_for_diff <- c(0,0,0,0.5)
 
             #update the blocks to be differentially methylated
             # diff_methed <- make_differential(state_blocks, percs_for_diff, a)
@@ -385,8 +395,8 @@ setMethod("initializeData", signature="SimMethylseq", function(object, simulatio
                                                               M=randomValues,
                                                               stringsAsFactors = FALSE),
                                      by = c("Block" = "Block")) %>%
-                       dplyr::mutate(M = jitter(M)) %>%
-                       dplyr::select(ID, M))
+                       dplyr::distinct(ID, M)) %>%
+                       dplyr::mutate(M = jitter(M))
         })
 
         # Reorder the columns from group1.rep1-n/group2.rep1-n to
@@ -421,7 +431,7 @@ setMethod("simulate", signature="SimMethylseq", function(object, simulation) {
 
     # object <- initializeData(object, simulation)
 
-    object <- callNextMethod()
+    object <- callNextMethod(object, simulation)
 
     return(object)
 })
@@ -529,8 +539,23 @@ setMethod("adjustProfiles", signature="SimMethylseq", function(object, simulatio
                                                                stringsAsFactors = FALSE)
 
                                     # TODO: performance botteneck. Change within with transform?
-                                    return(do.call(rbind, lapply(1:nrow(state_blocks), function (j) {
-                                        return(within(subset(., start >= state_blocks[j, 1] & end < state_blocks[j, 2]), {
+                                    # return(do.call(rbind, lapply(1:nrow(state_blocks), function (j) {
+                                    #     return(within(subset(., start >= state_blocks[j, 1] & end < state_blocks[j, 2]), {
+                                    #         # Rename ID column to CpG
+                                    #         Keep.CpG <- ID
+                                    #         # Different name for every block
+                                    #         # Overwrite ID to allow grouping
+                                    #         ID <- paste('Block', chrName, j, sep = ".")
+                                    #         # Assign a random effect per block
+                                    #         # Keep the already set NA (non DE genes)
+                                    #         # if (any(!is.na(Effect))) browser()
+                                    #         Effect <- ifelse(is.na(Effect), NA, sample(object@regulatorEffect, size = 1))
+                                    #         # Remove unused variables
+                                    #         #rm(chr, end, start)
+                                    #     }))
+                                    # })))
+                                    do.call(rbind, lapply(1:nrow(state_blocks), function (j) {
+                                        within(subset(., start >= state_blocks[j, 1] & end < state_blocks[j, 2]), {
                                             # Rename ID column to CpG
                                             Keep.CpG <- ID
                                             # Different name for every block
@@ -542,26 +567,34 @@ setMethod("adjustProfiles", signature="SimMethylseq", function(object, simulatio
                                             Effect <- ifelse(is.na(Effect), NA, sample(object@regulatorEffect, size = 1))
                                             # Remove unused variables
                                             #rm(chr, end, start)
-                                        }))
-                                    })))
-                    })),
+                                        })
+                                    }))
+                    }) %>% dplyr::ungroup()),
         Groups = return({
-                    dplyr::mutate(profiles, Block = ID, ID = Keep.CpG) %>%
-                        dplyr::group_by(Block) %>%
-                        dplyr::select(ID, Gene, Block, Effect, dplyr::starts_with("Group")) %>%
-                        dplyr::do({
-                            # Select "GroupX" column of the first row that affects some gene in the
-                            # block.
-                            profiles <- head(.[! is.na(.$Effect), 5:ncol(.)], 1)
-
-                            # If there is any, mark all block profiles as the same. If not,
-                            # all will be 'flat' already.
-                            if (nrow(profiles)) {
-                                .[, 5:ncol(.)] <- profiles
-                            }
-
-                            return(.)
-                        }) %>% dplyr::ungroup()
+                    # Retrieve true group effect for each block
+                    dplyr::select(profiles, ID, Effect, dplyr::starts_with("Group")) %>%
+                        dplyr::filter(!is.na(Effect)) %>%
+                        dplyr::select(-Effect) %>%
+                    # Join with the full profile table
+                    dplyr::left_join(dplyr::select(profiles, - dplyr::starts_with("Group")), by = c("ID" = "ID")) %>%
+                    dplyr::mutate(Block = ID, ID = Keep.CpG) %>%
+                    dplyr::select(ID, Gene, Block, Effect, dplyr::starts_with("Effect.Group"), dplyr::starts_with("Group"))
+                    #     dplyr::group_by(Block) %>%
+                    #     dplyr::select(ID, Gene, Block, Effect, dplyr::starts_with("Effect.Group"), dplyr::starts_with("Group")) %>%
+                    #     dplyr::do({
+                    #         # Select "GroupX" column of the first row that affects some gene in the
+                    #         # block.
+                    #         profiles <- head(.[! is.na(.$Effect), grep("^Group", colnames(.))], 1)
+                    #
+                    #         # If there is any, mark all block profiles as the same. If not,
+                    #         # all will be 'flat' already.
+                    #         if (nrow(profiles)) {
+                    #             .[, grep("^Group", colnames(.))] <- profiles
+                    #         }
+                    #
+                    #         # Return the data frame
+                    #         .
+                    #     }) %>% dplyr::ungroup()
             })
     )
 

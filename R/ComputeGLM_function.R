@@ -1,4 +1,4 @@
-#' @import igraph MASS
+#' @import igraph MASS glmnet
 NULL
 
 ##################################
@@ -85,7 +85,6 @@ ComputeGLM = function(matrix.temp, alfa = 0.05, stepwise = "two.ways.backward",
     }
   }
 
-
   SummaryStepwise = ResultsTable(glm=glmPlot, family=family, epsilon=epsilon)
 
 
@@ -157,8 +156,8 @@ PreviousBackward = function(y, d, alfa, family, epsilon, stepwise, gdl.max, MT.a
 
   if(stepwise=="backward"){
 
-    glm2=stepback.gdl(y = y, d.ini = d.ini, d.res = d.res, alfa = alfa, family = family, epsilon = epsilon,
-                      gdl.max = gdl.max, tmax = tmax, MT.adjust = MT.adjust)
+      glm2=stepback.gdl(y = y, d.ini = d.ini, d.res = d.res, alfa = alfa, family = family, epsilon = epsilon,
+                        gdl.max = gdl.max, tmax = tmax, MT.adjust = MT.adjust)
 
   }
 
@@ -211,7 +210,7 @@ PreviousBackward = function(y, d, alfa, family, epsilon, stepwise, gdl.max, MT.a
 #' @examples
 stepback.gdl = function (y, d.ini, d.res, alfa, family, epsilon, gdl.max, tmax, MT.adjust = "fdr"){
 
-  d.orig = cbind(d.ini, d.res)
+  # d.orig = cbind(d.ini, d.res)
 
   t=1 ## We introduce the var one per one, lesser p-value
 
@@ -234,8 +233,9 @@ stepback.gdl = function (y, d.ini, d.res, alfa, family, epsilon, gdl.max, tmax, 
     while (t < tmax) {
       d.ini=cbind(d.ini, d.res[,t, drop=FALSE])
       t=t+1
-      # lm1 <- glm(y ~ ., data = d.ini, family=family, epsilon=epsilon)
-      lm1 <- try(glm(y ~ ., data = d.ini, family=family, epsilon=epsilon), silent = TRUE)
+
+      lm1 <- glm(y ~ ., data = d.ini, family=family, epsilon=epsilon)
+
       result <- summary(lm1)$coefficients[,4]  ## p-valores
       result = p.adjust(result, method = MT.adjust)   ## multiple testing method
       names(result)=gsub("\`","",names(result))
@@ -611,7 +611,7 @@ stepbackMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr"){
     d <- d[, -pos]
     if (length(result[-1]) == 2) {
       min <- min(result[-1], na.rm = TRUE)
-      lastname <- names(result[-1])[result[-1] == min]
+      lastname <- names(result[-1])[result[-1] == min][1]
     }
     if (is.null(dim(d))) {
       d <- as.data.frame(d, check.names = FALSE)
@@ -866,7 +866,7 @@ two.ways.stepforMOD = function (y, d, alfa, family, epsilon, MT.adjust = "fdr", 
       colnames(d)[x] <- colnames(design)[pos]
       if (ncol(design) == 2) {
         min <- min(result2[-1], na.rm = TRUE)
-        lastname <- names(result2)[result2 == min]
+        lastname <- names(result2)[result2 == min][1]
       }
       design <- design[, -pos]
       if (is.null(dim(design))) {

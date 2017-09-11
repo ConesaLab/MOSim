@@ -1,7 +1,7 @@
 %\VignetteEngine{knitr::knitr}
 
 \documentclass{article}
-
+\usepackage[utf8]{inputenc}
 <<style-knitr, eval=TRUE, echo=FALSE, results="asis">>=
 BiocStyle::latex2()
 options(tidy.opts=list(blank=FALSE, width.cutoff=60))
