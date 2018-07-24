@@ -260,11 +260,19 @@ setMethod("initializeData", signature="Simulator", function(object, simulation) 
             # Gene_ID | Profile_Group_1 | ... | Counts_Group_1 | ...
             # TODO: change to data instead of randData?
             # object@data[flatIndexes, ] <- t(apply(cbind(flatProfiles, object@randData[flatIndexes]), 1, function(idRow) {
-            object@data[flatIndexes, ] <- t(apply(cbind(flatProfiles, object@data[flatIndexes, ]), 1, function(idRow) {
+
+
+            # Profiles + Counts
+            profileCounts <- cbind(flatProfiles, object@data[flatIndexes, ])
+
+            profileColumns <- dplyr::starts_with("Group", vars = colnames(profileCounts))
+            countColumns <- dplyr::starts_with("Counts.Group", vars = colnames(profileCounts))
+
+            object@data[flatIndexes, ] <- t(apply(profileCounts, 1, function(idRow) {
                 # Types of profiles (exclude first column)
-                idProfiles <- as.character(idRow[seq(2, length.out = simulation@numberGroups)])
+                idProfiles <- as.character(idRow[profileColumns])
                 # Count values (columns after profiles)
-                idCounts <- as.numeric(idRow[seq(simulation@numberGroups + 2, length.out = simulation@numberGroups)])
+                idCounts <- as.numeric(idRow[countColumns])
 
                 # Profiles
                 return(ifelse(idProfiles == 'flat',
@@ -301,14 +309,21 @@ setMethod("initializeData", signature="Simulator", function(object, simulation) 
             if (nrow(profileSubset)) {
                 # CAREFUL: the counts value NEED to have the same amount as columns as number of groups, otherwise a NA
                 # will be returned hence assigning the maximum value.
-                object@data[profileSubset$ID, ] <- t(apply(cbind(profileSubset, object@data[profileSubset$ID, ]), 1, function(idRow) {
+                # Profiles + Counts
+                profileCounts <- cbind(profileSubset, object@data[profileSubset$ID, ])
+
+                effectColumn <- dplyr::matches("Effect", vars = colnames(profileCounts))
+                profileColumns <- dplyr::starts_with("Group", vars = colnames(profileCounts))
+                countColumns <- dplyr::starts_with("Counts.Group", vars = colnames(profileCounts))
+
+                object@data[profileSubset$ID, ] <- t(apply(profileCounts, 1, function(idRow) {
                 # object@data[profileSubset$ID, ] <- t(apply(cbind(profileSubset, object@randData[profileSubset$ID]), 1, function(idRow) {
                     # Regulator effect
-                    regEffect <- idRow[2]
+                    regEffect <- idRow[effectColumn]
                     # Types of profiles (skip first 2 columns: ID and Effect)
-                    idProfiles <- as.character(idRow[seq(3, length.out = simulation@numberGroups)])
+                    idProfiles <- as.character(idRow[profileColumns])
                     # Count values (following columns)
-                    idCounts <- as.numeric(idRow[seq(simulation@numberGroups + 3, length.out = simulation@numberGroups)])
+                    idCounts <- as.numeric(idRow[countColumns])
 
                     # Profiles
                     # TODO: change to use randData
@@ -350,9 +365,13 @@ setMethod("initializeData", signature="Simulator", function(object, simulation) 
             nonDE <- unique(dplyr::filter(simulation@simSettings$geneProfiles[[class(object)]],
                                    ! ID %in% idDE)$ID)
 
-            # Replace with a mean value between the groups
-            object@data[nonDE, ] <- apply(object@data[nonDE, ], 1, mean)
+
+        } else {
+            nonDE <- unique(dplyr::filter(simulation@simSettings$geneProfiles$SimRNAseq, DE == FALSE)$ID)
         }
+
+        # Replace with a mean value between the groups
+        object@data[nonDE, ] <- apply(object@data[nonDE, ], 1, mean)
     }
 
     return(object)
@@ -463,10 +482,11 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
         # If the object is pregenerated (e.g. methylation) then keep the profiles
         # as they are.
         if (object@pregenerated) {
-            simProfiles <- dplyr::select(simProfiles, ID, dplyr::starts_with("Group")) %>% dplyr::distinct()
+            simProfiles <- dplyr::select(simProfiles, ID, dplyr::starts_with("Group"), dplyr::starts_with("Tmax")) %>%
+                dplyr::distinct_()
         } else {
             simProfiles <- dplyr::filter(simProfiles, ! is.na(Effect)) %>%
-                dplyr::select(ID, dplyr::starts_with("Group")) %>%
+                dplyr::select(ID, dplyr::starts_with("Group"), dplyr::starts_with("Tmax")) %>%
                 dplyr::distinct_()
 
             # Add remaining IDs present on data with a flat profile
@@ -474,7 +494,7 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
                 # ID
                 list(rownames(object@data)[! rownames(object@data) %in% as.character(simProfiles$ID)]),
                 # Groups
-                rep('flat', simulation@numberGroups)
+                append(rep('flat', simulation@numberGroups), rep(NA, simulation@numberGroups)) # Group & Tmax columns
             ), colnames(simProfiles))))
         }
     }
@@ -488,6 +508,8 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
 
     # Pass only "group" columns
     columnsParam <- dplyr::select(simProfiles, dplyr::starts_with("Group"))
+    # Pass only "tmax" columns
+    tmaxParam <- dplyr::select(simProfiles, dplyr::starts_with("Tmax."))
     # Keep track of iteration
     iterationParam <- seq(simulation@numberGroups)
     # Pass IDs
@@ -501,6 +523,8 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
         # iterationParam <- rep(iterationParam, times = simulation@numberReps)
         iterationParam <- rep(iterationParam, each = simulation@numberReps)
         idsParam <- simProfiles[, rep('ID', simulation@numberGroups * simulation@numberReps), drop = FALSE]
+
+        tmaxParam <- tmaxParam[, rep(colnames(tmaxParam), each = simulation@numberReps), drop = FALSE]
     }
 
     # quant.info <- quantile(object@data[[1]], probs = c(0.25, 0.75))
@@ -512,21 +536,90 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
     # Generate time series (if any) with replicates
     object@simData <- data.frame(
         mapply(
-            function(counts, profiles, group, ids) {
+            function(counts, profiles, tmaxValues, group, ids) {
                 if (! object@pregenerated) {
                     message(sprintf("- Simulating count values for group %d.", group))
                 } else {
                     message(sprintf("[Pregenerated replicate] Simulating count values for group %d.", group))
                 }
 
-                # Create a matrix of <times> columns and <ID> rows, with every
-                # row being a vector of the associated profile.
-                timeVectors <-
-                    matrix(
-                        unlist(simulation@simSettings$profiles[as.character(profiles)], use.names = FALSE),
-                        ncol = length(simulation@times),
-                        byrow = TRUE
+
+                # Create the coefficients based on the "tmax" parameter
+                nt <- length(simulation@times)
+
+                x <- c(0:(nt - 1))
+
+                varT <- x[nt]
+
+                # b2 <- 4 * (x[nt]) / (x[nt] * x[nt])
+                # c2 <- -4 / (x[nt] * x[nt])
+
+                # Initialize values
+                # b2 <- c2 <- b2.neg <- c2.neg <- 0
+# browser()
+                timeVectors <- t(apply(cbind(profiles, tmaxValues), 1, function(rowInfo) {
+                    # Set in the current scope the proper values
+                    profileValue <- rowInfo[1]
+                    tmaxValue <- as.numeric(rowInfo[2])
+
+                    data_values <- list(
+                        "0" = 0,
+                        a1 = 0,
+                        a2 = 0,
+                        a2.neg = 0,
+                        b1 = 1 / x[nt],
+                        b1.neg = -1 / x[nt],
+                        b2 = 4 * (x[nt]) / (x[nt] * x[nt]),
+                        b2.neg = -4 * (x[nt]) / (x[nt] * x[nt]),
+                        c2 = -4 / (x[nt] * x[nt]),
+                        c2.neg = 4 / (x[nt] * x[nt])
                     )
+
+                    # If tmaxValue is set, the profile is transitory: override variables
+                    if (! is.na(tmaxValue)) {
+
+                        if (tmaxValue >= varT/2) {
+                            data_values$b2 <- 2 / tmaxValue
+                            data_values$c2 <- - 1 /tmaxValue^2
+                        } else {
+                            data_values$c2 <- - 1 /(varT - tmaxValue)^2
+                            data_values$a2 <- 1 + (data_values$c2) * tmaxValue^2
+                            data_values$b2 <- - 2 * (data_values$c2) * tmaxValue
+                        }
+
+                        data_values$a2.neg <- - data_values$a2
+                        data_values$b2.neg <- - data_values$b2
+                        data_values$c2.neg <- - data_values$c2
+                    }
+
+                    return(unlist(data_values[as.character(simulation@profiles[[profileValue]])]))
+
+                    # return(as.numeric(unlist(rlang::eval_tidy(simulation@profiles[profileValue],
+                                                              # data = data_values))))
+                })) %*% rbind(c(rep(1, nt)), x, x * x)
+
+                # browser()
+
+                # Create a list containing all possible options as tags: 0, a1, -a1, b1, -b1, ...
+                # TODO: add a new slot to provide a list of parameters instead of a predefined one?
+                # replace.values <- c("0" = 0, unlist(lapply(c('a1', 'b1', 'a2', 'b2', 'c2'), function(tag)
+                #     setNames(c(get(tag), - get(tag)), c(tag, paste0('-', tag)))
+                # )))
+                #
+                # # Convert references to real values
+                # simProfiles <-
+                #     sapply(.Object@profiles, function(p)
+                #         replace.values[as.character(p)] %*% rbind(c(rep(1, nt)), x, x * x), simplify = FALSE)
+                #
+                #
+                # # Create a matrix of <times> columns and <ID> rows, with every
+                # # row being a vector of the associated profile.
+                # timeVectors <-
+                #     matrix(
+                #         unlist(simulation@simSettings$profiles[as.character(profiles)], use.names = FALSE),
+                #         ncol = length(simulation@times),
+                #         byrow = TRUE
+                #     )
 
                 # Generate base counts using the formulas:
                 # X = initial_counts + noise [for flat]
@@ -623,7 +716,7 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
                             counts = as.data.frame(simData, stringsAsFactors = FALSE),
                             groupInfo = group,
                             timeInfo = simulation@times,
-                            profileInfo = as.data.frame(profiles)[, rep(1, length(simulation@times))],
+                            profileInfo = as.data.frame(profiles)[, rep(1, length(simulation@times)),drop=FALSE],
                             # flatPos = as.data.frame(indexFlat)[, rep(1, length(simulation@times))],
                             # baseStdev = as.data.frame(groupStdev)[, rep(1, length(simulation@times))],
                             SIMPLIFY = FALSE,
@@ -637,6 +730,8 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
             data.frame(object@data[as.character(simProfiles$ID), , drop = FALSE], stringsAsFactors = FALSE),
             # Pass only "group" columns
             columnsParam, #dplyr::select(simProfiles, starts_with("Group")),
+            # Coefficients parameters
+            tmaxParam,
             # Keep track of iteration
             iterationParam, #seq(simulation@numberGroups),
             # Pass the row IDs

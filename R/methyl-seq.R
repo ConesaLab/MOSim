@@ -63,7 +63,7 @@ setMethod("initialize", signature="SimMethylseq", function(.Object, idToGene, to
         message("Creating methylation state blocks for chr ", chr)
 
         # Order by ascendent position
-        regions <- dplyr::arrange(.Object@locs[.Object@locs$chr == chr, ], start)
+        regions <- dplyr::arrange(.Object@locs[.Object@locs$chr == chr, ,drop=FALSE], start)
 
         #simulate the state transition based on the location of the CpGs
         a <- simulate_state_transition((nrow(regions) * .Object@WGBSparams$m),
@@ -71,7 +71,7 @@ setMethod("initialize", signature="SimMethylseq", function(.Object, idToGene, to
                                        as.numeric(regions$start), 0.5,
                                        .Object@WGBSparams$transition_size)
 
-        #extract the postions of the blocks
+        #extract the positions of the blocks
         state_blocks <- find_adjusted_blocks(a, regions$start)
 
         return(list(
@@ -525,6 +525,8 @@ setMethod("adjustProfiles", signature="SimMethylseq", function(object, simulatio
 
     message("Adjusting methylation profiles")
 
+    availableEffects <- object@regulatorEffect[grep("NE", names(object@regulatorEffect), invert = T)]
+
     # newProfiles <-
     switch(step,
            Effect = return(dplyr::left_join(profiles, object@locs, by = c("ID" = "ID")) %>%
@@ -564,7 +566,8 @@ setMethod("adjustProfiles", signature="SimMethylseq", function(object, simulatio
                                             # Assign a random effect per block
                                             # Keep the already set NA (non DE genes)
                                             # if (any(!is.na(Effect))) browser()
-                                            Effect <- ifelse(is.na(Effect), NA, sample(object@regulatorEffect, size = 1))
+                                            Effect <- ifelse(is.na(Effect), NA, sample(names(availableEffects), size = 1,
+                                                                                       prob = as.numeric(availableEffects)))
                                             # Remove unused variables
                                             #rm(chr, end, start)
                                         })
@@ -578,7 +581,7 @@ setMethod("adjustProfiles", signature="SimMethylseq", function(object, simulatio
                     # Join with the full profile table
                     dplyr::left_join(dplyr::select(profiles, - dplyr::starts_with("Group")), by = c("ID" = "ID")) %>%
                     dplyr::mutate(Block = ID, ID = Keep.CpG) %>%
-                    dplyr::select(ID, Gene, Block, Effect, dplyr::starts_with("Effect.Group"), dplyr::starts_with("Group"))
+                    dplyr::select(ID, Gene, Block, Effect, dplyr::starts_with("Effect.Group"), dplyr::starts_with("Group"), dplyr::starts_with("Tmax."))
                     #     dplyr::group_by(Block) %>%
                     #     dplyr::select(ID, Gene, Block, Effect, dplyr::starts_with("Effect.Group"), dplyr::starts_with("Group")) %>%
                     #     dplyr::do({

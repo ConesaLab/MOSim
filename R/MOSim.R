@@ -1,5 +1,6 @@
 #' @include Simulation.R
 #' @importFrom dplyr %>%
+#' @importFrom rlang := !!
 NULL
 
 #' MOSim
@@ -80,7 +81,7 @@ mosim <- function(omics, omicsOptions = NULL, ...) {
     simParams <- list(...)
 
     # Select unique names
-    omics <- unique(omics)
+    omics <- if (is.list(omics)) omics[unique(names(omics))] else unique(omics)
 
     # 'omics' parameter alias of 'simulators'
     simParams$simulators <- omics
@@ -193,6 +194,8 @@ omicSettings <- function(simulation, omics = NULL, association = FALSE, reverse 
     # Select all omics by default
     if (is.null(omics)) {
         omics <- lapply(simulation@simulators, slot, name = "name")
+    } else {
+        names(omics) <- paste0("Sim", gsub("-", "", omics))
     }
 
     # Convert the name to the proper class name
@@ -215,7 +218,7 @@ omicSettings <- function(simulation, omics = NULL, association = FALSE, reverse 
     # Add the associations
     if (association) {
 
-        regClasses <- omicsClasses[- grep("SimRNAseq", omicsClasses)]
+        regClasses <- omicsClasses[grep("SimRNAseq", omicsClasses, invert = TRUE)]
 
         associationLists <- setNames(lapply(simulation@simulators[regClasses],
                                    slot, name = "idToGene"), regClasses)
@@ -223,8 +226,7 @@ omicSettings <- function(simulation, omics = NULL, association = FALSE, reverse 
         # Include only those regulators having an effect on genes
         if (only.linked) {
             associationLists <- sapply(names(associationLists), function(x) {
-
-                omic.settings <- selectedSettings[[x]] %>% dplyr::filter(! is.na(Effect)) # TODO: change this to include Effect.GroupX
+                omic.settings <- selectedSettings[[x]] %>% dplyr::filter_at(dplyr::vars(dplyr::starts_with("Effect")), dplyr::any_vars(! is.na(.)))
 
                 omic.association <- associationLists[[x]] %>% dplyr::filter(ID %in% omic.settings$ID)
 
@@ -248,33 +250,74 @@ omicSettings <- function(simulation, omics = NULL, association = FALSE, reverse 
 
         # Generate a global table containing the associated regulator per gene and omic
         globalTable <- do.call(rbind, lapply(regClasses, function(x) {
-
             x.data <- selectedSettings[[x]]
+            x.settings <- outputList[[omics[[x]]]]
 
-            output.df <- dplyr::select(x.data, Gene, ID, Effect, dplyr::starts_with("Effect.Group")) %>%
-                dplyr::mutate(Omic = x)
+            # Select only the effect
+            x.settings <- dplyr::filter(x.settings, !is.na(Effect)) %>%
+                dplyr::select(ID, dplyr::starts_with("Group")) %>%
+                dplyr::distinct()
+
+            output.df <- dplyr::select(x.data, Gene, ID, Effect, dplyr::starts_with("Effect.Group"), dplyr::starts_with("Tmax.Group")) %>%
+                dplyr::mutate(Omic = x) %>% dplyr::left_join(x.settings, by = c("ID" = "ID")) %>%
+                dplyr::mutate_at(dplyr::vars(dplyr::starts_with("Group")), dplyr::funs(ifelse(is.na(.), "flat", .)))
 
             if (only.linked) {
-                linked.IDs <- dplyr::filter(output.df, ! is.na(Effect))$ID # TODO: change this to include Effect.GroupX
+                linked.IDs <- dplyr::filter_at(output.df, dplyr::vars(dplyr::starts_with("Effect")), dplyr::any_vars(! is.na(.)))$ID
 
                 output.df <- dplyr::filter(output.df, ID %in% linked.IDs)
             }
 
+            #output.df <- dplyr::select(output.df, - Effect)
+
             return(output.df)
         }))
+
+        # Remove & rename effects from data frames
+        replace_effect <- function(df) {
+            df <- dplyr::mutate_at(df, dplyr::vars(dplyr::starts_with("Effect.Group")), dplyr::funs(gsub("enhancer", "activator", .)))
+
+            if (all(c("Group1", "Effect") %in% colnames(df))) {
+
+                propagate_profile <- function(group_values, effects) {
+                    with_effect <- ! is.na(effects)
+
+                    if (any(with_effect)) {
+                        # Everything with an effect should be the same
+                        return(group_values[with_effect][1])
+                    }
+
+                    return(group_values)
+                }
+
+                # Assign the same effect to regulator rows.
+                df <- dplyr::group_by(df, ID) %>%
+                    dplyr::mutate_at(dplyr::vars(dplyr::starts_with("Group")),
+                                     dplyr::funs(propagate_profile(., Effect)))
+            }
+
+            return(df[, colnames(df) != "Effect"])
+        }
 
         # Restore correct names
         associationLists <- setNames(associationLists,
                                      names(omicsClasses)[match(names(associationLists), omicsClasses)])
 
+        # Replace effects on settings
+        outputList <- sapply(outputList, replace_effect, simplify = FALSE, USE.NAMES = TRUE)
+
         outputList <- list(
             "association" = associationLists,
             "settings" = outputList,
-            "regulators" = globalTable
+            "regulators" = replace_effect(globalTable)
         )
     }
 
-    return(outputList)
+    if (length(omics) > 1 || length(outputList) > 1) {
+        return(outputList)
+    } else {
+        return(outputList[[omics]])
+    }
 }
 
 #' Retrieves the simulated data.
@@ -301,7 +344,11 @@ omicResults <- function(simulation, omics = NULL, format = data.frame) {
 
     outputList <- setNames(selectedSimulators, omics)
 
-    return(outputList)
+    if (length(omics) > 1) {
+        return(outputList)
+    } else {
+        return(outputList[[omics]])
+    }
 }
 
 #' Title

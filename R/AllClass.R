@@ -62,23 +62,23 @@ setClass(
         numberReps = 3,
         numberGroups = 2,
         randomSeed = 12345,
-        times = c(0, 12),
+        times = c(0, 2, 4, 12, 24),
         # exprGenes = 0.5,
         depth = 74,
         noiseFunction = rnorm,
         noiseParams = list("sd" = 0.3),
         profiles = list(
             continuous.induction = c("a1", "b1", 0),
-            continuous.repression = c("a1", "-b1", 0),
+            continuous.repression = c("a1", "b1.neg", 0),
             transitory.induction = c("a2", "b2", "c2"),
-            transitory.repression = c("a2", "-b2", "-c2"),
+            transitory.repression = c("a2.neg", "b2.neg", "c2.neg"),
             flat = c(0, 0, 0)
         ),
         profileProbs = list(
-            continuous.induction = .43,
-            continuous.repression = .43,
-            transitory.induction = .06,
-            transitory.repression = .06,
+            continuous.induction = .235,
+            continuous.repression = .235,
+            transitory.induction = .235,
+            transitory.repression = .235,
             flat = .06
         ),
         minMaxQuantile = c(0.25, 0.75),
@@ -254,7 +254,10 @@ setClass(
         name = "miRNA-seq",
         regulator = TRUE,
         idToGene = matrix(),
-        regulatorEffect = c('repressor'),
+        regulatorEffect = list(
+            'repressor' = 0.05,
+            'NE' = 0.95
+        ),
         replicateParams = list(
             "a" = -0.065,
             "b" = 1.566
@@ -294,7 +297,11 @@ setClass(
         name = "ChIP-seq",
         regulator = TRUE,
         idToGene = matrix(),
-        regulatorEffect = c('enhancer', 'repressor'),
+        regulatorEffect = list(
+            'enhancer' = 0.48,
+            'repressor' = 0.48,
+            'NE' = 0.02
+        ),
         replicateParams = list(
             "a" = -0.042,
             "b" = 1.265
@@ -337,7 +344,11 @@ setClass(
         name = "DNase-seq",
         regulator = TRUE,
         idToGene = matrix(),
-        regulatorEffect = c('enhancer', 'repressor'),
+        regulatorEffect = list(
+            'enhancer' = 0.48,
+            'repressor' = 0.48,
+            'NE' = 0.02
+        ),
         replicateParams = list(
             "a" = -0.042,
             "b" = 1.265
@@ -470,7 +481,11 @@ setClass(
             returnColumn = 4,
             distType = "nbin"#binomial"
             ),
-        regulatorEffect = c('enhancer', 'repressor'),
+        regulatorEffect = list(
+            'enhancer' = 0.48,
+            'repressor' = 0.48,
+            'NE' = 0.01
+        ),
         depthAdjust = FALSE
         ),
     contains = "SimulatorRegion"
