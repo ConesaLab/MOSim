@@ -21,8 +21,6 @@ NULL
 #'
 #' @param omics
 #' @param omicsOptions
-#' @param totalGenes A number with the total number of genes including not expressed. Overwrited
-#'   if a genome reference is provided. Currently not used as we force to provide real data.
 #' @param diffGenes A number with the total number of differential genes (if value > 1) or % or
 #'  total genes (if value < 1).
 #' @param numberReps Number of replicates of the experiment.
@@ -30,8 +28,6 @@ NULL
 #' @param randomSeed Random seed for random number generator state.
 #' @param times Numeric vector containing the measured times. If numberGroups < 2,
 #'  the number of times must be at least 2.
-#' @param exprGenes Total number of expressed genes (if value > 1) or %
-#'  of the total genes (if value < 1).
 #' @param noiseFunction Noise function to apply when simulating counts. Must accept the parameter 'n' and
 #'  return a vector of the same length. Defaults to `rnorm`
 #' @param noiseParam Named list with the parameters to apply to the noise function.
@@ -105,6 +101,12 @@ mosim <- function(omics, omicsOptions = NULL, ...) {
     for (omicName in names(omicsOptions)) {
         omicParams <- omicsOptions[[omicName]]
 
+        # Transform the "regulatorEffect" parameter to change "activator" to "enhancer"
+        # effect.
+        if (is.element("regulatorEffect", names(omicsParams))) {
+            names(omicsParams$regulatorEffect) <- gsub("activator", "enhancer", names(omicsParams$regulatorEffect))
+        }
+
         # Modify the param list or the slots directly
         if (! inherits(simParams$simulators[[omicName]], "Simulator")) {
             simParams$simulators[[omicName]] <- omicParams
@@ -162,11 +164,11 @@ omicData <- function(omic, data, associationList = NULL) {
 #' @examples
 #' \dontrun{
 #' }
-omicSim <- function(omic, depth = NULL, totalFeatures = NULL, reguEffect = NULL) {
+omicSim <- function(omic, depth = NULL, totalFeatures = NULL, regulatorEffect = NULL) {
 
     paramList <- list(
         "totalFeatures" = totalFeatures,
-        "regulatorEffect" = reguEffect,
+        "regulatorEffect" = regulatorEffect,
         "depth" = depth
     )
 
@@ -351,7 +353,7 @@ omicResults <- function(simulation, omics = NULL, format = data.frame) {
     }
 }
 
-#' Title
+#' Retrieves the experimental design
 #'
 #' @param simulation
 #'

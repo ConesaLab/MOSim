@@ -150,7 +150,7 @@ setMethod("initializeData", signature="Simulator", function(object, simulation) 
 
     badAssignmentDE <- featuresDE.notFlat[featuresDE.notFlat %in% intersect(minDEassignments, minDEassignments.org)]
     goodAssignmentNONDE <- featuresNONDE[! featuresNONDE %in% minDEassignments]
-# browser()
+
     # TODO: what to do when there are not enough IDS to swap
     if (length(badAssignmentDE) && length(goodAssignmentNONDE)) {
 
@@ -525,6 +525,12 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
         idsParam <- simProfiles[, rep('ID', simulation@numberGroups * simulation@numberReps), drop = FALSE]
 
         tmaxParam <- tmaxParam[, rep(colnames(tmaxParam), each = simulation@numberReps), drop = FALSE]
+
+        # TODO: fix this properly. When working with blocks, sometimes there are duplicated rows
+        # because they do not have the tmax columns properly filled.
+        simProfiles <- dplyr::group_by(simProfiles, ID) %>%
+            dplyr::summarise_all(dplyr::funs(dplyr::first(na.omit(.)))) %>%
+            dplyr::ungroup()
     }
 
     # quant.info <- quantile(object@data[[1]], probs = c(0.25, 0.75))
@@ -551,12 +557,6 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
 
                 varT <- x[nt]
 
-                # b2 <- 4 * (x[nt]) / (x[nt] * x[nt])
-                # c2 <- -4 / (x[nt] * x[nt])
-
-                # Initialize values
-                # b2 <- c2 <- b2.neg <- c2.neg <- 0
-# browser()
                 timeVectors <- t(apply(cbind(profiles, tmaxValues), 1, function(rowInfo) {
                     # Set in the current scope the proper values
                     profileValue <- rowInfo[1]
@@ -598,28 +598,6 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
                                                               # data = data_values))))
                 })) %*% rbind(c(rep(1, nt)), x, x * x)
 
-                # browser()
-
-                # Create a list containing all possible options as tags: 0, a1, -a1, b1, -b1, ...
-                # TODO: add a new slot to provide a list of parameters instead of a predefined one?
-                # replace.values <- c("0" = 0, unlist(lapply(c('a1', 'b1', 'a2', 'b2', 'c2'), function(tag)
-                #     setNames(c(get(tag), - get(tag)), c(tag, paste0('-', tag)))
-                # )))
-                #
-                # # Convert references to real values
-                # simProfiles <-
-                #     sapply(.Object@profiles, function(p)
-                #         replace.values[as.character(p)] %*% rbind(c(rep(1, nt)), x, x * x), simplify = FALSE)
-                #
-                #
-                # # Create a matrix of <times> columns and <ID> rows, with every
-                # # row being a vector of the associated profile.
-                # timeVectors <-
-                #     matrix(
-                #         unlist(simulation@simSettings$profiles[as.character(profiles)], use.names = FALSE),
-                #         ncol = length(simulation@times),
-                #         byrow = TRUE
-                #     )
 
                 # Generate base counts using the formulas:
                 # X = initial_counts + noise [for flat]
@@ -627,8 +605,7 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
                 # X = M + lambda(M - m) + noise [for lambda in [-1,0]]
 
                 # Delegate creation of specific simulation parameters
-                # TODO: prueba temporal fijando random counts entre grupos
-                simulateParams <- simulateParams(object, simulation, counts, profiles, group, ids)#, simuRCounts)
+                simulateParams <- simulateParams(object, simulation, counts, profiles, group, ids)
 
                 randomCounts <- simulateParams$randomCounts
                 noiseValues <- simulateParams$noiseValues
@@ -639,22 +616,10 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
                 indexFlat <- (profiles == "flat")
 
                 # Simulate values
-                # Make sure that the result M - m is at least
-                # (P90 - P10) * 0.1 of the initial data
-                # simData <-
-                #     ifelse(grepl('repression', profiles, fixed = TRUE), M, m) +
-                #     (ifelse((M-m) < object@increment, object@increment, M - m) * timeVectors) +
-                #     noiseValues
 
                 repressionMean <- runif(length(M), min = (M+m)/2, max = M)
                 inductionMean <- runif(length(m), min = m, max = (M+m)/2)
 
-                # simData <-
-                #     ifelse(grepl('repression', profiles, fixed = TRUE),
-                #            repressionMean,
-                #            inductionMean) +
-                #     ((M - m) * timeVectors) +
-                #     noiseValues
 
                 if (! object@pregenerated) {
                     simData <-
@@ -677,14 +642,6 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
 
 
                 # Overwrite flat rows with the correct value
-                # TODO: use randomCounts or counts?
-                # simData[indexFlat, ] <- counts[indexFlat] + noiseValues[indexFlat, ]
-                # Note: "initializeData" already modifies the "counts" variable for the required group using the
-                # random counts.
-                # simData[indexFlat, ] <- ifelse(ids[indexFlat] %in% flatProfiles$ID,
-                #                                counts[indexFlat],
-                #                                randomCounts[indexFlat]) + noiseValues[indexFlat, ]
-
                 simData[indexFlat, ] <- ifelse(ids[indexFlat] %in% flatProfiles$ID,
                                                counts[indexFlat],
                                                (counts[indexFlat] + randomCounts[indexFlat])/2) + noiseValues[indexFlat, ]

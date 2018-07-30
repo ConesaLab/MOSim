@@ -281,7 +281,6 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
             chosenRegulators <- sample(x = availableRegulators,
                                        size = min(length(availableRegulators), numberWithEffect),
                                        replace = FALSE)
-            # browser()
             effectByID <- data.frame(
                 ID = allRegulators,
                 Effect = ifelse(allRegulators %in% chosenRegulators,
@@ -419,76 +418,17 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
                         # If the max % effect is 0, it means that there were multiple groups but all of them
                         # had NE assigned by default.
                         if (length(groupSizes) > 1){# || max(effectSizes$MaxPercentage) == 0) {
-                            # Which groups have the max percentage of effects
-                            # effectTieIndexes <- as.character(which(effectSizes$MaxPercentage == max(effectSizes$MaxPercentage)))
-                            # # Which groups have the max amount of genes
-                            # tieIndexes <- as.character(which(groupSizes == max(groupSizes)))
+                            # Remove groups that have no effect at all
+                            # I.e. in methylation we keep <NA> effect up to this point
+                            # so there could be two majoritary groups and one of them
+                            # without effect.
+                            excludedGroups <- dplyr::summarize(classSplit, Exclude = all(is.na(Effect))) %>%
+                                dplyr::pull(Exclude)
 
-                            # effectTieIndexes <- (effectSizes$MaxPercentage == max(effectSizes$MaxPercentage))
+                            # Remove those groups that have no effect (in methylation)
+                            groupSample <- setdiff(which(groupSizes == max(groupSizes[! excludedGroups])), which(excludedGroups))
 
-                            # By default select from max % in effect
-                            # groupSample <- which(effectTieIndexes)
-                            groupSample <- which(groupSizes == max(groupSizes))
-
-                            # More than one with the same % of effect
-                          # if (sum(effectTieIndexes) > 1) {
-                                # Select the ones with more genes of those selected groups
-                                # Which groups have the max amount of genes
-                        # groupSample <- which(groupSizes == max(groupSizes[effectTieIndexes]) & effectTieIndexes)
-
-                                # Still more than 1 result, check if 2 of them have the opposite effect
-                                # TODO: remove this as no longer necessary?
-                                # if (length(effectGroupTieIndexes) > 1) {
-                                    # Get possible combinations
-                                    # groupCombinations <- combn(effectGroupTieIndexes, m = 2, simplify = F)
-
-                                    # groupsComparison <- unlist(lapply(groupCombinations, function(groupComb) {
-                                    #     # Select profiles of first group
-                                    #     firstProfile <- paste(
-                                    #         dplyr::filter(effectSizes, row_number() == groupComb[1]) %>%
-                                    #         dplyr::select(dplyr::starts_with("Group")),
-                                    #         collapse = "_"
-                                    #         )
-                                    #
-                                    #     # Select profiles of second group, replacing them with the
-                                    #     # opposite values.
-                                    #     secondProfile <- paste(
-                                    #         stri_replace_all_fixed(
-                                    #         dplyr::filter(effectSizes, row_number() == groupComb[2]) %>%
-                                    #             dplyr::select(dplyr::starts_with("Group")),
-                                    #         c(".induction", ".repression", "*"),
-                                    #         c("*repression", "*induction", "."),
-                                    #         vectorize_all = FALSE
-                                    #         ),
-                                    #     collapse = "_")
-                                    #
-                                    #     return(firstProfile == secondProfile)
-                                    # }))
-
-                                    # In case there are many matches, select one at random
-                                    # groupsMatch <- as.character(which(groupsComparison == TRUE))
-                                    # browser()
-                                    # if (length(groupsMatch)) {
-                                    #     # Select both groups
-                                    #     groupsSelected <- groupCombinations[[as.numeric(sample(groupsMatch,
-                                    #                                                            size = 1))]]
-                                    # } else {
-                                    #     # Select one group at random
-                                    #     groupsSelected <- sample(as.character(effectGroupTieIndexes), size = 1)
-                                    # }
-
-                                    # TODO
-                                    # groupSample <- effectGroupTieIndexes; #sample(as.character(), size = 1)
-                                # }
-                            # } else {
-                            #     # Only one group will be selected here
-                            #     browser()
-                            #     groupsSelected <- which(effectTieIndexes == TRUE)
-                    # }
                             groupSelected <- sample(as.character(groupSample), size = 1)
-
-                            # selEffect <- .selectEffect(dplyr::filter(effectSizes, row_number() == groupSelected))
-
 
                             selGroup <- dplyr::slice(regGenes,
                                                      which(dplyr::group_indices(classSplit) == groupSelected))
@@ -555,119 +495,12 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
                                     )
                                 )
                             }
-# browser()
+
                             profileGroup <- dplyr::mutate(profileGroup, Effect = ifelse(Gene %in% selGenes, selEffect, NA))
-                            # If there is an opposite class, select the genes
-                            # Select profiles of first group
-                            # firstProfile <- paste(dplyr::select(selGroup, dplyr::starts_with("Group")), collapse = "_")
-                            # groupProfiles <- dplyr::mutate(effectSizes,
-                            #                                Class = lazyeval::make_call(quote(paste),
-                            #                                                            lazyeval::as.lazy_dots(dplyrGroup))) %>%
-                            #                     dplyr::pull(Class)
 
-                            # Select profiles of second group, replacing them with the
-                            # opposite values.
-                            # revClass <- paste(
-                            #     stri_replace_all_fixed(
-                            #         dplyr::select(selGroup, dplyr::starts_with("Group")),
-                            #         c(".induction", ".repression", "*"),
-                            #         c("*repression", "*induction", "."),
-                            #         vectorize_all = FALSE
-                            #     ),
-                            #     collapse = "_")
-                            #
-                            # revGroup <- which(groupProfiles == revClass)
-                            #
-                            # revGenes <- list()
-                            #
-                            # if (length(revGroup)) {
-                            #     revEffect <- setdiff(c('enhancer', 'repressor'), selEffect)
-                            #
-                            #     revGroup <- dplyr::slice(regGenes,
-                            #                              which(dplyr::group_indices(classSplit) == groupsSelected[2]))
-                            #
-                            #     revGenes <- revGroup$ID
-                            # }
-
-                            # Retrieve the genes that have a totally opposite behaviour in all
-                            # groups, so the contrary effect can be assigned.
-                            # revClass <- paste(
-                            #     stri_replace_all_fixed(
-                            #         selGroup[1, -1], # Remove ID column
-                            #         c(".induction", ".repression", "*"),
-                            #         c("*repression", "*induction", "."),
-                            #         vectorize_all = FALSE
-                            #     ), collapse=" ")
-
-                            # revClass <-
-                            #     stri_replace_all_fixed(
-                            #         selGroup[1, -1], # Remove ID column
-                            #         c(".induction", ".repression", "*"),
-                            #         c("*repression", "*induction", "."),
-                            #         vectorize_all = FALSE
-                            #     )
-
-                            # Retrieve gene IDS with the opposite pattern (considering all groups)
-                            # revIDs <- dplyr::mutate_(regGenes,
-                            #                          Paste = lazyeval::make_call(quote(paste),
-                            #                                                      lazyeval::as.lazy_dots(dplyrGroup))) %>%
-                            #     dplyr::filter(Paste == revClass, ! ID %in% selGenes) %>%
-                            #     dplyr::select(ID) %>% unlist()ENSMUSG00000028127
-
-                            # Save profile info (remove ID column)
-                            # groupCols <- regGenes[, - 1]
-
-                            # Append new columns with associated effect
-                            # Add column of effect in Group <i>
-                            # matchTable <- match(regGenes$ID, profileGroup$Gene)
-
-                            # for (i in seq(.Object@numberGroups)) {
-                            #     # Opposite class for this group
-                            #     revClass <- stri_replace_all_fixed(
-                            #         selGroup[1, i + 1], # Skip ID column
-                            #         c(".induction", ".repression", "*"),
-                            #         c("*repression", "*induction", "."),
-                            #         vectorize_all = FALSE
-                            #     )
-                            #
-                            #     profileGroup[matchTable, paste0("Effect.Group", i)] <- ifelse(
-                            #         # Check if group is the same as the selected class in this group
-                            #         groupCols[, i] == as.character(selGroup[1, i + 1]),
-                            #         # If that is the case, choose selected effect
-                            #         selEffect,
-                            #         # If not, check if it has the opposite profile
-                            #         ifelse(
-                            #             groupCols[, i] == revClass,
-                            #             # If it has the opposite profile, assign the contrary effect
-                            #             revEffect,
-                            #             # If not, assign an NA
-                            #             NA
-                            #         )
-                            #     )
-                            # }
-
-                            #if (length(revIDs)) browser()
-                            # Set to <NA> those genes not included in the primary class unless they have a totally opposite
-                            # behaviour.
-                            # The column "Effect" will be the one used to model the profile of the regulator, whereas "Effect.Linked"
-                            # should be the final one returned in settings, as it reflects the real "correlation" with gene expression.
-                            # return(dplyr::mutate(.,
-                            #                      Effect.Linked =  ifelse(Gene %in% selGenes, selEffect,
-                            #                                          ifelse(Gene %in% revIDs, revEffect, NA)),
-                            #                      Effect = ifelse(Gene %in% selGenes, selEffect, NA)))
-
-                            # Return value
-                            # profileGroup <- dplyr::mutate(profileGroup,
-                            #                               Effect = ifelse(Gene %in% selGenes,
-                            #                                               selEffect,
-                            #                                               ifelse(Gene %in% revGenes,
-                            #                                                      revEffect,
-                            #                                                      NA)))
-                            # return(profileGroup)
                         } else {
                             # Select the group effect (either only one group or multiple but all of them with NE effect)
-                            #selEffect <- .selectEffect(head(effectSizes, 1))
-                            selEffect <- sample(
+                              selEffect <- sample(
                                 names(availableEffects),
                                 size = 1,
                                 replace = TRUE,
@@ -680,21 +513,16 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
                         }
                     }
 
-                    # Add N groups Effect.Group
-                    # TODO: remove this, temporary for not raising errors
-                    # profileGroup[, paste0("Effect.Group", seq(.Object@numberGroups))] <- profileGroup$Effect
 
                     # Assign tmax
-                    # if (nrow(profileGroup) > 1 && !is.na(tmaxGroup$Tmax.Group1)) browser()
                     for (group in seq(.Object@numberGroups)) {
                         colName <- paste0("Tmax.Group", group)
 
                         profileGroup <- dplyr::mutate(profileGroup, !!colName := (if(is.na(tmaxGroup[[group]]) || is.infinite(tmaxGroup[[group]])) NA else runif(n = 1, 0.25 * tmax.T, as.numeric(tmaxGroup[group]))))
                     }
-                    # profileGroup[, grep("Tmax", colnames(profileGroup))] <- rep(tmaxGroup,
-                                                                                # each = nrow(profileGroup))
 
-# Replace "NE" effect with NA
+
+                    # Replace "NE" effect with NA
                     profileGroup <- dplyr::mutate_at(profileGroup, dplyr::vars(dplyr::contains("Effect")), dplyr::funs(ifelse(. == "NE", NA, .)))
                     # Return the processed (or not) profileGroup
                     return(profileGroup)
@@ -706,9 +534,6 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
             message("- Adjusting regulator effect")
 
             # Expression profiles of all expressed genes
-            # condTable <- inner_join(profilesExpr, regTable, by = "Gene")
-            # condTable <- dplyr::left_join(regTable, profilesExpr, by = c("Gene" = "ID")) %>% dplyr::ungroup()
-
             # TODO: select ALL genes (expr + non-expr) or not?
             condTable <- dplyr::left_join(regTable, dplyr::select(profilesAll, -dplyr::starts_with("Tmax.")),
                                           by = c("Gene" = "ID")) %>% dplyr::ungroup()
@@ -731,7 +556,7 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
                 subCondTable <- dplyr::bind_rows(subCondTable, data.frame(ID = notInTable))
                 condTable <- dplyr::bind_rows(condTable, data.frame(ID = notInTable))
             } else {
-                # TODO: we assume that Keeps.* is the one including the original ID like methyl-seq simulator
+                # TODO: we assume that Keep.* is the one including the original ID like methyl-seq simulator
                 colID <- colnames(regTable)[grep("Keep.", colnames(regTable))]
 
                 notInTable <- dplyr::select(dplyr::ungroup(regTable), "ID", colID)
@@ -795,18 +620,12 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
         # samples on DE genes. The associated regulators must change as well,
         # depending on the linked effect.
         if (.Object@numberGroups > 1) {
-            # sampleDE
-            # profileSubset <- dplyr::filter(profilesExpr, ID %in% sampleDE)
-            # dataSubset <- object@data[as.character(profileSubset$ID), ]
-
             # Determine the rows with the same condition on all columns
             # Change only base count values when the profiles are flat on all conditions,
             # otherwise they are already DE genes.
             sameCond <- apply(apply(dplyr::select(profilesDE, dplyr::starts_with("Group")), 2, '==', 'flat'), 1, all)
 
             # NULL by default
-            # profilesReg$FlatGroups <- NULL
-
             FlatRNAseq <- NULL
 
             if ((nSameCount <- sum(sameCond))) {
@@ -834,7 +653,6 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
                     return(geneRow)
                 }))
 
-                # profilesReg$FlatGroups <- data.frame(sameCondDE, stringsAsFactors = FALSE)
                 FlatRNAseq <- data.frame(sameCondDE, stringsAsFactors = FALSE)
             }
 
@@ -856,29 +674,6 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
 
         # Resolve references of profiles to proper values
         message("Finishing generation of configuration settings.")
-
-#         nt <- length(.Object@times)
-#
-#         x <- c(0:(nt - 1))
-#
-#         a1 <- 0
-#         b1 <- 1 / x[nt]
-#
-#         a2 <- 0
-#         b2 <- 4 * (x[nt]) / (x[nt] * x[nt])
-#         c2 <- -4 / (x[nt] * x[nt])
-#
-#         # Create a list containing all possible options as tags: 0, a1, -a1, b1, -b1, ...
-#         # TODO: add a new slot to provide a list of parameters instead of a predefined one?
-#         replace.values <- c("0" = 0, unlist(lapply(c('a1', 'b1', 'a2', 'b2', 'c2'), function(tag)
-#             setNames(c(get(tag), - get(tag)), c(tag, paste0('-', tag)))
-#         )))
-# browser()
-#         # Convert references to real values
-#         simProfiles <-
-#             sapply(.Object@profiles, function(p)
-#                 replace.values[as.character(p)] %*% rbind(c(rep(1, nt)), x, x * x), simplify = FALSE)
-
 
         .Object@simSettings <- list(
             geneProfiles = profilesReg,

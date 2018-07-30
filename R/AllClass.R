@@ -117,7 +117,7 @@ setClass(
 #' @slot pregenerated Indicates if the child class will generate the simulated data instead of the
 #' general process.
 #'
-#' @export
+#' @export%
 #'
 setClass(
     "Simulator",
@@ -169,7 +169,8 @@ setClass(
             scale=c(0.0881209571080616,0.804836647784225,1.64942276542406,2.87435701954641,
                     5.21636953504161,8.65961524646501,15.7834953443805,13.6005097645718,
                     53.8061030463463,301.806512019322,622.399272725056,16859.692892429)
-        )
+        ),
+        regulatorPercentage = NULL
     ),
     contains = c("VIRTUAL")
 )

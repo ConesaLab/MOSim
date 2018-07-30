@@ -24,7 +24,16 @@ vignettes/*cache/*
 vignettes/*.sty
 vignettes/*.log
 vignettes/*.tex
-
+vignettes/*.out
+vignettes/*.bbl
+vignettes/*.aux
+vignettes/*.bib
+vignettes/*.R
+vignettes/*.pdf
+vignettes/*.out
+vignettes/*.gz
+vignettes/*.Rmd
+vignettes/*.toc
 
 # OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
 .httr-oauth

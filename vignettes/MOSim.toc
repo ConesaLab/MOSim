@@ -1,12 +1,14 @@
 \contentsline {section}{\numberline {1}Introduction}{2}{section.1}
-\contentsline {section}{\numberline {2}Input data and simulation}{2}{section.2}
-\contentsline {subsection}{\numberline {2.1}Running the simulation: \texttt [functioncolor]{mosim}}{2}{subsection.2.1}
-\contentsline {subsection}{\numberline {2.2}Providing custom data: \texttt [functioncolor]{omicData}}{3}{subsection.2.2}
-\contentsline {subsection}{\numberline {2.3}Tunning omic settings: \texttt [functioncolor]{omicSim}}{6}{subsection.2.3}
-\contentsline {section}{\numberline {3}Output data}{7}{section.3}
-\contentsline {subsection}{\numberline {3.1}Simulation settings}{7}{subsection.3.1}
-\contentsline {subsection}{\numberline {3.2}Accessing the data: \texttt [functioncolor]{omicSettings} and \texttt [functioncolor]{omicResults}}{8}{subsection.3.2}
-\contentsline {section}{\numberline {4}Advanced use cases}{10}{section.4}
-\contentsline {subsection}{\numberline {4.1}Custom noise function}{10}{subsection.4.1}
-\contentsline {section}{\numberline {5}Setup}{11}{section.5}
+\contentsline {subsection}{\numberline {1.1}Simulation algorithm}{2}{subsection.1.1}
+\contentsline {section}{\numberline {2}Getting started}{4}{section.2}
+\contentsline {subsection}{\numberline {2.1}Experimental design, omics list and input data}{4}{subsection.2.1}
+\contentsline {subsection}{\numberline {2.2}Running the simulation: \texttt [functioncolor]{mosim}}{5}{subsection.2.2}
+\contentsline {subsection}{\numberline {2.3}Providing custom data: \texttt [functioncolor]{omicData}}{7}{subsection.2.3}
+\contentsline {subsection}{\numberline {2.4}Changing omic settings: \texttt [functioncolor]{omicSim}}{10}{subsection.2.4}
+\contentsline {section}{\numberline {3}Output data}{11}{section.3}
+\contentsline {subsection}{\numberline {3.1}Retrieving the simulation settings: \texttt [functioncolor]{omicSettings}}{11}{subsection.3.1}
+\contentsline {subsection}{\numberline {3.2}Accessing the count data matrices: \texttt [functioncolor]{omicResults}}{12}{subsection.3.2}
+\contentsline {section}{\numberline {4}Advanced use cases}{13}{section.4}
+\contentsline {subsection}{\numberline {4.1}Custom noise function}{13}{subsection.4.1}
+\contentsline {section}{\numberline {5}Setup}{14}{section.5}
 \contentsfinish 

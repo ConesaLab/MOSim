@@ -537,7 +537,7 @@ setMethod("adjustProfiles", signature="SimMethylseq", function(object, simulatio
                                     message(sprintf("Generating block methylation data for chromosome %s.", chrName))
 
                                     # State blocks for the current chromosome
-                                    state_blocks <- data.frame(object@WGBSparams$chrBlocks[['state', chrName]],
+                                    state_blocks <- data.frame(object@WGBSparams$chrBlocks[['state', as.character(chrName)]],
                                                                stringsAsFactors = FALSE)
 
                                     # TODO: performance botteneck. Change within with transform?
