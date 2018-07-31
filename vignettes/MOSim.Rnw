@@ -369,15 +369,6 @@ custom_cpgs <- head(sampleData$SimMethylseq$idToGene, 100)
 # 4  11_3101287_3101287 ENSMUSG00000082286
 # 5  11_3101329_3101329 ENSMUSG00000082286
 # 6  11_3101404_3101404 ENSMUSG00000082286
-
-methylseq_customdata <- omicData("Methyl-seq",
-                                associationList = custom_cpgs)
-
-multi_simulation <- mosim(omics = list(
-    "RNA-seq" = rnaseq_customdata,
-    "DNase-seq" = dnaseseq_customdata,
-    "Methyl-seq" = methylseq_customdata),
-    )
 @
 
 \subsection{Changing omic settings: \Rfunction{omicSim}}
@@ -543,7 +534,7 @@ If we also want to retrieve the original association lists, the parameter \Robje
 
 <<code10c, echo=TRUE, eval=FALSE, tidy=TRUE>>=
 # This will be a list with 3 keys: settings, association and regulators
-dnase_settings <- omicSettings(multi_simulation, "DNAse-seq",
+dnase_settings <- omicSettings(multi_simulation, "DNase-seq",
                                association = TRUE)
 @
 

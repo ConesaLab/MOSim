@@ -380,7 +380,6 @@ setMethod("initializeData", signature="Simulator", function(object, simulation) 
 #' @rdname simulate-methods
 #' @aliases simulate,Simulation
 setMethod("simulate", signature="Simulator", function(object, simulation) {
-
     message(sprintf("Starting simulation of %s.", object@name))
 
     object <- initializeData(object, simulation)

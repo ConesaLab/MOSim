@@ -103,8 +103,8 @@ mosim <- function(omics, omicsOptions = NULL, ...) {
 
         # Transform the "regulatorEffect" parameter to change "activator" to "enhancer"
         # effect.
-        if (is.element("regulatorEffect", names(omicsParams))) {
-            names(omicsParams$regulatorEffect) <- gsub("activator", "enhancer", names(omicsParams$regulatorEffect))
+        if (is.element("regulatorEffect", names(omicParams))) {
+            names(omicParams$regulatorEffect) <- gsub("activator", "enhancer", names(omicParams$regulatorEffect))
         }
 
         # Modify the param list or the slots directly
@@ -139,7 +139,7 @@ mosim <- function(omics, omicsOptions = NULL, ...) {
 #' @examples
 #' \dontrun{
 #' }
-omicData <- function(omic, data, associationList = NULL) {
+omicData <- function(omic, data = NULL, associationList = NULL) {
     # Convert the name to the proper class name
     omicClass <- paste0("Sim", gsub("-", "", omic))
 

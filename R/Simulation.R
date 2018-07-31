@@ -893,7 +893,7 @@ setValidity("Simulation", function(object) {
 
         # Currently methylation does not accept custom data
         if ('SimMethylseq' %in% names(dataProvided) && dataProvided['SimMethylseq'] == TRUE)
-            errors <- c(errors, "Currently there is no support for including custom methylation data. You need to provide the 'idToGene' slot, which will be used to retrieve the number and location of the CpGs.")
+            message("Currently there is no support for including custom methylation data. You need to provide the 'idToGene' slot, which will be used to retrieve the number and location of the CpGs.")
 
         # Remove Methylation simulator from the list and avoid checking the already
         # initialized simulators.
