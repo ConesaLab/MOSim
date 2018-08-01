@@ -5,7 +5,7 @@ Authors@R: person("First", "Last", email = "first.last@example.com", role = c("a
 Description: What the package does (one paragraph).
 Depends:
     R (>= 3.2.3)
-License: What license is it under?
+License: GPL-3
 LazyData: true
 Imports:
     HiddenMarkov,

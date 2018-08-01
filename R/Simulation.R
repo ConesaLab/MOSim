@@ -47,7 +47,7 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
 
     # Set random number generator seed
     # TODO: enable this again
-    # set.seed(.Object@randomSeed)
+    set.seed(.Object@randomSeed)
 
     # Inherited params from simulation
     inheritParams <- list(
@@ -79,7 +79,6 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
         }
 
         # If required, adjust the total number of features to simulate on every omic
-        # sim@totalFeatures <- min(nrow(sim@data), sim@totalFeatures)
         if (nrow(sim@data) > sim@totalFeatures) {
 
             if (sim@regulator) {
@@ -157,18 +156,7 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
             )
         }
 
-        # Assign random gene names to NonDE
-        # sampleNonDE <- sample(
-        #     setdiff(.Object@geneNames, sampleDE),
-        #     size = .Object@exprGenes - .Object@diffGenes,
-        #     replace = FALSE
-        #     )
-
-        # Expressed genes (DE + NonDE) identifiers
-        # sampleExpr <- union(sampleNonDE, sampleDE)
-
-        # Non-expressed genes identifiers
-        # sampleNonExpr <- setdiff(.Object@geneNames, sampleExpr)
+        # Assign gene names to NonDE
         sampleNonDE <- setdiff(.Object@geneNames, sampleDE)
 
         # Randomly assign a profile to every DE gene
@@ -216,17 +204,6 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
         }
 
         # Randomly assign a profile to every NonDE
-        # profilesNonDE <-
-        #     if (.Object@exprGenes > .Object@diffGenes)
-        #         data.frame(
-        #             ID = sampleNonDE,
-        #             DE = FALSE,
-        #             replicate(.Object@numberGroups,
-        #                       rep('flat', times = .Object@exprGenes - .Object@diffGenes)),
-        #             stringsAsFactors = FALSE)
-        #     else
-        #         data.frame()
-
         profilesNonDE <-
             if (length(sampleNonDE))
                 data.frame(
@@ -284,12 +261,6 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
             effectByID <- data.frame(
                 ID = allRegulators,
                 Effect = ifelse(allRegulators %in% chosenRegulators,
-                                # sample(
-                                #     x = names(availableEffects),
-                                #     size = length(allRegulators),
-                                #     replace = TRUE,
-                                #     prob = as.numeric(availableEffects)
-                                # ),
                                 TRUE, # Do not assign the effect as it will be assigned later
                                 "NE"
                                 )
@@ -301,8 +272,6 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
 
             # Randomly assign an effect to every regulator from the available
             # options defined on every simulator, excluding NE effect.
-
-
             regTable$Effect <- sample(
                 names(availableEffects),
                 size = nrow(regTable),
@@ -328,8 +297,7 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
 
             # Select all (hence the double check) rows duplicated, only for DE genes.
             # Duplicated ID means that the regulator is linked to more than one gene.
-            # regDups <- duplicated(regTable$Gene) | duplicated(regTable$Gene, fromLast=TRUE)
-            regDupsDE <-  (duplicated(regTable$ID) |
+             regDupsDE <-  (duplicated(regTable$ID) |
                             duplicated(regTable$ID, fromLast=TRUE)) &
                             (regTable$Gene %in% sampleDE) &
                             (! regTable$ID %in% discardedReg)
@@ -372,7 +340,6 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
 
                 classifyDups <- function(profileGroup) {
                     # Select classes of the genes associated with the regulator
-                    # regGenes <- dplyr::semi_join(profilesDE, ., by = c("ID" = "Gene")) %>% dplyr::select(-DE)
                     # Note: dplyr renames the unneeded ID column of "." to ID.y
                     regGenes <- dplyr::inner_join(profilesDE, profileGroup, by = c("ID" = "Gene")) %>%
                         dplyr::select(-DE, -ID.y, -dplyr::starts_with("Effect.Group"), -dplyr::ends_with(".y"), dplyr::starts_with("Keep."))
@@ -404,14 +371,6 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
                         #
                         # Force sampling options to character to prevent a seq when there
                         # is only a result.
-                        # effectSizes <- dplyr::summarize(classSplit,
-                        #                                 Percentage.Enhancer = prop.table(table(Effect))["enhancer"],
-                        #                                 Percentage.Repressor = prop.table(table(Effect))["repressor"],
-                        #                                 MaxPercentage = sum(Percentage.Enhancer,
-                        #                                                     Percentage.Repressor,
-                        #                                                     na.rm = T)) %>%
-                        #                 dplyr::ungroup()
-
                         groupSizes <- dplyr::group_size(classSplit)
 
                         # If there is only 1 groupSize, skip the process.
@@ -508,7 +467,7 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
                             )
 
                             # Return the original data frame with the same effect for all the genes in the group
-                            profileGroup <- dplyr::mutate(profileGroup, Effect = selEffect) %>% #replace(Effect, !is.na(Effect), selEffect)) %>%
+                            profileGroup <- dplyr::mutate(profileGroup, Effect = selEffect) %>%
                                 dplyr::mutate_at(dplyr::vars(dplyr::starts_with("Effect.Group")), dplyr::funs(return(selEffect)))
                         }
                     }
@@ -680,12 +639,8 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
 
             geneSamples = list(
                 DE = sampleDE,
-                nonDE = sampleNonDE#,
-                # expr = sampleExpr,
-                # nonExpr = sampleNonExpr
+                nonDE = sampleNonDE
             ),
-
-            # profiles = simProfiles,
 
             expDesign = list(
                 times = .Object@times,
@@ -846,7 +801,6 @@ setMethod("simSettings", signature="Simulation", function(object) {
     cat(sprintf("Simulation settings of class %s:\n", class(object)))
     cat(sprintf("- Default depth: %d\n", object@depth))
     cat(sprintf("- Total genes: %d\n", object@totalGenes))
-    # cat(sprintf("- Expressed genes: %d\n", object@exprGenes))
     cat(sprintf("- Dif. expressed genes: %d\n", object@diffGenes))
     cat(sprintf("- Replicates: %d\n", object@numberReps))
     cat(sprintf("- Factor levels (groups): %d\n", object@numberGroups))

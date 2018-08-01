@@ -415,20 +415,6 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
 
         flatProfiles <- (profileInfo == 'flat')
 
-        # temp[flatProfiles, ] <- t(apply(cbind(counts[flatProfiles], temp[flatProfiles, ]), 1,
-        #                                       function(geneRow) {
-        #                                           # Original replicate values
-        #                                           mean.original <- geneRow[1]
-        #                                           gene.values <- geneRow[-1]
-        #
-        #                                           diff.mean <- mean(gene.values) - mean.original
-        #
-        #                                           gene.adjusted <- gene.values - diff.mean
-        #
-        #                                           return(gene.adjusted)
-        #                                       }))
-
-
         temp.depth <- apply(temp, 2, function(x) x * object@depth / sum(x))
 
         # For flat profiles row, re-adjust the values so they are centered around the original mean
@@ -439,8 +425,6 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
                              mean = adjusted.means,
                              sd = 0.025 * adjusted.means)
 
-# temp.bak <- temp.depth
-        # temp.depth[flatProfiles, ] <- t(apply(cbind(adjusted.means[flatProfiles], temp.depth[flatProfiles, ]), 1,
         temp.depth[flatProfiles, ] <- t(apply(cbind(noised.means[flatProfiles], temp.depth[flatProfiles, ]), 1,
                                               function(geneRow) {
                                                   # Original replicate values
@@ -516,10 +500,7 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
 
     if (object@pregenerated) {
         # Repeat for every replicate
-        # columnsParam <- do.call(cbind, replicate(simulation@numberReps, columnsParam, simplify = FALSE))
-        # columnsParam <- do.call(cbind, lapply(columnsParam, function(x) replicate(simulation@numberReps, x, simplify=TRUE)))
         columnsParam <- columnsParam[, rep(colnames(columnsParam), each = simulation@numberReps), drop = FALSE]
-        # iterationParam <- rep(iterationParam, times = simulation@numberReps)
         iterationParam <- rep(iterationParam, each = simulation@numberReps)
         idsParam <- simProfiles[, rep('ID', simulation@numberGroups * simulation@numberReps), drop = FALSE]
 
@@ -531,12 +512,6 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
             dplyr::summarise_all(dplyr::funs(dplyr::first(na.omit(.)))) %>%
             dplyr::ungroup()
     }
-
-    # quant.info <- quantile(object@data[[1]], probs = c(0.25, 0.75))
-    # simuRCounts <- runif(nrow(simProfiles), min = quant.info[1], max = quant.info[2])
-    # TODO: remove this
-    # simuRCounts <- jitter(object@data[[1]], factor = 1)
-    # simuRCounts.adj <- sum(object@data[[1]]) * simuRCounts / sum(simuRCounts)
 
     # Generate time series (if any) with replicates
     object@simData <- data.frame(
@@ -593,8 +568,6 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
 
                     return(unlist(data_values[as.character(simulation@profiles[[profileValue]])]))
 
-                    # return(as.numeric(unlist(rlang::eval_tidy(simulation@profiles[profileValue],
-                                                              # data = data_values))))
                 })) %*% rbind(c(rep(1, nt)), x, x * x)
 
 
@@ -659,10 +632,6 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
                     mmnoflat
                 )
 
-                # Calculate a base SD to keep the same between different makeReplicate calls.
-                # That way the flat genes will be more stable during time.
-                # groupStdev <- makeReplicates.generateSD(simData[, 1])
-
                 # If the object is flagged as pregenerated it should already have the
                 # replicates (i.e. methyl seek), so skip this step.
                 if (! object@pregenerated) {
@@ -673,8 +642,6 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
                             groupInfo = group,
                             timeInfo = simulation@times,
                             profileInfo = as.data.frame(profiles)[, rep(1, length(simulation@times)),drop=FALSE],
-                            # flatPos = as.data.frame(indexFlat)[, rep(1, length(simulation@times))],
-                            # baseStdev = as.data.frame(groupStdev)[, rep(1, length(simulation@times))],
                             SIMPLIFY = FALSE,
                             USE.NAMES = FALSE
                         )

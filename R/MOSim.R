@@ -5,7 +5,7 @@ NULL
 
 #' MOSim
 #'
-#' Description
+#' Multiomics simulation package.
 #'
 #'
 #' @docType package
@@ -19,8 +19,14 @@ NULL
 #'  1) Creating the "Simulation" class with the provided params.
 #'  2) Calling "simulate" method on the initialized object.
 #'
-#' @param omics
-#' @param omicsOptions
+#' @param omics Character vector containing the list of omics to simulate it can also be an
+#'  associative list with the omic names as keys and their options
+#'  as values. This is the prefered way of indicating the omics to simulate using the default
+#'  parameters.
+#' @param omicsOptions Associative list containing the options for each omic to simulate. This is
+#' used in conjunction with the helper methods omicSim to create the associative list
+#' in a friendly way, and omicData to provide custom data; see the related section for
+#' more information.
 #' @param diffGenes A number with the total number of differential genes (if value > 1) or % or
 #'  total genes (if value < 1).
 #' @param numberReps Number of replicates of the experiment.
@@ -28,6 +34,8 @@ NULL
 #' @param randomSeed Random seed for random number generator state.
 #' @param times Numeric vector containing the measured times. If numberGroups < 2,
 #'  the number of times must be at least 2.
+#' @param TFtoGene Boolean indicating if default transcription factors data should be used or not, or
+#' a 3 column data frame containing custom associations.
 #' @param noiseFunction Noise function to apply when simulating counts. Must accept the parameter 'n' and
 #'  return a vector of the same length. Defaults to `rnorm`
 #' @param noiseParam Named list with the parameters to apply to the noise function.
@@ -40,37 +48,17 @@ NULL
 #'
 #' @examples
 #' \dontrun{
-#'  # Start empty simulation with default params:
-#'  moSimulation <- mosim()
-#'
-#'  # Retrieve simulated data, it will only contain a "SimRNAseq" key.
-#'  moSimulation@simData
-#'
-#'
-#'  # Simulation with every omic and some custom options:
-#'  simulatorOptions <- list(
-#'      'SimRNAseq'=list(
-#'          'depth'=25
-#'      ),
-#'      'SimMethylseq'=list(
-#'      ),
-#'      'SimmiRNAseq'=list(),
-#'      'SimDNaseseq'=list(),
-#'      'SimChIPseq'=list()
-#'  )
 #'
 #'  moSimulation <- mosim(
+#'      omics = c("RNA-seq"),
 #'      numberReps = 3,
 #'      times = c(0, 2, 6, 12, 24),
-#'      randomSeed = 1234,
-#'      omics = simulatorOptions
+#'      randomSeed = 1234
 #'  )
 #'
-#'  # simData will contain a key for every simulator
-#'  dataRNAseq <- moSimulation@simData$SimRNAseq
+#'  # Retrieve simulated count matrix for RNA-seq
+#'  dataRNAseq <- omicResults(moSimulation, "RNA-seq")
 #'
-#'  # Methylseq is one exception, having both "beta" and "M" keys
-#'  dataMethylSeqBeta <- moSimulation@simData$SimMethylseq$beta
 #' }
 mosim <- function(omics, omicsOptions = NULL, ...) {
     # Params to initialize simulation instance
@@ -81,12 +69,6 @@ mosim <- function(omics, omicsOptions = NULL, ...) {
 
     # 'omics' parameter alias of 'simulators'
     simParams$simulators <- omics
-
-    # Start logging
-    # if (simParams$debug) {
-    #     # logging::basicConfig(level = "FINEST")
-    #     # logging::addHandler(logging::writeToFile, file = "mosim_debug.log", level = "DEBUG")
-    # }
 
     # If it is a plain vector, transform it to a list of empty lists
     if (! is.list(simParams$simulators)) {
@@ -127,11 +109,13 @@ mosim <- function(omics, omicsOptions = NULL, ...) {
     return(oSim)
 }
 
-#' omicData
+#' Set customized data for an omic.
 #'
-#' @param omic
-#' @param data
-#' @param associationList
+#' @param omic The name of the omic to provide data.
+#' @param data Data frame with the omic identifiers as row names and just one column named Counts
+#' containing numeric values used as initial sample for the simulation.
+#' @param associationList Only for regulatory omics, a data frame with 2 columns, the first called
+#' containing the regulator ID and the second called Gene with the gene identifier.
 #'
 #' @return
 #' @export
@@ -151,12 +135,16 @@ omicData <- function(omic, data = NULL, associationList = NULL) {
     return(omicSim)
 }
 
-#' omicSim
+#' Set the simulation settings for an omic.
 #'
-#' @param omic
-#' @param depth
-#' @param totalFeatures
-#' @param reguEffect
+#' @param omic Name of the omic to set the settings.
+#' @param depth Sequencing depth in millions of counts. If not provided will take the global
+#' parameter passed to mosim function.
+#' @param totalFeatures Limit the number of features to simulate. By default include all present
+#' in the dataset.
+#' @param regulatorEffect only for regulatory omics. Associative list containing the percentage
+#' of effects over the total number of regulator, including repressor, association and
+#' no effect (NE).
 #'
 #' @return
 #' @export
@@ -183,6 +171,9 @@ omicSim <- function(omic, depth = NULL, totalFeatures = NULL, regulatorEffect = 
 #' @param simulation A Simulation object.
 #' @param omics List of omics to retrieve the settings.
 #' @param association A boolean indicating if the association must also be returned for the regulators.
+#' @param reverse A boolean, swap the column order in the association list in case we want to use the
+#' output directly and the program requires a different ordering.
+#' @param only.linked Return only the interactions that have an effect.
 #'
 #' @return A list containing a data frame with the settings used to simulate each of the indicated omics.
 #' If association is TRUE, it will be a list with 2 keys: 'associations' and 'settings', with each one being
@@ -270,8 +261,6 @@ omicSettings <- function(simulation, omics = NULL, association = FALSE, reverse 
                 output.df <- dplyr::filter(output.df, ID %in% linked.IDs)
             }
 
-            #output.df <- dplyr::select(output.df, - Effect)
-
             return(output.df)
         }))
 
@@ -357,7 +346,7 @@ omicResults <- function(simulation, omics = NULL, format = data.frame) {
 #'
 #' @param simulation
 #'
-#' @return
+#' @return A Simulation object.
 #' @export
 #'
 #' @examples

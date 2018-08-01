@@ -59,7 +59,6 @@ setMethod("initialize", signature="SimMethylseq", function(.Object, idToGene, to
     #
     # Repeat for every chromosome
     .Object@WGBSparams$chrBlocks <- sapply(setNames(nm = as.character(sort(unique(.Object@locs$chr)))), function(chr) {
-    # .Object@WGBSparams$chrBlocks <- sapply(setNames(nm = c('1', '2')), function(chr) {
         message("Creating methylation state blocks for chr ", chr)
 
         # Order by ascendent position
@@ -565,7 +564,6 @@ setMethod("adjustProfiles", signature="SimMethylseq", function(object, simulatio
                                             ID <- paste('Block', chrName, j, sep = ".")
                                             # Assign a random effect per block
                                             # Keep the already set NA (non DE genes)
-                                            # if (any(!is.na(Effect))) browser()
                                             Effect <- ifelse(is.na(Effect), NA, sample(names(availableEffects), size = 1,
                                                                                        prob = as.numeric(availableEffects)))
                                             # Remove unused variables
