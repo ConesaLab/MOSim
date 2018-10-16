@@ -241,7 +241,7 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
             allRegulators <- rownames(sim@data)
 
             # Remove NE
-            availableEffects <- sim@regulatorEffect[grep("NE", names(sim@regulatorEffect), invert = T)]
+            availableEffects <- sim@regulatorEffect[grep("NE", names(sim@regulatorEffect), invert = TRUE)]
 
             # Number of regulators with effect
             numberWithEffect <- length(allRegulators) * sum(as.numeric(availableEffects))

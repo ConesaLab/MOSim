@@ -11,7 +11,7 @@ test_that("profileprobs settings", {
     sim_no_induction <- mosim(omics = "RNA-seq", profileProbs = no_induction)
 
     # Check the presence of induction profiles in settings
-    expression_profiles <- sim_no_flat@simSettings$geneProfiles$SimRNAseq
+    expression_profiles <- sim_no_induction@simSettings$geneProfiles$SimRNAseq
 
     if (any(grepl("induction", expression_profiles$Group1),
             grepl("induction", expression_profiles$Group2)))

@@ -2,15 +2,21 @@
 % Please edit documentation in R/MOSim.R
 \name{omicData}
 \alias{omicData}
-\title{omicData}
+\title{Set customized data for an omic.}
 \usage{
-omicData(omic, data, associationList = NULL)
+omicData(omic, data = NULL, associationList = NULL)
 }
 \arguments{
-\item{associationList}{}
+\item{omic}{The name of the omic to provide data.}
+
+\item{data}{Data frame with the omic identifiers as row names and just one column named Counts
+containing numeric values used as initial sample for the simulation.}
+
+\item{associationList}{Only for regulatory omics, a data frame with 2 columns, the first called
+containing the regulator ID and the second called Gene with the gene identifier.}
 }
 \description{
-omicData
+Set customized data for an omic.
 }
 \examples{
 \dontrun{

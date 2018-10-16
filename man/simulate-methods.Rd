@@ -6,7 +6,6 @@
 \alias{simulate,Simulator-method}
 \alias{simulate,Simulation}
 \alias{simulate,Simulation-method}
-\alias{simulate,Simulation}
 \title{Simulate [internal use]}
 \usage{
 simSettings(object)

@@ -3,11 +3,11 @@
 \docType{class}
 \name{SimulatorRegion-class}
 \alias{SimulatorRegion-class}
-\title{Virtual class containing general methods for simulators based on
-regions of the chromosomes, like DNase-seq, ChIP-seq or Methyl-seq}
+\title{Virtual class containing general methods for simulators based on regions of
+the chromosomes, like DNase-seq, ChIP-seq or Methyl-seq}
 \description{
-Virtual class containing general methods for simulators based on
-regions of the chromosomes, like DNase-seq, ChIP-seq or Methyl-seq
+Virtual class containing general methods for simulators based on regions of
+the chromosomes, like DNase-seq, ChIP-seq or Methyl-seq
 }
 \section{Slots}{
 

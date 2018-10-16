@@ -7,10 +7,17 @@
 mosim(omics, omicsOptions = NULL, ...)
 }
 \arguments{
-\item{...}{Additional options to be passed to simulation object}
+\item{omics}{Character vector containing the list of omics to simulate it can also be an
+associative list with the omic names as keys and their options
+as values. This is the prefered way of indicating the omics to simulate using the default
+parameters. Possible omics: "RNA-seq", "DNase-seq", "ChIP-seq", "miRNA-seq", "Methyl-seq" (case sensitive).}
 
-\item{totalGenes}{A number with the total number of genes including not expressed. Overwrited
-if a genome reference is provided. Currently not used as we force to provide real data.}
+\item{omicsOptions}{Associative list containing the options for each omic to simulate. This is
+used in conjunction with the helper methods omicSim to create the associative list
+in a friendly way, and omicData to provide custom data; see the related section for
+more information.}
+
+\item{...}{Additional options to be passed to simulation object}
 
 \item{diffGenes}{A number with the total number of differential genes (if value > 1) or % or
 total genes (if value < 1).}
@@ -24,8 +31,8 @@ total genes (if value < 1).}
 \item{times}{Numeric vector containing the measured times. If numberGroups < 2,
 the number of times must be at least 2.}
 
-\item{exprGenes}{Total number of expressed genes (if value > 1) or %
-of the total genes (if value < 1).}
+\item{TFtoGene}{Boolean indicating if default transcription factors data should be used or not, or
+a 3 column data frame containing custom associations.}
 
 \item{noiseFunction}{Noise function to apply when simulating counts. Must accept the parameter 'n' and
 return a vector of the same length. Defaults to `rnorm`}
@@ -46,36 +53,16 @@ Performs a multiomic simulation by chaining two actions:
 }
 \examples{
 \dontrun{
- # Start empty simulation with default params:
- moSimulation <- mosim()
-
- # Retrieve simulated data, it will only contain a "SimRNAseq" key.
- moSimulation@simData
-
-
- # Simulation with every omic and some custom options:
- simulatorOptions <- list(
-     'SimRNAseq'=list(
-         'depth'=25
-     ),
-     'SimMethylseq'=list(
-     ),
-     'SimmiRNAseq'=list(),
-     'SimDNaseseq'=list(),
-     'SimChIPseq'=list()
- )
 
  moSimulation <- mosim(
+     omics = c("RNA-seq"),
      numberReps = 3,
      times = c(0, 2, 6, 12, 24),
-     randomSeed = 1234,
-     omics = simulatorOptions
+     randomSeed = 1234
  )
 
- # simData will contain a key for every simulator
- dataRNAseq <- moSimulation@simData$SimRNAseq
+ # Retrieve simulated count matrix for RNA-seq
+ dataRNAseq <- omicResults(moSimulation, "RNA-seq")
 
- # Methylseq is one exception, having both "beta" and "M" keys
- dataMethylSeqBeta <- moSimulation@simData$SimMethylseq$beta
 }
 }

@@ -9,7 +9,8 @@ NULL
 #'
 #'
 #' @docType package
-#' @name MOSim
+#' @name MOSim-package
+#'
 NULL
 #> NULL
 
@@ -22,7 +23,7 @@ NULL
 #' @param omics Character vector containing the list of omics to simulate it can also be an
 #'  associative list with the omic names as keys and their options
 #'  as values. This is the prefered way of indicating the omics to simulate using the default
-#'  parameters.
+#'  parameters. Possible omics: "RNA-seq", "DNase-seq", "ChIP-seq", "miRNA-seq", "Methyl-seq" (case sensitive).
 #' @param omicsOptions Associative list containing the options for each omic to simulate. This is
 #' used in conjunction with the helper methods omicSim to create the associative list
 #' in a friendly way, and omicData to provide custom data; see the related section for
@@ -117,7 +118,7 @@ mosim <- function(omics, omicsOptions = NULL, ...) {
 #' @param associationList Only for regulatory omics, a data frame with 2 columns, the first called
 #' containing the regulator ID and the second called Gene with the gene identifier.
 #'
-#' @return
+#' @return Initialized simulation object with the given data.
 #' @export
 #'
 #' @examples
@@ -146,7 +147,7 @@ omicData <- function(omic, data = NULL, associationList = NULL) {
 #' of effects over the total number of regulator, including repressor, association and
 #' no effect (NE).
 #'
-#' @return
+#' @return A list with the appropiate structure to be given as options in mosim function.
 #' @export
 #'
 #' @examples
@@ -181,6 +182,8 @@ omicSim <- function(omic, depth = NULL, totalFeatures = NULL, regulatorEffect = 
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' }
 omicSettings <- function(simulation, omics = NULL, association = FALSE, reverse = FALSE, only.linked = FALSE, prefix = FALSE) {
     # TODO: should this be a generic <Simulation> method?
 
@@ -322,6 +325,8 @@ omicSettings <- function(simulation, omics = NULL, association = FALSE, reverse 
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' }
 omicResults <- function(simulation, omics = NULL, format = data.frame) {
     # Select all omics by default
     if (is.null(omics)) {

@@ -2,32 +2,39 @@
 NULL
 
 #'
-#' This class manages the global simulation process, like associating genes
-#' with gene classes, regulatory programs and other settings. Finally it will
+#' This class manages the global simulation process, like associating genes with
+#' gene classes, regulatory programs and other settings. Finally it will
 #' initialize the simulators with their options that will use the previously
 #' generated settings to simulate the data.
 #'
-#' @slot simulators Vector containing either S4 initialized classes of simulators
-#'  or a list with the class name as keys, and its options as value, see example.
-#' @slot totalGenes A number with the total number of genes including not expressed. Overwrited
-#'   if a genome reference is provided. Currently not used as we force to provide real data.
-#' @slot diffGenes A number with the total number of differential genes (if value > 1) or % or
-#'  total genes (if value < 1).
+#' @slot simulators Vector containing either S4 initialized classes of
+#'   simulators or a list with the class name as keys, and its options as value,
+#'   see example.
+#' @slot totalGenes A number with the total number of genes including not
+#'   expressed. Overwrited if a genome reference is provided. Currently not used
+#'   as we force to provide real data.
+#' @slot diffGenes A number with the total number of differential genes (if
+#'   value > 1) or \% or total genes (if value < 1).
 #' @slot numberReps Number of replicates of the experiment.
 #' @slot numberGroups Number of samples considered on the experiment.
 #' @slot randomSeed Random seed for random number generator state.
-#' @slot times Numeric vector containing the measured times. If numberGroups < 2,
-#'  the number of times must be at least 2.
-#' @slot geneNames Read only. List containing the IDs of the genes. Overwrited by the
-#'  genome reference if provided. Currently not used as we force to provide real data.
-#' @slot simSettings List of settings that overrides initializing the configuration of the simulation
-#'  by passing a previously generated list. This could be used to tweak by hand the
-#'  assigned profiles, genes, regulatory programs, etc.
-#' @slot noiseFunction Noise function to apply when simulating counts. Must accept the parameter 'n' and
-#'  return a vector of the same length. Defaults to `rnorm`
-#' @slot noiseParam Named list with the parameters to apply to the noise function.
+#' @slot times Numeric vector containing the measured times. If numberGroups <
+#'   2, the number of times must be at least 2.
+#' @slot geneNames Read only. List containing the IDs of the genes. Overwrited
+#'   by the genome reference if provided. Currently not used as we force to
+#'   provide real data.
+#' @slot simSettings List of settings that overrides initializing the
+#'   configuration of the simulation by passing a previously generated list.
+#'   This could be used to tweak by hand the assigned profiles, genes,
+#'   regulatory programs, etc.
+#' @slot noiseFunction Noise function to apply when simulating counts. Must
+#'   accept the parameter 'n' and return a vector of the same length. Defaults
+#'   to `rnorm`
+#' @slot noiseParam Named list with the parameters to apply to the noise
+#'   function.
 #' @slot profiles Named list containing the patterns with their coefficients.
-#' @slot profileProbs Numeric vector with the probabilities to assign each of the patterns. Defaults to 0.2 for each.
+#' @slot profileProbs Numeric vector with the probabilities to assign each of
+#'   the patterns. Defaults to 0.2 for each.
 #'
 #' @export
 #'
@@ -92,29 +99,35 @@ setClass(
 #' Virtual class containing common methods and slots for child classes.
 #'
 #' @slot name Name of the simulator to be used in messages.
-#' @slot data Data frame containing the initial sample to be used, with the features IDs as rownames
-#'  and only one column named "Counts".
+#' @slot data Data frame containing the initial sample to be used, with the
+#'   features IDs as rownames and only one column named "Counts".
 #' @slot regulator Boolean flag to indicate if the omic is a regulator or not.
-#' @slot regulatorEffect Possible regulation effects of the omic (enhancer, repressor or both).
-#' @slot idToGene Data frame with the association table between genes and other features. The structure
-#'  must be 2 columns, one named "ID" and the other "Gene".
+#' @slot regulatorEffect Possible regulation effects of the omic (enhancer,
+#'   repressor or both).
+#' @slot idToGene Data frame with the association table between genes and other
+#'   features. The structure must be 2 columns, one named "ID" and the other
+#'   "Gene".
 #' @slot min Minimum value allowed in the omic.
 #' @slot max Maximum value allowed in the omic.
 #' @slot gammaTable List with the gamma distribution parameters needed.
 #' @slot depth Sequencing depth to simulate.
 #' @slot noise Noise value for the NB mean.
 #' @slot depthRound Number of decimal places to round when adjusting depth.
-#' @slot depthAdjust Boolean indicating whether to adjust by sequencing depth or not.
-#' @slot totalFeaturesN umber of features to simulate. This will replace the data with a subset.
-#' @slot noiseFunction Noise function to apply when simulating counts. Must accept the parameter 'n' and
-#'  return a vector of the same length. Defaults to `rnorm`
-#' @slot noiseParam Named list with the parameters to apply to the noise function.
+#' @slot depthAdjust Boolean indicating whether to adjust by sequencing depth or
+#'   not.
+#' @slot totalFeaturesN umber of features to simulate. This will replace the
+#'   data with a subset.
+#' @slot noiseFunction Noise function to apply when simulating counts. Must
+#'   accept the parameter 'n' and return a vector of the same length. Defaults
+#'   to `rnorm`
+#' @slot noiseParam Named list with the parameters to apply to the noise
+#'   function.
 #' @slot increment Read-only. Minimum value to increase when simulating counts.
 #' @slot simData Contains the final simulated data.
-#' @slot pregenerated Indicates if the child class will generate the simulated data instead of the
-#' general process.
+#' @slot pregenerated Indicates if the child class will generate the simulated
+#'   data instead of the general process.
 #'
-#' @export%
+#' @export
 #'
 setClass(
     "Simulator",
@@ -171,8 +184,8 @@ setClass(
 )
 
 #'
-#' Virtual class containing general methods for simulators based on
-#' regions of the chromosomes, like DNase-seq, ChIP-seq or Methyl-seq
+#' Virtual class containing general methods for simulators based on regions of
+#' the chromosomes, like DNase-seq, ChIP-seq or Methyl-seq
 #'
 #' @slot locs Vector containing the list of locations of the sites.
 #' @slot locsName Type of the site to simulate, only for debug.
@@ -304,15 +317,18 @@ setClass(
 #'
 #' @slot nCpG numeric. Number of CpG sites to simulate.
 #' @slot pSuccessMethReg numeric. Probability of success in methylated region.
-#' @slot pSuccessDemethReg numeric. Probability of success in non methylated region
+#' @slot pSuccessDemethReg numeric. Probability of success in non methylated
+#'   region
 #' @slot errorMethReg numeric. Error rate in methylated region
 #' @slot errorDemethReg numeric. Error rate in methylated region
 #' @slot nReadsMethReg numeric. Mean number of reads in methylated region.
-#' @slot nReadsDemethReg numeric. Mean number of reads in non methylated regions.
-#' @slot phaseDiff numeric. Phase difference in the differentially methylated regions between two samples
+#' @slot nReadsDemethReg numeric. Mean number of reads in non methylated
+#'   regions.
+#' @slot phaseDiff numeric. Phase difference in the differentially methylated
+#'   regions between two samples
 #' @slot balanceHypoHyper numeric. Balance of hypo/hyper methylation
 #' @slot ratesHMMMatrix numeric. Matrix of values that describes the exponential
-#'  decay functions that define the distances between CpG values.
+#'   decay functions that define the distances between CpG values.
 #' @slot distType character. Distribution used to generate replicates:
 #' @slot transitionSize numeric.
 #' @slot PhiMeth matrix. Transition matrix for CpG locations.

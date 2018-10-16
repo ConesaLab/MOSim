@@ -3,27 +3,29 @@
 \docType{class}
 \name{Simulation-class}
 \alias{Simulation-class}
-\title{This class manages the global simulation process, like associating genes
-with gene classes, regulatory programs and other settings. Finally it will
+\title{This class manages the global simulation process, like associating genes with
+gene classes, regulatory programs and other settings. Finally it will
 initialize the simulators with their options that will use the previously
 generated settings to simulate the data.}
 \description{
-This class manages the global simulation process, like associating genes
-with gene classes, regulatory programs and other settings. Finally it will
+This class manages the global simulation process, like associating genes with
+gene classes, regulatory programs and other settings. Finally it will
 initialize the simulators with their options that will use the previously
 generated settings to simulate the data.
 }
 \section{Slots}{
 
 \describe{
-\item{\code{simulators}}{Vector containing either S4 initialized classes of simulators
-or a list with the class name as keys, and its options as value, see example.}
+\item{\code{simulators}}{Vector containing either S4 initialized classes of
+simulators or a list with the class name as keys, and its options as value,
+see example.}
 
-\item{\code{totalGenes}}{A number with the total number of genes including not expressed. Overwrited
-if a genome reference is provided. Currently not used as we force to provide real data.}
+\item{\code{totalGenes}}{A number with the total number of genes including not
+expressed. Overwrited if a genome reference is provided. Currently not used
+as we force to provide real data.}
 
-\item{\code{diffGenes}}{A number with the total number of differential genes (if value > 1) or % or
-total genes (if value < 1).}
+\item{\code{diffGenes}}{A number with the total number of differential genes (if
+value > 1) or \% or total genes (if value < 1).}
 
 \item{\code{numberReps}}{Number of replicates of the experiment.}
 
@@ -31,23 +33,28 @@ total genes (if value < 1).}
 
 \item{\code{randomSeed}}{Random seed for random number generator state.}
 
-\item{\code{times}}{Numeric vector containing the measured times. If numberGroups < 2,
-the number of times must be at least 2.}
+\item{\code{times}}{Numeric vector containing the measured times. If numberGroups <
+2, the number of times must be at least 2.}
 
-\item{\code{geneNames}}{Read only. List containing the IDs of the genes. Overwrited by the
-genome reference if provided. Currently not used as we force to provide real data.}
+\item{\code{geneNames}}{Read only. List containing the IDs of the genes. Overwrited
+by the genome reference if provided. Currently not used as we force to
+provide real data.}
 
-\item{\code{simSettings}}{List of settings that overrides initializing the configuration of the simulation
-by passing a previously generated list. This could be used to tweak by hand the
-assigned profiles, genes, regulatory programs, etc.}
+\item{\code{simSettings}}{List of settings that overrides initializing the
+configuration of the simulation by passing a previously generated list.
+This could be used to tweak by hand the assigned profiles, genes,
+regulatory programs, etc.}
 
-\item{\code{noiseFunction}}{Noise function to apply when simulating counts. Must accept the parameter 'n' and
-return a vector of the same length. Defaults to `rnorm`}
+\item{\code{noiseFunction}}{Noise function to apply when simulating counts. Must
+accept the parameter 'n' and return a vector of the same length. Defaults
+to `rnorm`}
 
-\item{\code{noiseParam}}{Named list with the parameters to apply to the noise function.}
+\item{\code{noiseParam}}{Named list with the parameters to apply to the noise
+function.}
 
 \item{\code{profiles}}{Named list containing the patterns with their coefficients.}
 
-\item{\code{profileProbs}}{Numeric vector with the probabilities to assign each of the patterns. Defaults to 0.2 for each.}
+\item{\code{profileProbs}}{Numeric vector with the probabilities to assign each of
+the patterns. Defaults to 0.2 for each.}
 }}
 

@@ -2,15 +2,26 @@
 % Please edit documentation in R/MOSim.R
 \name{omicSim}
 \alias{omicSim}
-\title{omicSim}
+\title{Set the simulation settings for an omic.}
 \usage{
-omicSim(omic, depth = NULL, totalFeatures = NULL, reguEffect = NULL)
+omicSim(omic, depth = NULL, totalFeatures = NULL,
+  regulatorEffect = NULL)
 }
 \arguments{
-\item{reguEffect}{}
+\item{omic}{Name of the omic to set the settings.}
+
+\item{depth}{Sequencing depth in millions of counts. If not provided will take the global
+parameter passed to mosim function.}
+
+\item{totalFeatures}{Limit the number of features to simulate. By default include all present
+in the dataset.}
+
+\item{regulatorEffect}{only for regulatory omics. Associative list containing the percentage
+of effects over the total number of regulator, including repressor, association and
+no effect (NE).}
 }
 \description{
-omicSim
+Set the simulation settings for an omic.
 }
 \examples{
 \dontrun{

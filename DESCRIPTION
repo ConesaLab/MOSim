@@ -1,12 +1,14 @@
 Package: MOSim
-Title: What the Package Does (one line, title case)
-Version: 0.0.0.9000
-Authors@R: person("First", "Last", email = "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+Title: Multi-Omics simulation
+Version: 0.1.0
+Authors@R: person("Carlos", "Martínez", email = "cmartinez@cipf.es", role = c("aut", "cre"))
+Description: MOSim package simulates multi-omic experiments that mimic regulatory mechanisms within the cell. 
+Encoding: UTF-8
 Depends:
-    R (>= 3.2.3)
+    R (>= 3.4)
 License: GPL-3
 LazyData: true
+biocViews: Software
 Imports:
     HiddenMarkov,
     zoo,
@@ -14,11 +16,8 @@ Imports:
     matrixStats,
     dplyr,
     stringi,
-    pbapply,
-    glmnet,
-    igraph,
-    MASS,
-    parallel
+    lazyeval,
+    rlang
 Suggests:
     testthat,
     knitr,
@@ -39,5 +38,5 @@ Collate:
     'methyl-seq.R'
     'miRNA-seq.R'
     'zzz.R'
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.0
 VignetteBuilder: knitr

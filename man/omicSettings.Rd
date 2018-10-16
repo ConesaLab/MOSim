@@ -13,6 +13,11 @@ omicSettings(simulation, omics = NULL, association = FALSE,
 \item{omics}{List of omics to retrieve the settings.}
 
 \item{association}{A boolean indicating if the association must also be returned for the regulators.}
+
+\item{reverse}{A boolean, swap the column order in the association list in case we want to use the
+output directly and the program requires a different ordering.}
+
+\item{only.linked}{Return only the interactions that have an effect.}
 }
 \value{
 A list containing a data frame with the settings used to simulate each of the indicated omics.

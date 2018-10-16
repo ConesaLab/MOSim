@@ -14,7 +14,8 @@ Class to simulate Methyl-seq data.
 
 \item{\code{pSuccessMethReg}}{numeric. Probability of success in methylated region.}
 
-\item{\code{pSuccessDemethReg}}{numeric. Probability of success in non methylated region}
+\item{\code{pSuccessDemethReg}}{numeric. Probability of success in non methylated
+region}
 
 \item{\code{errorMethReg}}{numeric. Error rate in methylated region}
 
@@ -22,9 +23,11 @@ Class to simulate Methyl-seq data.
 
 \item{\code{nReadsMethReg}}{numeric. Mean number of reads in methylated region.}
 
-\item{\code{nReadsDemethReg}}{numeric. Mean number of reads in non methylated regions.}
+\item{\code{nReadsDemethReg}}{numeric. Mean number of reads in non methylated
+regions.}
 
-\item{\code{phaseDiff}}{numeric. Phase difference in the differentially methylated regions between two samples}
+\item{\code{phaseDiff}}{numeric. Phase difference in the differentially methylated
+regions between two samples}
 
 \item{\code{balanceHypoHyper}}{numeric. Balance of hypo/hyper methylation}
 

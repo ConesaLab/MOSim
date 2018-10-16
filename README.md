@@ -14,6 +14,9 @@ Before doing that it might be necessary to install the required dependencies:
 * matrixStats
 * dplyr
 * stringi
+* pbapply
+* lazyeval
+* rlang
 
 
 ## Usage

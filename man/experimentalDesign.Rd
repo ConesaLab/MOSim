@@ -2,13 +2,16 @@
 % Please edit documentation in R/MOSim.R
 \name{experimentalDesign}
 \alias{experimentalDesign}
-\title{Title}
+\title{Retrieves the experimental design}
 \usage{
 experimentalDesign(simulation)
 }
 \arguments{
 \item{simulation}{}
 }
+\value{
+A Simulation object.
+}
 \description{
-Title
+Retrieves the experimental design
 }

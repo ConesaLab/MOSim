@@ -524,7 +524,7 @@ setMethod("adjustProfiles", signature="SimMethylseq", function(object, simulatio
 
     message("Adjusting methylation profiles")
 
-    availableEffects <- object@regulatorEffect[grep("NE", names(object@regulatorEffect), invert = T)]
+    availableEffects <- object@regulatorEffect[grep("NE", names(object@regulatorEffect), invert = TRUE)]
 
     # newProfiles <-
     switch(step,

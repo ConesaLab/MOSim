@@ -12,15 +12,17 @@ Virtual class containing common methods and slots for child classes.
 \describe{
 \item{\code{name}}{Name of the simulator to be used in messages.}
 
-\item{\code{data}}{Data frame containing the initial sample to be used, with the features IDs as rownames
-and only one column named "Counts".}
+\item{\code{data}}{Data frame containing the initial sample to be used, with the
+features IDs as rownames and only one column named "Counts".}
 
 \item{\code{regulator}}{Boolean flag to indicate if the omic is a regulator or not.}
 
-\item{\code{regulatorEffect}}{Possible regulation effects of the omic (enhancer, repressor or both).}
+\item{\code{regulatorEffect}}{Possible regulation effects of the omic (enhancer,
+repressor or both).}
 
-\item{\code{idToGene}}{Data frame with the association table between genes and other features. The structure
-must be 2 columns, one named "ID" and the other "Gene".}
+\item{\code{idToGene}}{Data frame with the association table between genes and other
+features. The structure must be 2 columns, one named "ID" and the other
+"Gene".}
 
 \item{\code{min}}{Minimum value allowed in the omic.}
 
@@ -34,20 +36,24 @@ must be 2 columns, one named "ID" and the other "Gene".}
 
 \item{\code{depthRound}}{Number of decimal places to round when adjusting depth.}
 
-\item{\code{depthAdjust}}{Boolean indicating whether to adjust by sequencing depth or not.}
+\item{\code{depthAdjust}}{Boolean indicating whether to adjust by sequencing depth or
+not.}
 
-\item{\code{totalFeaturesN}}{umber of features to simulate. This will replace the data with a subset.}
+\item{\code{totalFeaturesN}}{umber of features to simulate. This will replace the
+data with a subset.}
 
-\item{\code{noiseFunction}}{Noise function to apply when simulating counts. Must accept the parameter 'n' and
-return a vector of the same length. Defaults to `rnorm`}
+\item{\code{noiseFunction}}{Noise function to apply when simulating counts. Must
+accept the parameter 'n' and return a vector of the same length. Defaults
+to `rnorm`}
 
-\item{\code{noiseParam}}{Named list with the parameters to apply to the noise function.}
+\item{\code{noiseParam}}{Named list with the parameters to apply to the noise
+function.}
 
 \item{\code{increment}}{Read-only. Minimum value to increase when simulating counts.}
 
 \item{\code{simData}}{Contains the final simulated data.}
 
-\item{\code{pregenerated}}{Indicates if the child class will generate the simulated data instead of the
-general process.}
+\item{\code{pregenerated}}{Indicates if the child class will generate the simulated
+data instead of the general process.}
 }}
 

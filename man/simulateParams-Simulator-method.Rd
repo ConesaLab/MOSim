@@ -5,7 +5,8 @@
 \alias{simulateParams,Simulator-method}
 \title{simulateParams}
 \usage{
-\S4method{simulateParams}{Simulator}(object, simulation, counts, profiles, ids)
+\S4method{simulateParams}{Simulator}(object, simulation, counts, profiles,
+  ids)
 }
 \arguments{
 \item{object}{Instance of class \linkS4class{Simulator}.}

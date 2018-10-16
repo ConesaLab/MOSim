@@ -57,22 +57,22 @@ When time course data is to be simulated, \Biocpkg{MOSim} assigns one of the fol
 
 
 \begin{figure}[!tpb]
-	\centering
-	\setlength{\fboxsep}{1.5em}
-	\fbox{
-	\begin{tikzpicture}
-	\node (flat) at (0,0) {Flat};
-	\node[below= of flat.west, anchor=west, yshift=-0.5cm] (cind)  {Continuous induction (CI)};
-	\node[below= of cind.west, anchor=west, yshift=-0.5cm] (crep)  {Continuous repression (CR)};
-	\node[below= of crep.west, anchor=west, yshift=-0.5cm] (tind)  {Transitory induction (TI)};
-	\node[below= of tind.west, anchor=west, yshift=-0.5cm] (trep)  {Transitory repression (TR)};
-	\draw [line width=0.55mm, red ] (5,0) -- (6,0);
-	\draw [line width=0.55mm, red ] (5,-1.8) -- (6,-1.2);
-	\draw [line width=0.55mm, red ] (5,-2.7) -- (6,-3.3);
-	\draw [line width=0.55mm, red ] (5,-4.8) to[out=60,in=180]  (5.5,-4.2) to[out=0, in=120] (6,-4.8);
-	\draw [line width=0.55mm, red ] (5,-5.7) to[out=-60,in=180]  (5.5,-6.3) to[out=0, in=240] (6,-5.7);
-	\end{tikzpicture}}%
-	\caption{Time profiles representation.}\label{fig:profiles}
+    \centering
+    \setlength{\fboxsep}{1.5em}
+    \fbox{
+    \begin{tikzpicture}
+    \node (flat) at (0,0) {Flat};
+    \node[below= of flat.west, anchor=west, yshift=-0.5cm] (cind)  {Continuous induction (CI)};
+    \node[below= of cind.west, anchor=west, yshift=-0.5cm] (crep)  {Continuous repression (CR)};
+    \node[below= of crep.west, anchor=west, yshift=-0.5cm] (tind)  {Transitory induction (TI)};
+    \node[below= of tind.west, anchor=west, yshift=-0.5cm] (trep)  {Transitory repression (TR)};
+    \draw [line width=0.55mm, red ] (5,0) -- (6,0);
+    \draw [line width=0.55mm, red ] (5,-1.8) -- (6,-1.2);
+    \draw [line width=0.55mm, red ] (5,-2.7) -- (6,-3.3);
+    \draw [line width=0.55mm, red ] (5,-4.8) to[out=60,in=180]  (5.5,-4.2) to[out=0, in=120] (6,-4.8);
+    \draw [line width=0.55mm, red ] (5,-5.7) to[out=-60,in=180]  (5.5,-6.3) to[out=0, in=240] (6,-5.7);
+    \end{tikzpicture}}%
+    \caption{Time profiles representation.}\label{fig:profiles}
 \end{figure}
 
 If a DEG is assigned to a flat profile in all groups, the algorithm will model a change in expression for at least one of the experimental groups (up or down regulation).
@@ -174,7 +174,7 @@ The \Robject{rnaseq\textunderscore~simulation} object is a \Rclass{Simulation} c
 
 Following with that basic example above, we can modify the experimental design to simulate 2 groups, 1 time point and 4 replicates per group:
 
-<<code2, echo=TRUE, eval=FALSE>>=
+<<code2, echo=TRUE, eval=TRUE, include=FALSE>>=
 rnaseq_simulation <- mosim(omics = c("RNA-seq"),
                            times = 0,
                            numberGroups = 2,
@@ -194,7 +194,7 @@ rnaseq_simulation <- mosim(omics = c("RNA-seq"),
 
 To obtain more than one omic data type, the omics list must be modified. RNA-seq is mandatory, and will be automatically included in the simulation, no matter if it is listed or not. Therefore these two simulations would be equivalent:
 
-<<code4, echo=TRUE, eval=FALSE>>=
+<<code4, echo=TRUE, eval=FALSE, include=FALSE>>=
 multi_simulation <- mosim(omics = c("RNA-seq", "DNase-seq"),
                           times = c(0, 5, 10),
                           numberGroups = 2,
@@ -232,7 +232,7 @@ This helper function accepts 3 parameters:
 
 For illustration purposes, consider as our custom data a subset of the default gene expression dataset. To use it as our seed RNA-seq dataset, we can use this code:
 
-<<code5, echo=TRUE, eval=FALSE,cache=TRUE, tidy=FALSE>>=
+<<code5, echo=TRUE, eval=TRUE,cache=TRUE, tidy=FALSE, include=FALSE>>=
 # Take a subset of the included dataset for illustration
 # purposes. We could also load it from a csv file or RData,
 # as long as we transform it to have 1 column named "Counts"
@@ -600,6 +600,6 @@ devtools::session_info()
 @
 
 
-	% \bibliographystyle{natbib}
-	% \bibliography{bib}
+% \bibliographystyle{natbib}
+% \bibliography{bib}
 \end{document}
