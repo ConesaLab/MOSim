@@ -273,7 +273,7 @@ omicSim <- function(omic, depth = NULL, totalFeatures = NULL, regulatorEffect = 
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#'
 #' omic_list <- c("RNA-seq")
 #' rnaseq_simulation <- mosim(omics = omic_list)
 #'
@@ -283,7 +283,7 @@ omicSim <- function(omic, depth = NULL, totalFeatures = NULL, regulatorEffect = 
 #' # This will be a list containing all the simulated omics (RNA-seq
 #' # and DNase-seq in this case)
 #' all_settings <- omicSettings(rnaseq_simulation)
-#' }
+#'
 omicSettings <- function(simulation, omics = NULL, association = FALSE, reverse = FALSE, only.linked = FALSE, prefix = FALSE, include.lagged = TRUE) {
     # Select all omics by default
     if (is.null(omics)) {

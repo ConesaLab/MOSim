@@ -40,7 +40,7 @@ A list containing a data frame with the settings used to simulate
 Retrieves the settings used in a simulation
 }
 \examples{
-\dontrun{
+
 omic_list <- c("RNA-seq")
 rnaseq_simulation <- mosim(omics = omic_list)
 
@@ -50,5 +50,5 @@ rnaseq_settings <- omicSettings(rnaseq_simulation, "RNA-seq")
 # This will be a list containing all the simulated omics (RNA-seq
 # and DNase-seq in this case)
 all_settings <- omicSettings(rnaseq_simulation)
-}
+
 }

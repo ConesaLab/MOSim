@@ -1,5 +1,7 @@
 #' @include Simulator.R SimulatorRegion.R simulate_WGBS_functions.R
-#' @import HiddenMarkov IRanges S4Vectors
+#' @import HiddenMarkov
+#' @importFrom IRanges IRanges
+#' @importFrom S4Vectors queryHits
 #' @importFrom rlang .data
 NULL
 
