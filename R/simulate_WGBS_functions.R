@@ -137,14 +137,14 @@ make_differential<-function(state_blocks,percentage,a){
     states<-unique(state_blocks[,3])
     n <-length(states)
     diff_meth <- matrix(data=0,nrow=1,ncol=l)
-    for(i in 1:n){
+    for(i in seq_len(n)){
         blocks <- state_blocks[state_blocks[,3]==i,]
         # MOD: sum only if it's matrix
         block_length <- if(is.null(dim(blocks))) blocks[4] else sum(blocks[,4])
         cutoff_length <- percentage[i]*block_length
         so_far <- 0
         while((so_far <= cutoff_length)&&!is.null(dim(blocks)[1])){
-            picked<- sample(1:dim(blocks)[1], 1)
+            picked<- sample(seq_len(dim(blocks)[1]), 1)
             if(so_far+blocks[picked,4] < cutoff_length){
                 so_far <- so_far + blocks[picked,4]
                 diff_meth[blocks[picked,1]:blocks[picked,2]]<-1
@@ -184,7 +184,7 @@ create_beta_probs<-function(a,prob_m,prob_d){
 trun_beta_probs<-function(prob_m,prod_d){
 
 
-    a<-rbeta(1,0.4,0.4)
+    a<-stats::rbeta(1,0.4,0.4)
     if(a<prod_d){
         a<-prod_d
     }
@@ -198,33 +198,33 @@ trun_beta_probs<-function(prob_m,prod_d){
 ###############################################################################
 #Create the CpG locations                                                     #
 ###############################################################################
-create_simulated_locations<-function(n,Pi,rates_for_HMM_for_CpG_locations, seed = NULL){
-
-    #set up the variables
-    delta <- c(0, 1)
-
-    #create a HMM model that will simulate the gaps between CpGs. it is a 2 state HMM
-    #in order to simulate CpG islands and CpG deserts. TODO: multistates for CpG shores
-    #,cliffs etc etc etc to be added later.
-    x <- dthmm(NULL, Pi, delta, "exp", list(rate=rates_for_HMM_for_CpG_locations))
-
-    #simulate this HMM for n steps
-    # MODIFIED: call simulate.dthmm function directly
-    x <- HiddenMarkov:::simulate.dthmm(x, nsim=n, seed=seed)
-
-    #extract the length
-    l<-length(x$x)
-
-    #initialise a matrix to store the results
-    locs <- matrix(data=1,nrow=1,ncol=l)
-
-    #loop over the simulated output and create the locations
-    for(i in 2:l){
-        locs[i]<-round(locs[i-1]+x$x[i])+1
-    }
-
-    return(locs)
-}
+# create_simulated_locations<-function(n,Pi,rates_for_HMM_for_CpG_locations, seed = NULL){
+#
+#     #set up the variables
+#     delta <- c(0, 1)
+#
+#     #create a HMM model that will simulate the gaps between CpGs. it is a 2 state HMM
+#     #in order to simulate CpG islands and CpG deserts. TODO: multistates for CpG shores
+#     #,cliffs etc etc etc to be added later.
+#     x <- dthmm(NULL, Pi, delta, "exp", list(rate=rates_for_HMM_for_CpG_locations))
+#
+#     #simulate this HMM for n steps
+#     # MODIFIED: call simulate.dthmm function directly
+#     x <- HiddenMarkov:::simulate.dthmm(x, nsim=n, seed=seed)
+#
+#     #extract the length
+#     l<-length(x$x)
+#
+#     #initialise a matrix to store the results
+#     locs <- matrix(data=1,nrow=1,ncol=l)
+#
+#     #loop over the simulated output and create the locations
+#     for(i in 2:l){
+#         locs[i]<-round(locs[i-1]+x$x[i])+1
+#     }
+#
+#     return(locs)
+# }
 
 ###############################################################################
 #Randomly create hyper/hypo methylation                                       #
@@ -294,7 +294,7 @@ hypo_hyper_diffs<-function(prob_m,phase_diff,states,split){
 #Randomly choose plus or minus                                                #
 ###############################################################################
 plus_minus<-function(split,phase_diff,prob_m){
-    if(runif(1, 0, 1) >= split){
+    if(stats::runif(1, 0, 1) >= split){
         mod_phase_diff <- phase_diff
 
         multiply <- prob_m+mod_phase_diff
@@ -318,26 +318,26 @@ plus_minus<-function(split,phase_diff,prob_m){
 ###############################################################################
 #Create file from real data set                                               #
 ###############################################################################
-create_real_data<-function(filename,number_of_samples,number_of_replicas){
-    #set up the variables
-    delta <- c(0, 1)
-    #create a HMM model that will simulate the gaps between CpGs. it is a 2 state HMM
-    #in order to simulate CpG islands and CpG deserts. TODO: multistates for CpG shores
-    #,cliffs etc etc etc to be added later.
-    x <- dthmm(NULL, Pi, delta, "exp", list(rate=rates_for_HMM_for_CpG_locations))
-    #simulate this HMM for n steps
-    # MODIFIED: call simulate.dthmm function directly
-    x <- HiddenMarkov:::simulate.dthmm(x, nsim=n)
-    #extract the length
-    l<-length(x$x)
-    #initialise a matrix to store the results
-    locs <- matrix(data=1,nrow=1,ncol=l)
-    #loop over the simulated output and create the locations
-    for(i in 2:l){
-        locs[i]<-round(locs[i-1]+x$x[i])+1
-    }
-    return(locs)
-}
+# create_real_data<-function(filename,number_of_samples,number_of_replicas){
+#     #set up the variables
+#     delta <- c(0, 1)
+#     #create a HMM model that will simulate the gaps between CpGs. it is a 2 state HMM
+#     #in order to simulate CpG islands and CpG deserts. TODO: multistates for CpG shores
+#     #,cliffs etc etc etc to be added later.
+#     x <- HiddenMarkov::dthmm(NULL, Pi, delta, "exp", list(rate=rates_for_HMM_for_CpG_locations))
+#     #simulate this HMM for n steps
+#     # MODIFIED: call simulate.dthmm function directly
+#     x <- HiddenMarkov:::simulate.dthmm(x, nsim=n)
+#     #extract the length
+#     l<-length(x$x)
+#     #initialise a matrix to store the results
+#     locs <- matrix(data=1,nrow=1,ncol=l)
+#     #loop over the simulated output and create the locations
+#     for(i in 2:l){
+#         locs[i]<-round(locs[i-1]+x$x[i])+1
+#     }
+#     return(locs)
+# }
 
 ###############################################################################
 #add a random fluctuation to probability of success                           #
@@ -345,7 +345,7 @@ create_real_data<-function(filename,number_of_samples,number_of_replicas){
 add_random_noise <- function (theta,n_mean,n_standard_deviation){
 
     #create the delta value with defined mean and standard deviation
-    delta <- rnorm(1, mean = n_mean, sd = n_standard_deviation)
+    delta <- stats::rnorm(1, mean = n_mean, sd = n_standard_deviation)
     theta_bar <-0
 
 
@@ -383,54 +383,54 @@ get_text <- function (message,default){
 ###############################################################################
 #initiate the function based on args                                          #
 ###############################################################################
-init_simulation <- function (number_of_CpGs,probability_of_success_in_differentially_methylated_region,probability_of_success_in_non_differentially_methylated_region,error_rate_in_differentially_methylated_region,error_rate_in_non_differentially_methylated_region,mean_number_of_reads_in_differentially_methylated_region,mean_number_of_reads_in_non_differentially_methylated_region,number_of_replicas,number_of_samples,phase_diff,balance,cpg_matrix,output_path,type){
-    #get the variables from the command line
-
-    phase_difference_between_two_samples <- c(0,phase_diff)
-
-
-    #error_rate_in_differentially_methylated_region <- 0.1
-
-    file_to_write_results_to <- output_path
-    probs <- c(1,1,0.9,0.8,0.7,0.6)
-
-
-    transition_size <- 0
-    #####probably not set by the user
-    number_of_repeats <- 1
-    transition_matrix_for_CpG_locations <-matrix(c(0.65, 0.35,0.2, 0.8),byrow=TRUE, nrow=2)
-    transition_matrix_for_probability_distributions <- matrix(c(0.9,0.1,0.1,0.9),byrow=TRUE, nrow=2)
-    type_of_locations <- 2
-
-    #run the simulation script
-    simulated_data <-generate_sim_set(number_of_CpGs,
-                                      number_of_repeats,
-                                      transition_matrix_for_CpG_locations,
-                                      transition_matrix_for_probability_distributions,
-                                      mean_number_of_reads_in_differentially_methylated_region,
-                                      mean_number_of_reads_in_non_differentially_methylated_region,
-                                      probability_of_success_in_differentially_methylated_region,
-                                      probability_of_success_in_non_differentially_methylated_region,
-                                      error_rate_in_differentially_methylated_region,
-                                      error_rate_in_non_differentially_methylated_region,
-                                      phase_difference_between_two_samples,
-                                      file_to_write_results_to,
-                                      type_of_locations,
-                                      number_of_replicas,
-                                      number_of_samples,
-                                      cpg_matrix,
-                                      transition_size,
-                                      balance,
-                                      output_path,
-                                      type
-    )
-    #run the summary script
-    summarise_simulated_data(simulated_data,number_of_replicas,number_of_samples)
-
-    filename<-simulated_data[[3]]
-
-    return(filename)
-}
+# init_simulation <- function (number_of_CpGs,probability_of_success_in_differentially_methylated_region,probability_of_success_in_non_differentially_methylated_region,error_rate_in_differentially_methylated_region,error_rate_in_non_differentially_methylated_region,mean_number_of_reads_in_differentially_methylated_region,mean_number_of_reads_in_non_differentially_methylated_region,number_of_replicas,number_of_samples,phase_diff,balance,cpg_matrix,output_path,type){
+#     #get the variables from the command line
+#
+#     phase_difference_between_two_samples <- c(0,phase_diff)
+#
+#
+#     #error_rate_in_differentially_methylated_region <- 0.1
+#
+#     file_to_write_results_to <- output_path
+#     probs <- c(1,1,0.9,0.8,0.7,0.6)
+#
+#
+#     transition_size <- 0
+#     #####probably not set by the user
+#     number_of_repeats <- 1
+#     transition_matrix_for_CpG_locations <-matrix(c(0.65, 0.35,0.2, 0.8),byrow=TRUE, nrow=2)
+#     transition_matrix_for_probability_distributions <- matrix(c(0.9,0.1,0.1,0.9),byrow=TRUE, nrow=2)
+#     type_of_locations <- 2
+#
+#     #run the simulation script
+#     simulated_data <-generate_sim_set(number_of_CpGs,
+#                                       number_of_repeats,
+#                                       transition_matrix_for_CpG_locations,
+#                                       transition_matrix_for_probability_distributions,
+#                                       mean_number_of_reads_in_differentially_methylated_region,
+#                                       mean_number_of_reads_in_non_differentially_methylated_region,
+#                                       probability_of_success_in_differentially_methylated_region,
+#                                       probability_of_success_in_non_differentially_methylated_region,
+#                                       error_rate_in_differentially_methylated_region,
+#                                       error_rate_in_non_differentially_methylated_region,
+#                                       phase_difference_between_two_samples,
+#                                       file_to_write_results_to,
+#                                       type_of_locations,
+#                                       number_of_replicas,
+#                                       number_of_samples,
+#                                       cpg_matrix,
+#                                       transition_size,
+#                                       balance,
+#                                       output_path,
+#                                       type
+#     )
+#     #run the summary script
+#     summarise_simulated_data(simulated_data,number_of_replicas,number_of_samples)
+#
+#     filename<-simulated_data[[3]]
+#
+#     return(filename)
+# }
 
 
 ###############################################################################
@@ -439,100 +439,100 @@ init_simulation <- function (number_of_CpGs,probability_of_success_in_differenti
 #between CpGs 2) Distribution of the size of differentially methylated regions#
 # 3) Distribution of read counts 4)
 ###############################################################################
-summarise_simulated_data <- function(generated_set,number_of_replicas,number_of_samples){
-    #define the layout of the figures (actually has no effect when saving to pdf)
-    mat <- matrix(1:6, 2, 3)
-    layout(mat)
-    #take the name from the simulated set and append the pdf extension
-    outname <- generated_set[[3]]
-    pdf(paste(outname,".pdf",sep=""))
-    #create the graphs
-    read_count_distribution(generated_set,number_of_replicas,number_of_samples)
-    methylation_distribution(generated_set,number_of_replicas,number_of_samples)
-    distance_distribution(generated_set)
-    dmr_size(generated_set)
-    methylation_postions(generated_set)
-    dev.off()
-}
+# summarise_simulated_data <- function(generated_set,number_of_replicas,number_of_samples){
+#     #define the layout of the figures (actually has no effect when saving to pdf)
+#     mat <- matrix(1:6, 2, 3)
+#     layout(mat)
+#     #take the name from the simulated set and append the pdf extension
+#     outname <- generated_set[[3]]
+#     pdf(paste(outname,".pdf",sep=""))
+#     #create the graphs
+#     read_count_distribution(generated_set,number_of_replicas,number_of_samples)
+#     methylation_distribution(generated_set,number_of_replicas,number_of_samples)
+#     distance_distribution(generated_set)
+#     dmr_size(generated_set)
+#     methylation_postions(generated_set)
+#     dev.off()
+# }
 ###############################################################################
 #Distribution of proportion of methylation                                    #
 ###############################################################################
-methylation_distribution <- function(generated_set,number_of_replicas,number_of_samples){
-    #calcualte the proportion of methylated vs demethylated reads in each replicate
-    #and plot the valus as a histogram
-
-    for(i in 1:number_of_samples){
-        for(j in 1:number_of_replicas){
-            col <- (((i-1)*(number_of_replicas*4))+((j-1)*4)+1)+2
-            hist(generated_set[[2]][,col]/generated_set[[2]][,col+1],col=rgb(0,0,0,0.2),ylab="frequency",xlab="proportion of methylated CpGs",main="histogram of methylation proportion")
-        }
-    }
-}
+# methylation_distribution <- function(generated_set,number_of_replicas,number_of_samples){
+#     #calcualte the proportion of methylated vs demethylated reads in each replicate
+#     #and plot the valus as a histogram
+#
+#     for(i in 1:number_of_samples){
+#         for(j in 1:number_of_replicas){
+#             col <- (((i-1)*(number_of_replicas*4))+((j-1)*4)+1)+2
+#             hist(generated_set[[2]][,col]/generated_set[[2]][,col+1],col=rgb(0,0,0,0.2),ylab="frequency",xlab="proportion of methylated CpGs",main="histogram of methylation proportion")
+#         }
+#     }
+# }
 
 ###############################################################################
 #CpG locations on a line                                                      #
 ###############################################################################
-methylation_postions <- function(generated_set){
-    #plot the location of each CpG as a transparent bar on a line
-    plot(generated_set[[2]][,1],matrix(data=1,ncol=1,nrow=length(generated_set[[2]][,1])),pch='|',col=rgb(0,0,0,0.01),ylab="",xlab="location",yaxt='n', ann=FALSE)
-
-}
+# methylation_postions <- function(generated_set){
+#     #plot the location of each CpG as a transparent bar on a line
+#     plot(generated_set[[2]][,1],matrix(data=1,ncol=1,nrow=length(generated_set[[2]][,1])),pch='|',col=rgb(0,0,0,0.01),ylab="",xlab="location",yaxt='n', ann=FALSE)
+#
+# }
 ###############################################################################
 #Distribution of distance between sites                                       #
 ###############################################################################
-distance_distribution <- function(generated_set){
-    #get the number of CpGs
-    CpG_length <- length(generated_set[[2]][,1])
-    #initialise a matrix to store the lengths in
-    length_set <- matrix(data=0,nrow=6,ncol=CpG_length)
-    #loop through and save the lengths between each site
-    for (i in 2:CpG_length){
-        length_set[1,i]<-generated_set[[2]][i,1]-generated_set[[2]][i-1,1]
-    }
-    #plot the distribution
-    hist(length_set[1,],col=rgb(1,0,0,0.2),breaks=100,ylab="frequency",xlab="coverage",main="histogram of distances between CpGs")
-}
+# distance_distribution <- function(generated_set){
+#     #get the number of CpGs
+#     CpG_length <- length(generated_set[[2]][,1])
+#     #initialise a matrix to store the lengths in
+#     length_set <- matrix(data=0,nrow=6,ncol=CpG_length)
+#     #loop through and save the lengths between each site
+#     for (i in 2:CpG_length){
+#         length_set[1,i]<-generated_set[[2]][i,1]-generated_set[[2]][i-1,1]
+#     }
+#     #plot the distribution
+#     hist(length_set[1,],col=rgb(1,0,0,0.2),breaks=100,ylab="frequency",xlab="coverage",main="histogram of distances between CpGs")
+# }
 ###############################################################################
 #Distribution of size of differentially methylated regions                    #
 ###############################################################################
-dmr_size <- function(generated_set){
-    #get the number of CpGs
-    CpG_states <- length(generated_set[[2]][,2])
-    #initialise a matrix to store the
-    length_set <- matrix(data=NA,nrow=6,ncol=CpG_states)
-    #initialise a variable to store the number of CpGs in each state
-    counter <- 1
-    #initialise a variable with the first state
-    previous <- generated_set[[2]][1,2]
-    #loop through all states and store the counter variable each time the state
-    #changes.
-    for (i in 2:CpG_states){
-        if(previous == generated_set[[2]][i,2]){
-            counter <- counter + 1
-        }else{
-            counter <- counter + 1
-            length_set[i] <- counter
-            counter <- 1
-            previous <- generated_set[[2]][i,2]
-        }
-    }
-    #plot the distribution
-    hist(length_set,breaks=100,ylab="frequency",xlab="size of DMR",main="histogram of DMR sizes")
-}
+# dmr_size <- function(generated_set){
+#     #get the number of CpGs
+#     CpG_states <- length(generated_set[[2]][,2])
+#     #initialise a matrix to store the
+#     length_set <- matrix(data=NA,nrow=6,ncol=CpG_states)
+#     #initialise a variable to store the number of CpGs in each state
+#     counter <- 1
+#     #initialise a variable with the first state
+#     previous <- generated_set[[2]][1,2]
+#     #loop through all states and store the counter variable each time the state
+#     #changes.
+#     for (i in 2:CpG_states){
+#         if(previous == generated_set[[2]][i,2]){
+#             counter <- counter + 1
+#         }else{
+#             counter <- counter + 1
+#             length_set[i] <- counter
+#             counter <- 1
+#             previous <- generated_set[[2]][i,2]
+#         }
+#     }
+#     #plot the distribution
+#     hist(length_set,breaks=100,ylab="frequency",xlab="size of DMR",main="histogram of DMR sizes")
+# }
 ###############################################################################
 #Distribution of read counts                                                  #
 ###############################################################################
-read_count_distribution <- function(generated_set,number_of_replicas,number_of_samples){
-    #plot a histogram for each read count set.
-    for(i in 1:number_of_samples){
-        for(j in 1:number_of_replicas){
-            col <- ((i-1)*(number_of_replicas*4))+((j-1)*4)+2
-
-            hist(as.numeric(generated_set[[2]][,col+2]),col=rgb(1,0,0,0.2),ylab="frequency",xlab="coverage",main=paste("histogram of simulation read counts ",col))
-
-        }
-    }
-}
+# read_count_distribution <- function(generated_set,number_of_replicas,number_of_samples){
+#     #plot a histogram for each read count set.
+#     for(i in 1:number_of_samples){
+#         for(j in 1:number_of_replicas){
+#             col <- ((i-1)*(number_of_replicas*4))+((j-1)*4)+2
+#
+#             hist(as.numeric(generated_set[[2]][,col+2]),col=rgb(1,0,0,0.2),ylab="frequency",xlab="coverage",main=paste("histogram of simulation read counts ",col))
+#
+#         }
+#     }
+# }
 ###############################################################################
 #Simple function which reduces the probability of changing state based on the #
 #distance between two CpGs.                                                   #
@@ -583,7 +583,7 @@ simulate_state_transition <- function (n,Pi,locs,start,transition_size){
     trans_down <- seq(from = transition_size+2, to = 3)
     current_state<-2
     #randomly reassign based the on the start probability
-    if(runif(1,0,1)<start){
+    if(stats::runif(1,0,1)<start){
         current_state<-1
     }
     #declare the variables
@@ -607,7 +607,7 @@ simulate_state_transition <- function (n,Pi,locs,start,transition_size){
         #store the value
         prob_transition[i]<-prob
         #randomly sample to see if the state should change
-        if(runif(1,0,1)<prob){
+        if(stats::runif(1,0,1)<prob){
             #if no: then save the current
             if(current_state < 4){
                 current_state<-current_state+1
@@ -634,60 +634,60 @@ simulate_state_transition <- function (n,Pi,locs,start,transition_size){
 #state, mean_d = the mean in the differentially methylated state, s = ?, error#
 #_m/d is the error sd, locs is the location of the CpGs. #
 ###############################################################################
-generate_replicat_methyl_oldbin_data <-function (states,prob_m_a,prob_d,mean_m,mean_d,s,error_m,error_d,locs){
-    #calculate the number of sites
-    l<-length(states);
-    #create a vector of coverage for the non_diffs
-    coverages<-list()
-    for (s in 1:4){
-        coverages[[s]]<-rpois(l, means[[s]])+1
-    }
-    #create a vecotr of coverage for the diffs
-    #set the coverage to the meth vector
-    coverage <- coverages[[1]]
-    #initialse the vectors
-    all_data <- matrix(data=0,nrow=1,ncol=l)
-    #prob_m_s = prob_m_a
-    #prob_d = matrix(data=prob_d,nrow=l,ncol=1)
-    #loop through and add random noise the probs of success
-    for (s in 1:4){
-        for (i in 1:l){
-            probs[[j]][[s]][i]<- add_random_noise(probs[[j]][[s]][i],0,errors[[s]])
-        }
-    }
-    #loop through and add random noise the probs of success
-    for (i in 1:l){
-        prob_m_s[i]<- add_random_noise(prob_m_s[i],0,error_m)
-    }
-    for (i in 1:l){prob_d[i]<- add_random_noise(prob_d[i],0,error_d)}
-    #loop through and simulate the number of methylated reads at each site
-    for(i in 1:l){
-        if(states[i]==1){
-            c<-rbinom(1, coverage_m[i], prob_m_s[i])
-            #c<-rbinom(1, coverage_d[i], probs[states[i]])
-            all_data[i]<-c
-            coverage[i]<-coverage_m[i]
-        }else{
-            c<-rbinom(1, coverage_d[i], prob_d[i])
-            all_data[i]<-c
-            coverage[i]<-coverage_d[i]
-        }
-    }
-    pos <- locs
-    #create one variable to return
-    proportion <- all_data/coverage;
-    final_store<-rbind(all_data,coverage,coverage,proportion)
-    rownames(final_store)<-c("x","n","coverage","proportion")
-    return(final_store)
-}
+# generate_replicat_methyl_oldbin_data <-function (states,prob_m_a,prob_d,mean_m,mean_d,s,error_m,error_d,locs){
+#     #calculate the number of sites
+#     l<-length(states);
+#     #create a vector of coverage for the non_diffs
+#     coverages<-list()
+#     for (s in 1:4){
+#         coverages[[s]]<-stats::rpois(l, means[[s]])+1
+#     }
+#     #create a vecotr of coverage for the diffs
+#     #set the coverage to the meth vector
+#     coverage <- coverages[[1]]
+#     #initialse the vectors
+#     all_data <- matrix(data=0,nrow=1,ncol=l)
+#     #prob_m_s = prob_m_a
+#     #prob_d = matrix(data=prob_d,nrow=l,ncol=1)
+#     #loop through and add random noise the probs of success
+#     for (s in 1:4){
+#         for (i in 1:l){
+#             probs[[j]][[s]][i]<- add_random_noise(probs[[j]][[s]][i],0,errors[[s]])
+#         }
+#     }
+#     #loop through and add random noise the probs of success
+#     for (i in 1:l){
+#         prob_m_s[i]<- add_random_noise(prob_m_s[i],0,error_m)
+#     }
+#     for (i in 1:l){prob_d[i]<- add_random_noise(prob_d[i],0,error_d)}
+#     #loop through and simulate the number of methylated reads at each site
+#     for(i in 1:l){
+#         if(states[i]==1){
+#             c<-stats::rbinom(1, coverage_m[i], prob_m_s[i])
+#             #c<-rbinom(1, coverage_d[i], probs[states[i]])
+#             all_data[i]<-c
+#             coverage[i]<-coverage_m[i]
+#         }else{
+#             c<-rbinom(1, coverage_d[i], prob_d[i])
+#             all_data[i]<-c
+#             coverage[i]<-coverage_d[i]
+#         }
+#     }
+#     pos <- locs
+#     #create one variable to return
+#     proportion <- all_data/coverage;
+#     final_store<-rbind(all_data,coverage,coverage,proportion)
+#     rownames(final_store)<-c("x","n","coverage","proportion")
+#     return(final_store)
+# }
 
 generate_replicat_methyl_bin_data <-function (states,probs,means,s,errors,locs,j,output_path){
     #calculate the number of sites
     l<-length(states);
     #create a vector of coverage for the non_diffs
     coverages<-list()
-    for (s in 1:4){
-        coverages[[s]]<-rpois(l, means[[s]])+1
+    for (s in seq_len(4)){
+        coverages[[s]]<-stats::rpois(l, means[[s]])+1
         #coverages[[s]]<-rep(100,l)
     }
     #create a vecotr of coverage for the diffs
@@ -699,21 +699,21 @@ generate_replicat_methyl_bin_data <-function (states,probs,means,s,errors,locs,j
     #prob_m_s = prob_m_a
     #prob_d = matrix(data=prob_d,nrow=l,ncol=1)
     #loop through and add random noise the probs of success
-    for (s in 1:4){
-        for (i in 1:l){
+    for (s in seq_len(4)){
+        for (i in seq_len(l)){
             probs[[j]][[s]][i]<- add_random_noise(probs[[j]][[s]][i],0,errors[[s]])
         }
         #hist(probs[[j]][[s]],main=paste("histogram of probs in state",s))
     }
     mt <- list()
-    for(s in 1:4){
-        sj<-rbinom(l, coverages[[s]], probs[[j]][[s]])
+    for(s in seq_len(4)){
+        sj<-stats::rbinom(l, coverages[[s]], probs[[j]][[s]])
         #hist(sj,main=paste("histogram of sj in state",s))
         mt[[s]]<-sj
     }
 
     #loop through and simulate the number of methylated reads at each site
-    for(i in 1:l){
+    for(i in seq_len(l)){
         c<-mt[[states[i]]][i]
         all_data[i]<-c
         coverage[i]<-coverages[[states[i]]][i]
@@ -747,8 +747,8 @@ generate_replicat_methyl_nbin_data_model_3 <-function (states,probs,means,s,erro
     l<-length(states);
     #create a vector of coverage for the non_diffs
     coverages<-list()
-    for (s in 1:4){
-        coverages[[s]]<-rpois(l, means[[s]])+1
+    for (s in seq_len(4)){
+        coverages[[s]]<-stats::rpois(l, means[[s]])+1
     }
     #create a vecotr of coverage for the diffs
     #set the coverage to the meth vector
@@ -758,14 +758,14 @@ generate_replicat_methyl_nbin_data_model_3 <-function (states,probs,means,s,erro
     #prob_m_s = prob_m_a
     #prob_d = matrix(data=prob_d,nrow=l,ncol=1)
     #loop through and add random noise the probs of success
-    for (s in 1:4){
-        for (i in 1:l){
+    for (s in seq_len(4)){
+        for (i in seq_len(l)){
             probs[[j]][[s]][i]<- add_random_noise(probs[[j]][[s]][i],0,errors[[s]])
         }
     }
     mt <- list()
-    for(s in 1:4){
-        sj<-rbinom(l, coverages[[s]], probs[[j]][[s]])
+    for(s in seq_len(4)){
+        sj<-stats::rbinom(l, coverages[[s]], probs[[j]][[s]])
         coverages[[s]]<-ceiling((sj+1) / probs[[j]][[s]])
 #         hist(sj,main=paste("histogram of sj in state",s))
 #         hist(coverages[[s]],main=paste("histogram of coverage in state",s))
@@ -773,7 +773,7 @@ generate_replicat_methyl_nbin_data_model_3 <-function (states,probs,means,s,erro
     }
 
     #loop through and simulate the number of methylated reads at each site
-    for(i in 1:l){
+    for(i in seq_len(l)){
         c<-mt[[states[i]]][i]
         all_data[i]<-c
         coverage[i]<-coverages[[states[i]]][i]
@@ -813,25 +813,25 @@ generate_replicat_methyl_truncated_nbin_data <-function (states,probs,means,s,er
     #prob_m_s = prob_m_a
     #prob_d = matrix(data=prob_d,nrow=l,ncol=1)
     #loop through and add random noise the probs of success
-    for (s in 1:4){
-        for (i in 1:l){
+    for (s in seq_len(4)){
+        for (i in seq_len(l)){
             probs[[j]][[s]][i]<- add_random_noise(probs[[j]][[s]][i],0,errors[[s]])
         }
     }
 
 
     mt <- list()
-    for(s in 1:4){
+    for(s in seq_len(4)){
         sj <- matrix(data=0,nrow=1,ncol=l)
         coverages[[s]]<-matrix(data=0,nrow=1,ncol=l)
-        for(i in 1:l){
+        for(i in seq_len(l)){
             a<-means[[s]]*probs[[j]][[s]][i]*(probs[[j]][[s]][i]/(1-probs[[j]][[s]][i]))
             b<-(1-probs[[j]][[s]][i])/probs[[j]][[s]][i]
-            N <- rpois(1,means[[s]])
+            N <- stats::rpois(1,means[[s]])
             coverages[[s]][i]<-N
             repeat{
-                lambda_j <- rgamma(1,shape = a,scale=b)
-                x<-rpois(1,lambda_j)
+                lambda_j <- stats::rgamma(1,shape = a,scale=b)
+                x<-stats::rpois(1,lambda_j)
 
                 if(x<=N){
                     sj[i]<-x
@@ -845,7 +845,7 @@ generate_replicat_methyl_truncated_nbin_data <-function (states,probs,means,s,er
     }
 
     #loop through and simulate the number of methylated reads at each site
-    for(i in 1:l){
+    for(i in seq_len(l)){
         c<-mt[[states[i]]][i]
         all_data[i]<-c
         coverage[i]<-coverages[[states[i]]][i]

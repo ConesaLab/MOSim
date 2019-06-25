@@ -1,4 +1,4 @@
-#' @import methods stringi matrixStats
+#' @import methods stringi matrixStats stats
 NULL
 
 #'
@@ -17,7 +17,6 @@ NULL
 #'   value > 1) or \% or total genes (if value < 1).
 #' @slot numberReps Number of replicates of the experiment.
 #' @slot numberGroups Number of samples considered on the experiment.
-#' @slot randomSeed Random seed for random number generator state.
 #' @slot times Numeric vector containing the measured times. If numberGroups <
 #'   2, the number of times must be at least 2.
 #' @slot geneNames Read only. List containing the IDs of the genes. Overwrited
@@ -30,13 +29,22 @@ NULL
 #' @slot noiseFunction Noise function to apply when simulating counts. Must
 #'   accept the parameter 'n' and return a vector of the same length. Defaults
 #'   to `rnorm`
-#' @slot noiseParam Named list with the parameters to apply to the noise
-#'   function.
 #' @slot profiles Named list containing the patterns with their coefficients.
 #' @slot profileProbs Numeric vector with the probabilities to assign each of
 #'   the patterns. Defaults to 0.2 for each.
+#' @slot minMaxQuantile Min and max quantile used to restrain the data.
+#' @slot noiseParams Default noise parameters to be used with noise function.
+#' @slot depth Default depth to simulate.
+#' @slot TFtoGene Boolean (for default data) or 3 column data frame containing
+#'   Symbol-TFGene-LinkedGene
+#' @slot minMaxQuantile Numeric vector of length 2 indicating the quantiles to
+#'   use in order to retrieve the absolute minimum and maximum value that a
+#'   differentially expressed feature can have.
+#' @slot minMaxFC Numeric vector of length 2 indicating the minimum and maximum
+#'   fold-change that a differentially expressed feature can have.
 #'
 #' @export
+#' @keywords internal
 #'
 #'
 setClass(
@@ -47,29 +55,25 @@ setClass(
         diffGenes = "numeric",
         numberReps = "numeric",
         numberGroups = "numeric",
-        randomSeed = "numeric",
         times = "vector",
         geneNames = "character",
         simSettings = "list",
-        defaultData = "list",
         profiles = "list",
         profileProbs = "list",
         noiseFunction = "function",
         noiseParams = "list",
         depth = "numeric",
-        debug = "logical",
         minMaxQuantile = "numeric",
-        replicateParams = "list",
+        minMaxFC = "numeric",
         TFtoGene = "ANY"
     ),
     prototype = list(
         diffGenes = .15,
         numberReps = 3,
         numberGroups = 2,
-        randomSeed = 12345,
         times = c(0, 2, 4, 12, 24),
         depth = 74,
-        noiseFunction = rnorm,
+        noiseFunction = stats::rnorm,
         noiseParams = list("sd" = 0.3),
         profiles = list(
             continuous.induction = c("a1", "b1", 0),
@@ -85,13 +89,9 @@ setClass(
             transitory.repression = .235,
             flat = .06
         ),
-        minMaxQuantile = c(0.25, 0.75),
-        replicateParams = list(
-            "a" = 0.01,
-            "b" = 1.5
-        ),
-        TFtoGene = NULL,
-        debug = FALSE
+        minMaxQuantile = c(0.3, 0.95),
+        minMaxFC = c(3, 8),
+        TFtoGene = NULL
     )
 )
 
@@ -109,13 +109,12 @@ setClass(
 #'   "Gene".
 #' @slot min Minimum value allowed in the omic.
 #' @slot max Maximum value allowed in the omic.
-#' @slot gammaTable List with the gamma distribution parameters needed.
 #' @slot depth Sequencing depth to simulate.
 #' @slot noise Noise value for the NB mean.
 #' @slot depthRound Number of decimal places to round when adjusting depth.
 #' @slot depthAdjust Boolean indicating whether to adjust by sequencing depth or
 #'   not.
-#' @slot totalFeaturesN umber of features to simulate. This will replace the
+#' @slot totalFeatures Number of features to simulate. This will replace the
 #'   data with a subset.
 #' @slot noiseFunction Noise function to apply when simulating counts. Must
 #'   accept the parameter 'n' and return a vector of the same length. Defaults
@@ -128,6 +127,7 @@ setClass(
 #'   data instead of the general process.
 #'
 #' @export
+#' @keywords internal
 #'
 setClass(
     "Simulator",
@@ -143,16 +143,15 @@ setClass(
         max = "numeric",
         increment = "numeric",
         depth = "numeric",
-        gammaTable = "ANY",
         depthRound = "numeric",
         depthAdjust = "logical",
         noiseFunction = "function",
         noiseParams = "list",
-        debugInfo = "list",
         roundDigits = "numeric",
         pregenerated = "logical",
         totalFeatures = "numeric",
         minMaxQuantile = "numeric",
+        minMaxFC = "numeric",
         minMaxDist = "list",
         replicateParams = "list"
     ),
@@ -160,25 +159,16 @@ setClass(
         regulator = TRUE,
         min = 0,
         increment = 0,
-        gammaTable = NULL,
         depthRound = 0,
         depthAdjust = TRUE,
         regulatorEffect = NA,
         roundDigits = 0,
         pregenerated = FALSE,
         totalFeatures = Inf,
-        gammaTable = list(
-            mean=c(1,5,10,15,25,50,75,100,500,5000,15000,1e+06),
-
-            shape=c(5.12069695369583,2.31111819433427,2.79973960715549,2.85912994880808,
-                    2.92544440726716,2.71844286130629,1.79038505963967,2.93199534788786,
-                    1.58803070351186,1.53988847271216,1.86332612328476,0.580739807001836),
-
-            scale=c(0.0881209571080616,0.804836647784225,1.64942276542406,2.87435701954641,
-                    5.21636953504161,8.65961524646501,15.7834953443805,13.6005097645718,
-                    53.8061030463463,301.806512019322,622.399272725056,16859.692892429)
-        ),
-        regulatorPercentage = NULL
+        replicateParams = list(
+            "a" = 0.01,
+            "b" = 1.5
+        )
     ),
     contains = c("VIRTUAL")
 )
@@ -192,6 +182,8 @@ setClass(
 #' @slot splitChar Character symbol used to split identifiers in chr/start/end
 #'
 #' @export
+#' @keywords internal
+#' @rdname Simulator-class
 #'
 setClass(
     "SimulatorRegion",
@@ -211,6 +203,8 @@ setClass(
 #' Class to simulate RNA-seq data
 #'
 #' @export
+#' @keywords internal
+#' @rdname Simulator-class
 #'
 setClass(
     "SimRNAseq",
@@ -219,17 +213,19 @@ setClass(
         # idToGene = matrix(NA),
         regulator = FALSE,
         replicateParams = list(
-            "a" = 0.01,
-            "b" = 1.5
+            "a" = 0.5, #0.01,
+            "b" = 1.5 #1.5
         )
     ),
     contains = "Simulator"
 )
 
 #'
-#' Class to simulate RNA-seq data
+#' Class to simulate transcription factor data
 #'
 #' @export
+#' @keywords internal
+#' @rdname Simulator-class
 #'
 setClass(
     "SimTF",
@@ -245,6 +241,8 @@ setClass(
 #' Class to simulate miRNA-seq
 #'
 #' @export
+#' @keywords internal
+#' @rdname Simulator-class
 #'
 setClass(
     "SimmiRNAseq",
@@ -268,6 +266,8 @@ setClass(
 #' Class to simulate ChIP-seq data
 #'
 #' @export
+#' @keywords internal
+#' @rdname Simulator-class
 #'
 setClass(
     "SimChIPseq",
@@ -281,8 +281,10 @@ setClass(
             'NE' = 0.02
         ),
         replicateParams = list(
-            "a" = -0.042,
-            "b" = 1.265
+            # "a" = -0.042,
+            # "b" = 1.265,
+            "a" = 0.5,
+            "b" = 1.5
         )
     ),
     contains = "SimulatorRegion"
@@ -292,6 +294,8 @@ setClass(
 #' Class to simulate DNase-seq data
 #'
 #' @export
+#' @keywords internal
+#' @rdname Simulator-class
 #'
 setClass(
     "SimDNaseseq",
@@ -305,8 +309,10 @@ setClass(
             'NE' = 0.02
         ),
         replicateParams = list(
-            "a" = -0.042,
-            "b" = 1.265
+            # "a" = -0.042,
+            # "b" = 1.265
+            "a" = 0.5,
+            "b" = 1.5
         )
     ),
     contains = "SimulatorRegion"
@@ -338,6 +344,8 @@ setClass(
 #' @slot betaThreshold numeric. Beta threshold value used to calculate M values.
 #'
 #' @export
+#' @keywords internal
+#' @rdname Simulator-class
 #'
 setClass(
     "SimMethylseq",
@@ -353,8 +361,8 @@ setClass(
         Mvalues = TRUE,
         nCpG = 5000,
         betaThreshold = 0.01,
-        maxValue = 1,
-        nRepeats = 1,
+        # maxValue = 1,
+        # nRepeats = 1,
         idToGene = matrix(),
         pregenerated = TRUE,
         roundDigits = 5,
@@ -363,8 +371,9 @@ setClass(
             phase_diff = c(0, 0.1),
             #error_rate_in_differentially_methylated_region = 0.1
             # File to write results
-            outfile = '/tmp/', #output_path
-            probs = c(1,1,0.9,0.8,0.7,0.6),
+            outfile = '/tmp/',
+            #output_path
+            probs = c(1, 1, 0.9, 0.8, 0.7, 0.6),
             # Transition size
             transition_size = 0,
             # Number of repeats (NOT REPLICATES!)

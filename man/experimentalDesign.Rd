@@ -7,11 +7,21 @@
 experimentalDesign(simulation)
 }
 \arguments{
-\item{simulation}{}
+\item{simulation}{A Simulation object}
 }
 \value{
-A Simulation object.
+A data frame containing the experimental design used to simulate the
+  data.
 }
 \description{
 Retrieves the experimental design
+}
+\examples{
+
+omic_list <- c("RNA-seq")
+rnaseq_simulation <- mosim(omics = omic_list)
+# This will be a data frame with RNA-seq counts
+
+design_matrix <- experimentalDesign(rnaseq_simulation)
+
 }

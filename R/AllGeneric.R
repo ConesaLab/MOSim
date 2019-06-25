@@ -6,15 +6,15 @@ NULL
 ################################################################################
 #' Simulate [internal use]
 #'
-#' This generic can dispatch methods for two types of classes:
-#' \describe{
-#'      \item{\linkS4class{Simulation}}{in which case triggers the simulation on every simulator
-#'  loaded.}
-#'      \item{\linkS4class{Simulator}}{performs the simulation based on already initialized simulation
-#'  settings.}
-#' }
+#' @rdname Generics
+#' @section Shared methods:
 #'
-#' @rdname initialize-methods
+#' This generic can dispatch methods for two types of classes: \describe{
+#' \item{\linkS4class{Simulation}}{in which case triggers the simulation on
+#' every simulator loaded.}
+#' \item{\linkS4class{Simulator}}{performs the simulation based on already
+#' initialized simulation settings.} }
+#'
 #' @param object Object of class \linkS4class{Simulator} or \linkS4class{Simulation}.
 #' @param simulation Only in \linkS4class{Simulator} class. Initialized instance of Simulation class
 #' @param ... Extra parameters for extensibility.
@@ -22,10 +22,14 @@ NULL
 #' @return A \linkS4class{Simulator} object containing the simulation data inside @simData
 #'  if called on a \linkS4class{Simulator} class, or a \linkS4class{Simulation} object with all @simulators
 #'  containing simulated data.
+#' @keywords internal
 #'
 setGeneric("simulate", function(object, ...) standardGeneric("simulate"))
 
 #' Simulate [internal use]
+#'
+#' @rdname Generics
+#' @section Shared methods:
 #'
 #' This generic can dispatch methods from two types of classes:
 #' \describe{
@@ -33,8 +37,9 @@ setGeneric("simulate", function(object, ...) standardGeneric("simulate"))
 #'      \item{\linkS4class{Simulator}}{individual omic options (depth, regulator effect...)}
 #' }
 #'
-#' @rdname simulate-methods
 #' @param object Object of class \linkS4class{Simulator} or \linkS4class{Simulation}.
+#' @return The simulation settings used for the general process (for Simulation class) or the individual omic (Simulator class).
+#' @keywords internal
 #'
 setGeneric("simSettings", function(object) standardGeneric("simSettings"))
 
@@ -42,9 +47,28 @@ setGeneric("simSettings", function(object) standardGeneric("simSettings"))
 # Simulator
 ################################################################################
 
+
+
+#' Initialize data
+#'
+#' @rdname Generics
+#' @section Simulator methods:
+#'
+#' This method will clone the seed data once per group to simulate and
+#' establish differences using the simulation settings.
+#'
+#' @param object Instance of Simulator class.
+#' @param simulation Instance of Simulation class.
+#'
+#' @return An instance of Simulator class with modified options.
+
+#'
 setGeneric("initializeData", function(object, simulation) standardGeneric("initializeData"))
 
 #' postSimulation
+#'
+#' @rdname Generics
+#' @section Simulator methods:
 #'
 #' Method called after performing the simulation, allowing different actions
 #' like adjusting depth, rounding values and so on, on a simulator basis.
@@ -53,10 +77,15 @@ setGeneric("initializeData", function(object, simulation) standardGeneric("initi
 #' @param simulation Instance of Simulation class.
 #'
 #' @return An instance of Simulator class with modified options.
+#' @keywords internal
+
 #'
 setGeneric("postSimulation", function(object, simulation) standardGeneric("postSimulation"))
 
 #' IDfromGenes
+#'
+#' @rdname Generics
+#' @section Simulator methods:
 #'
 #' Method for transforming genes to IDs (regions, miRNA...)
 #'
@@ -64,11 +93,15 @@ setGeneric("postSimulation", function(object, simulation) standardGeneric("postS
 #' @param geneNames Names of genes to look up in the association table.
 #'
 #' @return IDs corresponding to the genes.
+#' @keywords internal
 #'
 setGeneric("IDfromGenes", function(object, geneNames, simplify = TRUE) standardGeneric("IDfromGenes"))
 
 
 #' IDtoGenes
+#'
+#' @rdname Generics
+#' @section Simulator methods:
 #'
 #' Method for transforming IDs (regions, miRNAs, ...) to genes
 #'
@@ -76,10 +109,14 @@ setGeneric("IDfromGenes", function(object, geneNames, simplify = TRUE) standardG
 #' @param idNames IDs to look up in the association table.
 #'
 #' @return Genes corresponding to the IDs.
+#' @keywords internal
 #'
 setGeneric("IDtoGenes", function(object, idNames, simplify = TRUE) standardGeneric("IDtoGenes"))
 
 #' simulateParams
+#'
+#' @rdname Generics
+#' @section Simulator methods:
 #'
 #' Method to allow individual simulator classes to change the default behaviour
 #' of generating noise and time coefficients.
@@ -93,26 +130,34 @@ setGeneric("IDtoGenes", function(object, idNames, simplify = TRUE) standardGener
 #'
 #' @return List with the following elements:
 #' \describe{
-#'  \item{}{}
+#'      \item{randomCounts}{numeric vector containing random count values.}
+#'      \item{noiseValues}{numeric vector containing noise values generated with the noise function and parameters specified.}
+#'      \item{m}{numeric vector of lower values comparing original and random counts.}
+#'      \item{M}{numeric vector of maximum values comparing original and random counts.}
 #' }
+#' @keywords internal
 #'
 #'TODO: MODIFY THE GENERIC
 setGeneric("simulateParams", function(object, simulation, counts, profiles, group, ids, ...) standardGeneric("simulateParams"))
 
 #' adjustProfiles
 #'
+#' @rdname Generics
+#' @section Simulator methods:
+#'
 #' Modify the configuration profile generated when initializing simulation settings
 #' to allow for certain constrainsts if necessary.
 #'
 #' @param object Instance of simulator class.
 #' @param simulation Instance of simulation class.
-#' @param profiles Data.frame containing the generated profile configuration for the
+#' @param profiles Data frame containing the generated profile configuration for the
 #'  simulator.
 #' @param step Two possible options "Effect" and "Groups" indicating in which point
 #' of the settings simulation is called.
 #'
 #' @return The data.frame profile with the necessary modifications depending on
 #' each child class.
+#' @keywords internal
 #'
 setGeneric("adjustProfiles", function(object, simulation, profiles, step) standardGeneric("adjustProfiles"))
 
@@ -122,16 +167,23 @@ setGeneric("adjustProfiles", function(object, simulation, profiles, step) standa
 ################################################################################
 #' locGRanges
 #'
+#' @rdname Generics
+#' @section Simulator methods:
+#'
 #' Creates a very basic GRanges object based on locations
 #'
 #' @param object Instance of a SimulatorRegion class
 #' @param locs Positions of locations
 #'
 #' @return GRanges object with 1 as seqname and locs as starting positions.
+#' @keywords internal
 #'
 setGeneric("locGRanges", function(object, locs) standardGeneric("locGRanges"))
 
 #' regionNames
+#'
+#' @rdname Generics
+#' @section Simulator methods:
 #'
 #' Creates a valid string of a region
 #'
@@ -141,8 +193,6 @@ setGeneric("locGRanges", function(object, locs) standardGeneric("locGRanges"))
 #' @param end End positions of the regions
 #'
 #' @return A character vector with the format "<chr>_<start>_<end>"
+#' @keywords internal
 #'
 setGeneric("regionNames", function(object, chrNumber, start, end=NULL) standardGeneric("regionNames"))
-
-
-setGeneric("simDebug", function(object, simulation, ...) standardGeneric("simDebug"))

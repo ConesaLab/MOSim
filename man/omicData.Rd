@@ -9,16 +9,41 @@ omicData(omic, data = NULL, associationList = NULL)
 \arguments{
 \item{omic}{The name of the omic to provide data.}
 
-\item{data}{Data frame with the omic identifiers as row names and just one column named Counts
-containing numeric values used as initial sample for the simulation.}
+\item{data}{Data frame with the omic identifiers as row names and just one
+column named Counts containing numeric values used as initial sample for
+the simulation.}
 
-\item{associationList}{Only for regulatory omics, a data frame with 2 columns, the first called
-containing the regulator ID and the second called Gene with the gene identifier.}
+\item{associationList}{Only for regulatory omics, a data frame with 2
+columns, the first called containing the regulator ID and the second called
+Gene with the gene identifier.}
+}
+\value{
+Initialized simulation object with the given data.
 }
 \description{
 Set customized data for an omic.
 }
 \examples{
-\dontrun{
-}
+
+# Take a subset of the included dataset for illustration
+# purposes. We could also load it from a csv file or RData,
+# as long as we transform it to have 1 column named "Counts"
+# and the identifiers as row names.
+custom_rnaseq <- head(sampleData$SimRNAseq$data, 100)
+
+# In this case, 'custom_rnaseq' is a data frame with
+# the structure:
+head(custom_rnaseq)
+##                    Counts
+## ENSMUSG00000000001   6572
+## ENSMUSG00000000003      0
+## ENSMUSG00000000028   4644
+## ENSMUSG00000000031      8
+## ENSMUSG00000000037      0
+## ENSMUSG00000000049      0
+
+
+# The helper 'omicData' returns an object with our custom data.
+rnaseq_customdata <- omicData("RNA-seq", data = custom_rnaseq)
+
 }

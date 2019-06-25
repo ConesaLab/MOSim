@@ -10,20 +10,32 @@ omicSim(omic, depth = NULL, totalFeatures = NULL,
 \arguments{
 \item{omic}{Name of the omic to set the settings.}
 
-\item{depth}{Sequencing depth in millions of counts. If not provided will take the global
-parameter passed to mosim function.}
+\item{depth}{Sequencing depth in millions of counts. If not provided will
+take the global parameter passed to mosim function.}
 
-\item{totalFeatures}{Limit the number of features to simulate. By default include all present
-in the dataset.}
+\item{totalFeatures}{Limit the number of features to simulate. By default
+include all present in the dataset.}
 
-\item{regulatorEffect}{only for regulatory omics. Associative list containing the percentage
-of effects over the total number of regulator, including repressor, association and
-no effect (NE).}
+\item{regulatorEffect}{only for regulatory omics. Associative list containing
+the percentage of effects over the total number of regulator, including
+repressor, association and no effect (NE).}
+}
+\value{
+A list with the appropiate structure to be given as options in mosim
+  function.
 }
 \description{
 Set the simulation settings for an omic.
 }
 \examples{
-\dontrun{
-}
+
+omic_list <- c("RNA-seq")
+
+rnaseq_options <- omicSim("RNA-seq", totalFeatures = 2500)
+
+# The return value is an associative list compatible with
+# 'omicsOptions'
+rnaseq_simulation <- mosim(omics = omic_list,
+                           omicsOptions = rnaseq_options)
+
 }

@@ -4,7 +4,7 @@
 \alias{omicResults}
 \title{Retrieves the simulated data.}
 \usage{
-omicResults(simulation, omics = NULL, format = data.frame)
+omicResults(simulation, omics = NULL, format = "data.frame")
 }
 \arguments{
 \item{simulation}{A Simulation object.}
@@ -14,9 +14,30 @@ omicResults(simulation, omics = NULL, format = data.frame)
 \item{format}{Type of object to use for returning the results}
 }
 \value{
-A list containing an element for every omic specifiec, with
-the simulation data in the format indicated.
+A list containing an element for every omic specifiec, with the
+  simulation data in the format indicated, or a numeric matrix with simulated
+  data if the omic name is directly provided.
 }
 \description{
 Retrieves the simulated data.
+}
+\examples{
+
+omic_list <- c("RNA-seq")
+rnaseq_simulation <- mosim(omics = omic_list)
+#' # This will be a data frame with RNA-seq counts
+rnaseq_simulated <- omicResults(rnaseq_simulation, "RNA-seq")
+
+#                    Group1.Time0.Rep1 Group1.Time0.Rep2 Group1.Time0.Rep3 ...
+# ENSMUSG00000073155              4539              5374              5808 ...
+# ENSMUSG00000026251                 0                 0                 0 ...
+# ENSMUSG00000040472              2742              2714              2912 ...
+# ENSMUSG00000021598              5256              4640              5130 ...
+# ENSMUSG00000032348               421               348               492 ...
+# ENSMUSG00000097226                16                14                 9 ...
+# ENSMUSG00000027857                 0                 0                 0 ...
+# ENSMUSG00000032081                 1                 0                 0 ...
+# ENSMUSG00000097164               794               822               965 ...
+# ENSMUSG00000097871                 0                 0                 0 ...
+
 }

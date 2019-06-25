@@ -34,9 +34,7 @@ test_that("mosim with custom data", {
 
         numberGroups = 2,
         times = c(1, 3, 7),
-        numberReps = 3,
-
-        randomSeed = 123456
+        numberReps = 3
     )
 
 })

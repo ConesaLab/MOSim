@@ -42,30 +42,6 @@ setMethod("initialize", signature="SimulatorRegion", function(.Object, ...) {
         if (! is.data.frame(.Object@locs)) {
             .Object@locs <- splitRegions(.Object@locs)
         }
-
-        # if (class(.Object@locs) == 'character') {
-        #     # Filename
-        #     if (length(.Object@locs) == 1) {
-        #         .Object@locs <- import.bed(.Object@locs)
-        #     } else {
-        #         # Make a list from the vector
-        #         .Object@locs <- .splitRegions(.Object@locs)
-        #     }
-        # }
-
-        # if (class(.Object@locs) == 'list') {
-        #     .Object@locs <-  GRanges(seqnames=Rle(.Object@locs$chr),
-        #                             ranges=IRanges(
-        #                                 start=.Object@locs$start,
-        #                                 end=.Object@locs$end),
-        #                             strand=Rle(strand('*')))
-        # }
-
-        # .Object@locs <- sort(.Object@locs)
-        # .Object@chGRanges <- split(.Object@locs, seqnames(.Object@locs))
-        # .Object@nLocs <- length(.Object@locs)
-
-        # smessage(.Object@nLocs, " locations from ", length(.Object@chGRanges), " seqnames.")
     } else if (is.declared(.Object@idToGene)) {
         rLocs <- .Object@idToGene$ID
 

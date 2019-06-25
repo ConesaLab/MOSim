@@ -1,9 +1,8 @@
 #' @include Simulator.R functions.R
 #' @import lazyeval
+#' @importFrom rlang .data
 NULL
 
-#' @rdname initialize-methods
-#' @aliases initialize,Simulation
 setMethod("initialize", signature="Simulation", function(.Object, ...) {
     # Set slots
     .Object <- callNextMethod()
@@ -40,22 +39,18 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
             return(sim)
         }, sim = .Object@simulators, data = sampleData[names(.Object@simulators)], SIMPLIFY = FALSE)
 
-        if (! is.null(.Object@TFtoGene)) {
+        if (! is.null(.Object@TFtoGene) && .Object@TFtoGene) {
             .Object@TFtoGene <- sampleData$SimRNAseq$TFtoGene
         }
     }
-
-    # Set random number generator seed
-    # TODO: enable this again
-    set.seed(.Object@randomSeed)
 
     # Inherited params from simulation
     inheritParams <- list(
         "noiseFunction",
         "noiseParams",
         "depth",
-        "minMaxQuantile"
-        # "replicateParams" TODO: revert this
+        "minMaxQuantile",
+        "minMaxFC"
         )
 
     # Initialize simulators
@@ -86,8 +81,7 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
                 # limited gene list?
             }
 
-            # TODO: keep copy of the original data?
-            sim@data <- dplyr::sample_n(sim@data, sim@totalFeatures)
+            sim@data <- sim@data[sample(rownames(sim@data), sim@totalFeatures), ,drop=FALSE]
         }
 
         return(sim)
@@ -99,9 +93,6 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
     .Object@totalGenes <- nrow(.Object@simulators[['SimRNAseq']]@data)
 
     # Check gene number
-    # .Object@exprGenes <- sum(.Object@simulators[['SimRNAseq']]@data$Counts > 0)
-    # .Object@exprGenes <- min(.Object@totalGenes, .Object@exprGenes)
-    # .Object@diffGenes <- round(.Object@exprGenes * min(.Object@diffGenes, 1))
     .Object@diffGenes <- round(.Object@totalGenes * min(.Object@diffGenes, 0.99))
 
     # Print settings
@@ -128,8 +119,7 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
 
             # Exclude those not present on gene expression data
             .Object@TFtoGene <- dplyr::filter(.Object@TFtoGene,
-                                              TFgene %in% .Object@geneNames)
-
+                                              .data$TFgene %in% .Object@geneNames)
 
             # TF to be DE
             allGeneTF <- unique(.Object@TFtoGene$TFgene)
@@ -199,7 +189,7 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
 
         for (g in seq(.Object@numberGroups)) {
             profilesDE[, paste0("Tmax.Group", g)] <- ifelse(grepl("transitory", profilesDE[, 2 + g]), # Third column = Group 1
-                                                            runif(nrow(profilesDE), min = 0.25 * tmax.T, max = 0.75 * tmax.T),
+                                                            stats::runif(nrow(profilesDE), min = 0.25 * tmax.T, max = 0.75 * tmax.T),
                                                             NA)
         }
 
@@ -219,14 +209,14 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
 
         # Set correct colnames
         # Important: pattern "Group[n]" is used to subset with dplyr later
-        colNames <- paste0("Group", 1:.Object@numberGroups)
+        colNames <- paste0("Group", seq_len(.Object@numberGroups))
 
         # Symbols needed to split the DF by dplyr
-        # dplyrGroup <- c(as.symbol("Effect"), lapply(colNames, as.symbol))
-        # TODO: why was Effect included in the first place? WHY????!
         dplyrGroup <- lapply(colNames, as.symbol)
 
-        colnames(profilesDE) <- colnames(profilesNonDE) <- c("ID", "DE", colNames, tail(colnames(profilesDE), .Object@numberGroups))
+        colnames(profilesDE) <- colnames(profilesNonDE) <- c("ID", "DE",
+                                         colNames, utils::tail(colnames(profilesDE),
+                                                     .Object@numberGroups))
 
         # Merge DE + nonDE for easier access
         # profilesExpr <- rbind(profilesDE, profilesNonDE)
@@ -247,9 +237,7 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
             numberWithEffect <- length(allRegulators) * sum(as.numeric(availableEffects))
 
             # Select genes ID regulator ID from all genes considered
-            # TODO: use ALL genes available on the association list (current) or only those PRESENT on RNA-seq?
-            # regTable <- IDfromGenes(sim, sampleExpr, simplify = FALSE) %>% filter(ID %in% rownames(sim@data))
-            regTable <- IDtoGenes(sim, rownames(sim@data), simplify = FALSE)# %>% filter(ID %in% rownames(sim@data))
+            regTable <- IDtoGenes(sim, rownames(sim@data), simplify = FALSE)
 
             # Choose from regulators associated to some gene
             availableRegulators <- unique(regTable$ID)
@@ -280,9 +268,9 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
             )
 
             # Set non-DEG or non-selected regulators to <NA>
-            discardedReg <- dplyr::filter(effectByID, Effect == "NE") %>% dplyr::pull(ID)
+            discardedReg <- dplyr::filter(effectByID, .data$Effect == "NE") %>% dplyr::pull(.data$ID)
 
-            regTable <- dplyr::mutate(regTable, Effect = replace(Effect, (! Gene %in% sampleDE) | (ID %in% discardedReg), NA))
+            regTable <- dplyr::mutate(regTable, Effect = replace(.data$Effect, (! .data$Gene %in% sampleDE) | (.data$ID %in% discardedReg), NA))
 
             # Copy the effect to each group
             regTable[, paste0("Effect.Group", seq(.Object@numberGroups))] <- regTable[, rep("Effect", times =.Object@numberGroups)]
@@ -297,7 +285,7 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
 
             # Select all (hence the double check) rows duplicated, only for DE genes.
             # Duplicated ID means that the regulator is linked to more than one gene.
-             regDupsDE <-  (duplicated(regTable$ID) |
+            regDupsDE <-  (duplicated(regTable$ID) |
                             duplicated(regTable$ID, fromLast=TRUE)) &
                             (regTable$Gene %in% sampleDE) &
                             (! regTable$ID %in% discardedReg)
@@ -306,12 +294,28 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
             # class (combination of profiles among conditions) to regulate.
             message("- Linking to gene classes...")
 
+            # Legacy code to enable Tmax
+            # df: regulator df
+            # genesTmax: matrix with gene Tmax values in the proper order
+            # assignTmax <- function(df, genesTmax) {
+            #     for (group in seq(.Object@numberGroups)) {
+            #         colName <- paste0("Tmax.Group", group)
+            #         df <- dplyr::mutate(df, !!colName := (if(is.na(genesTmax[[group]]) || is.infinite(genesTmax[[group]])) NA else stats::runif(n = 1, 0.25 * tmax.T, as.numeric(genesTmax[group]))))
+            #     }
+            #
+            #     return(df)
+            # }
+
+            # Populate tmax values with the ones found in gene settings table
+            regTable <- dplyr::select(regTable, -dplyr::starts_with("Tmax")) %>%
+                dplyr::left_join(dplyr::select(profilesDE, .data$ID, dplyr::starts_with("Tmax")), by = c("Gene" = "ID"))
+
             if (any(regDupsDE)) {
                 # Reset effect on the duplicated DE
                 # regTable[regDupsDE, c("Effect")] <- NA
 
                 # Choose a new effect
-                # Function to be used inside classifyDups
+                # Function to use inside classifyDups
                 # .selectEffect <- function(groupRow) {
                 #     # Relies on the row having these columns (check function classifyDups)
                 #     percEnhancer <- max(0, groupRow$Percentage.Enhancer, na.rm = T)
@@ -341,8 +345,9 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
                 classifyDups <- function(profileGroup) {
                     # Select classes of the genes associated with the regulator
                     # Note: dplyr renames the unneeded ID column of "." to ID.y
+                    # TODO: room for optimization, remove this join from the loop.
                     regGenes <- dplyr::inner_join(profilesDE, profileGroup, by = c("ID" = "Gene")) %>%
-                        dplyr::select(-DE, -ID.y, -dplyr::starts_with("Effect.Group"), -dplyr::ends_with(".y"), dplyr::starts_with("Keep."))
+                        dplyr::select(-.data$DE, -.data$ID.y, -dplyr::starts_with("Effect.Group"), -dplyr::ends_with(".y"), dplyr::starts_with("Keep."))
 
                     # Initialize Tmax.GroupX considering all, for those cases in which
                     # there is only one row.
@@ -381,8 +386,8 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
                             # I.e. in methylation we keep <NA> effect up to this point
                             # so there could be two majoritary groups and one of them
                             # without effect.
-                            excludedGroups <- dplyr::summarize(classSplit, Exclude = all(is.na(Effect))) %>%
-                                dplyr::pull(Exclude)
+                            excludedGroups <- dplyr::summarize(classSplit, Exclude = all(is.na(.data$Effect))) %>%
+                                dplyr::pull(.data$Exclude)
 
                             # Remove those groups that have no effect (in methylation)
                             groupSample <- setdiff(which(groupSizes == max(groupSizes[! excludedGroups])), which(excludedGroups))
@@ -424,10 +429,9 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
 
                             # Selected profile
                             selectedProfile <- dplyr::select(selGroup, dplyr::starts_with("Group")) %>%
-                                dplyr::distinct() %>% unlist() #selGroup[1, , drop = FALSE] # Select Group.X
+                                dplyr::distinct() %>% unlist()
 
                             # Opposite effect
-                            # TODO: keep "NE" effect?
                             revEffect <- if (selEffect == "NE") NA else setdiff(c('enhancer', 'repressor'), selEffect)
 
                             for (i in seq(.Object@numberGroups)) {
@@ -455,7 +459,7 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
                                 )
                             }
 
-                            profileGroup <- dplyr::mutate(profileGroup, Effect = ifelse(Gene %in% selGenes, selEffect, NA))
+                            profileGroup <- dplyr::mutate(profileGroup, Effect = ifelse(.data$Gene %in% selGenes, selEffect, NA))
 
                         } else {
                             # Select the group effect (either only one group or multiple but all of them with NE effect)
@@ -467,8 +471,10 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
                             )
 
                             # Return the original data frame with the same effect for all the genes in the group
+                            # Note: use paste as function because newer versions of dplyr cannot work with "~ selEffect"
+                            # anymore.
                             profileGroup <- dplyr::mutate(profileGroup, Effect = selEffect) %>%
-                                dplyr::mutate_at(dplyr::vars(dplyr::starts_with("Effect.Group")), dplyr::funs(return(selEffect)))
+                                dplyr::mutate_at(dplyr::vars(dplyr::starts_with("Effect.Group")), ~ paste0(selEffect))
                         }
                     }
 
@@ -477,34 +483,34 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
                     for (group in seq(.Object@numberGroups)) {
                         colName <- paste0("Tmax.Group", group)
 
-                        profileGroup <- dplyr::mutate(profileGroup, !!colName := (if(is.na(tmaxGroup[[group]]) || is.infinite(tmaxGroup[[group]])) NA else runif(n = 1, 0.25 * tmax.T, as.numeric(tmaxGroup[group]))))
+                        profileGroup <- dplyr::mutate(profileGroup,
+                                                      !!colName := (if(is.na(tmaxGroup[[group]]) || is.infinite(tmaxGroup[[group]])) NA
+                                                                    else as.numeric(tmaxGroup[group])))
                     }
 
 
                     # Replace "NE" effect with NA
-                    profileGroup <- dplyr::mutate_at(profileGroup, dplyr::vars(dplyr::contains("Effect")), dplyr::funs(ifelse(. == "NE", NA, .)))
+                    profileGroup <- dplyr::mutate_at(profileGroup,
+                                                     dplyr::vars(dplyr::contains("Effect")),
+                                                     dplyr::funs(ifelse(. == "NE", NA, .)))
+
                     # Return the processed (or not) profileGroup
                     return(profileGroup)
                 }
 
-                regTable[regDupsDE, ] <- dplyr::group_by(regTable[regDupsDE, ], ID) %>% dplyr::do(classifyDups(.))
+                regTable[regDupsDE, ] <- dplyr::group_by(regTable[regDupsDE, ], .data$ID) %>% dplyr::do(classifyDups(.))
             }
 
             message("- Adjusting regulator effect")
 
             # Expression profiles of all expressed genes
-            # TODO: select ALL genes (expr + non-expr) or not?
             condTable <- dplyr::left_join(regTable, dplyr::select(profilesAll, -dplyr::starts_with("Tmax.")),
                                           by = c("Gene" = "ID")) %>% dplyr::ungroup()
 
-            # TODO: dplyr version 0.5 has a bug, returning 0 columns when no one satifies
-            # a 'regex' criteria (starts_with). Prevent this by selecting only those when they
-            # are truly present.
-            if (any(startsWith(colnames(condTable), "Keep."))) {
-                subCondTable <- dplyr::select(condTable, ID, Gene, Effect, dplyr::starts_with("Effect.Group"), dplyr::starts_with("Tmax.Group"), dplyr::starts_with("Keep."))
-            } else {
-                subCondTable <- dplyr::select(condTable, ID, Gene, Effect, dplyr::starts_with("Effect.Group"), dplyr::starts_with("Tmax.Group"))
-            }
+            subCondTable <- dplyr::select(condTable, .data$ID, .data$Gene, .data$Effect,
+                                          dplyr::starts_with("Effect.Group"),
+                                          dplyr::starts_with("Tmax.Group"),
+                                          dplyr::starts_with("Keep."))
 
             # Add those regulators not associated with any gene
             allIds <- rownames(sim@data)
@@ -515,7 +521,7 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
                 subCondTable <- dplyr::bind_rows(subCondTable, data.frame(ID = notInTable))
                 condTable <- dplyr::bind_rows(condTable, data.frame(ID = notInTable))
             } else {
-                # TODO: we assume that Keep.* is the one including the original ID like methyl-seq simulator
+                # We assume that Keep.* is the one including the original ID like methyl-seq simulator
                 colID <- colnames(regTable)[grep("Keep.", colnames(regTable))]
 
                 notInTable <- dplyr::select(dplyr::ungroup(regTable), "ID", colID)
@@ -551,7 +557,7 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
                             is.na(condTable$Effect),
                             # Flat profile for no effect regulator
                             'flat',
-                            ifelse( # TODO: change this ifelse for replace?
+                            ifelse(
                                 condTable$Effect == "enhancer",
                                 # Same profile as RNA-seq for enhancer regulators
                                 col,
@@ -572,6 +578,37 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
             return(settingsTable)
         }, simplify = FALSE))
 
+        featuresAll <- sapply(profilesReg, function(simulatorProfiles) {
+
+            test <- dplyr::select(simulatorProfiles, .data$ID, dplyr::starts_with(("Effect.Group")))
+
+            # nonDE.pos <- dplyr::select(simulatorProfiles, dplyr::starts_with(("Effect.Group"))) %>%
+            #     pmap(~ all(is.na(.))) %>%
+            #     unlist()
+            #
+            # nonDE.ids <- unique(simulatorProfiles$ID[nonDE.pos])
+
+            nonDE.ids <- unique(dplyr::group_by(simulatorProfiles, .data$ID) %>%
+                                    dplyr::filter(all(is.na(.data$Effect))) %>%
+                                    dplyr::pull(.data$ID))
+
+            DE.ids <- setdiff(simulatorProfiles$ID, nonDE.ids)
+
+            output <- list(
+                "DE" = DE.ids,
+                "nonDE" = nonDE.ids,
+                "noiseNonDE" = sample(nonDE.ids, size = ceiling(length(nonDE.ids) * 0.05))
+            )
+
+            return(output)
+        }, simplify = FALSE)
+
+        featuresAll$SimRNAseq <- list(
+            "DE" = sampleDE,
+            "nonDE" = sampleNonDE,
+            "noiseNonDE" = sample(sampleNonDE, size = ceiling(length(sampleNonDE) * 0.05))
+        )
+
         # Expressed genes profiles (DE + NonDE)
         profilesReg$SimRNAseq <- profilesAll#profilesExpr
 
@@ -582,7 +619,10 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
             # Determine the rows with the same condition on all columns
             # Change only base count values when the profiles are flat on all conditions,
             # otherwise they are already DE genes.
-            sameCond <- apply(apply(dplyr::select(profilesDE, dplyr::starts_with("Group")), 2, '==', 'flat'), 1, all)
+            # sameCond <- apply(apply(dplyr::select(profilesDE, dplyr::starts_with("Group")), 2, '==', 'flat'), 1, all)
+            sameCond <- dplyr::select(profilesDE, dplyr::starts_with("Group")) %>%
+                purrr::map(`==`, 'flat') %>%
+                purrr::pmap_int(all)
 
             # NULL by default
             FlatRNAseq <- NULL
@@ -621,9 +661,9 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
                 if (is.null(FlatRNAseq))
                     return(NULL)
 
-                profileSubsetID <- dplyr::rename(FlatRNAseq, Gene = ID) %>%
+                profileSubsetID <- dplyr::rename(FlatRNAseq, Gene = .data$ID) %>%
                     dplyr::inner_join(profilesReg[[class(regulator)]][, c('ID', 'Effect', 'Gene')], by = c("Gene" = "Gene")) %>%
-                    dplyr::filter(! is.na(Effect)) %>% dplyr::select(ID)
+                    dplyr::filter(! is.na(.data$Effect)) %>% dplyr::select(.data$ID)
 
                 return(profileSubsetID)
             })
@@ -642,6 +682,8 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
                 nonDE = sampleNonDE
             ),
 
+            featureSamples = featuresAll,
+
             expDesign = list(
                 times = .Object@times,
                 numberReps = .Object@numberReps,
@@ -655,8 +697,6 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
     return(.Object)
 })
 
-#' @rdname simulate-methods
-#' @aliases simulate,Simulation
 setMethod("simulate", signature="Simulation", function(object) {
     object@simulators <- sapply(object@simulators, simulate, object)
 
@@ -687,7 +727,7 @@ setMethod("simulate", signature="Simulation", function(object) {
             dplyr::inner_join(expression.settings, by = c("LinkedGene" = "ID"), suffix = c(".TF", ".Gene")) %>%
             dplyr::left_join(expression.settings.flat, by = c("TFgene" = "ID")) %>%
             dplyr::left_join(expression.settings.flat, by = c("LinkedGene" = "ID"), suffix = c(".FlatTF", ".FlatGene")) %>%
-            dplyr::select(ID = Symbol, Gene = LinkedGene, DE.TF, DE.Gene, dplyr::starts_with("Group")) %>%
+            dplyr::select(ID = .data$Symbol, Gene = .data$LinkedGene, .data$DE.TF, .data$DE.Gene, dplyr::starts_with("Group")) %>%
             dplyr::mutate(Effect = NA)
 
         # Check effect for every group
@@ -761,7 +801,7 @@ setMethod("simulate", signature="Simulation", function(object) {
 
         # Assign an effect
         settingsTF <- dplyr::select(settingsTF,
-                                    ID, Gene, Effect,
+                                    .data$ID, .data$Gene, .data$Effect,
                                     dplyr::starts_with("Effect"),
                                     dplyr::ends_with(".TF"))
 
@@ -791,6 +831,7 @@ setMethod("simulate", signature="Simulation", function(object) {
 
     return(object)
 })
+
 
 setMethod("show", signature="Simulation", function(object) {
     # TO DO: temp...
@@ -846,6 +887,7 @@ setValidity("Simulation", function(object) {
             sapply(object@simulators[! names(object@simulators) %in% assocExcluded], is.declared, key = 'idToGene')
 
         # Currently methylation does not accept custom data
+        # TODO: rewrite this check to make it more general instead of relying on the simulator name.
         if ('SimMethylseq' %in% names(dataProvided) && dataProvided['SimMethylseq'] == TRUE)
             message("Currently there is no support for including custom methylation data. You need to provide the 'idToGene' slot, which will be used to retrieve the number and location of the CpGs.")
 
@@ -871,13 +913,10 @@ setValidity("Simulation", function(object) {
             return(if (is.declared(sim, 'data')) ncol(sim$data) == 1 else TRUE)
         })
 
-        # Check that every association list contains all genes inside
-        # TODO: skip check of containing all genes, as only those in commmon will be selected.
+        # Check that every association list contains required columns
         assocCheck <-
             sapply(object@simulators[! names(object@simulators) %in% assocExcluded], function(sim, genes) {
-                return(all(colnames(sim$idToGene) %in% c('ID', 'Gene')))# &&
-                           # all(genes %in% sim$idToGene$Gene))
-                           # all(sim$idToGene$Gene %in% genes))
+                return(all(colnames(sim$idToGene) %in% c('ID', 'Gene')))
             }, genes = rownames(object@simulators[['SimRNAseq']]$data))
 
         if (! all(dataCheck, assocCheck))

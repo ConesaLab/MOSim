@@ -4,65 +4,78 @@
 \alias{mosim}
 \title{mosim}
 \usage{
-mosim(omics, omicsOptions = NULL, ...)
+mosim(omics, omicsOptions, diffGenes, numberReps, numberGroups, times,
+  depth, profileProbs, minMaxFC, TFtoGene)
 }
 \arguments{
-\item{omics}{Character vector containing the list of omics to simulate it can also be an
-associative list with the omic names as keys and their options
-as values. This is the prefered way of indicating the omics to simulate using the default
-parameters. Possible omics: "RNA-seq", "DNase-seq", "ChIP-seq", "miRNA-seq", "Methyl-seq" (case sensitive).}
+\item{omics}{Character vector containing the names of the omics to simulate,
+which can be "RNA-seq", "miRNA-seq", "DNase-seq", "ChIP-seq" or
+"Methyl-seq"  (e.g. c("RNA-seq", "miRNA-seq")). It can also be a list with
+the omic names as names and their options as values, but we recommend to
+use the argument omicSim to provide the options to simulated each omic.}
 
-\item{omicsOptions}{Associative list containing the options for each omic to simulate. This is
-used in conjunction with the helper methods omicSim to create the associative list
-in a friendly way, and omicData to provide custom data; see the related section for
-more information.}
+\item{omicsOptions}{List containing the options to simulate each omic. We
+recommend to apply the helper method \link{omicSim} to create this list in
+a friendly way, and the function \link{omicData} to provide custom data
+(see the related sections for more information). Each omic may have
+different configuration parameters, but the common ones are:
+\describe{
+    \item{simuData/idToGene}{Seed sample and association tables for
+    regulatory omics. The helper function \link{omicData} should be used to
+    provide this information (see the following section).}
+    \item{regulatorEffect}{For regulatory omics. List containing the
+    percentage of effect types (repressor, activator or no effect) over the
+    total number of regulators. See vignette for more information.}
+    \item{totalFeatures}{Number of features to simulate. By default, the
+    total number of features in the seed dataset.}
+    \item{depth}{Sequencing depth in millions of reads. If not provided,
+    it takes the global parameter passed to \link{mosim} function.}
+    \item{replicateParams}{List with parameters \emph{a} and \emph{b} for
+    adjusting the variability in the generation of replicates using the
+    negative binomial. See vignette for more information.}
+ }}
 
-\item{...}{Additional options to be passed to simulation object}
+\item{diffGenes}{Number of differentially expressed genes to simulate, given
+in percentage (0 - 1) or in absolute number (> 1). By default 0.15}
 
-\item{diffGenes}{A number with the total number of differential genes (if value > 1) or % or
-total genes (if value < 1).}
+\item{numberReps}{Number of replicates per experimetal condition (and time
+point, if time series are to be generated). By default 3.}
 
-\item{numberReps}{Number of replicates of the experiment.}
+\item{numberGroups}{Number of experimental groups or conditions to simulate.}
 
-\item{numberGroups}{Number of samples considered on the experiment.}
+\item{times}{Vector of time points to consider in the experimental design.}
 
-\item{randomSeed}{Random seed for random number generator state.}
+\item{depth}{Sequencing depth in millions of reads.}
 
-\item{times}{Numeric vector containing the measured times. If numberGroups < 2,
-the number of times must be at least 2.}
+\item{profileProbs}{Numeric vector with the probabilities to assign each of
+the patterns. Defaults to 0.2 for each.}
 
-\item{TFtoGene}{Boolean indicating if default transcription factors data should be used or not, or
-a 3 column data frame containing custom associations.}
+\item{minMaxFC}{Numeric vector of length 2 with minimum and maximum fold-change
+for differentially expressed features, respectively.}
 
-\item{noiseFunction}{Noise function to apply when simulating counts. Must accept the parameter 'n' and
-return a vector of the same length. Defaults to `rnorm`}
-
-\item{noiseParam}{Named list with the parameters to apply to the noise function.}
-
-\item{profiles}{Named list containing the patterns with their coefficients.}
-
-\item{profileProbs}{Numeric vector with the probabilities to assign each of the patterns. Defaults to 0.2 for each.}
+\item{TFtoGene}{A logical value indicating if default transcription factors
+data should be used (TRUE) or not (FALSE), or a 3 column data frame
+containing custom associations. By default FALSE.}
 }
 \value{
-Instance of class "Simulation" with slot "simData" containing the multiomic simulation data.
+Instance of class "Simulation" containing the multiomic simulation
+  data.
 }
 \description{
-Performs a multiomic simulation by chaining two actions:
- 1) Creating the "Simulation" class with the provided params.
- 2) Calling "simulate" method on the initialized object.
+Performs a multiomic simulation by chaining two actions: 1) Creating the
+"Simulation" class with the provided params. 2) Calling "simulate" method on
+the initialized object.
 }
 \examples{
-\dontrun{
 
  moSimulation <- mosim(
      omics = c("RNA-seq"),
      numberReps = 3,
-     times = c(0, 2, 6, 12, 24),
-     randomSeed = 1234
+     times = c(0, 2, 6, 12, 24)
  )
 
  # Retrieve simulated count matrix for RNA-seq
  dataRNAseq <- omicResults(moSimulation, "RNA-seq")
 
-}
+
 }

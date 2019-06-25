@@ -3,9 +3,31 @@
 \docType{class}
 \name{Simulator-class}
 \alias{Simulator-class}
+\alias{SimulatorRegion-class}
+\alias{SimRNAseq-class}
+\alias{SimTF-class}
+\alias{SimmiRNAseq-class}
+\alias{SimChIPseq-class}
+\alias{SimDNaseseq-class}
+\alias{SimMethylseq-class}
 \title{Virtual class containing common methods and slots for child classes.}
 \description{
 Virtual class containing common methods and slots for child classes.
+
+Virtual class containing general methods for simulators based on regions of
+the chromosomes, like DNase-seq, ChIP-seq or Methyl-seq
+
+Class to simulate RNA-seq data
+
+Class to simulate transcription factor data
+
+Class to simulate miRNA-seq
+
+Class to simulate ChIP-seq data
+
+Class to simulate DNase-seq data
+
+Class to simulate Methyl-seq data.
 }
 \section{Slots}{
 
@@ -28,8 +50,6 @@ features. The structure must be 2 columns, one named "ID" and the other
 
 \item{\code{max}}{Maximum value allowed in the omic.}
 
-\item{\code{gammaTable}}{List with the gamma distribution parameters needed.}
-
 \item{\code{depth}}{Sequencing depth to simulate.}
 
 \item{\code{noise}}{Noise value for the NB mean.}
@@ -39,7 +59,7 @@ features. The structure must be 2 columns, one named "ID" and the other
 \item{\code{depthAdjust}}{Boolean indicating whether to adjust by sequencing depth or
 not.}
 
-\item{\code{totalFeaturesN}}{umber of features to simulate. This will replace the
+\item{\code{totalFeatures}}{Number of features to simulate. This will replace the
 data with a subset.}
 
 \item{\code{noiseFunction}}{Noise function to apply when simulating counts. Must
@@ -55,5 +75,50 @@ function.}
 
 \item{\code{pregenerated}}{Indicates if the child class will generate the simulated
 data instead of the general process.}
+
+\item{\code{locs}}{Vector containing the list of locations of the sites.}
+
+\item{\code{locsName}}{Type of the site to simulate, only for debug.}
+
+\item{\code{splitChar}}{Character symbol used to split identifiers in chr/start/end}
+
+\item{\code{nCpG}}{numeric. Number of CpG sites to simulate.}
+
+\item{\code{pSuccessMethReg}}{numeric. Probability of success in methylated region.}
+
+\item{\code{pSuccessDemethReg}}{numeric. Probability of success in non methylated
+region}
+
+\item{\code{errorMethReg}}{numeric. Error rate in methylated region}
+
+\item{\code{errorDemethReg}}{numeric. Error rate in methylated region}
+
+\item{\code{nReadsMethReg}}{numeric. Mean number of reads in methylated region.}
+
+\item{\code{nReadsDemethReg}}{numeric. Mean number of reads in non methylated
+regions.}
+
+\item{\code{phaseDiff}}{numeric. Phase difference in the differentially methylated
+regions between two samples}
+
+\item{\code{balanceHypoHyper}}{numeric. Balance of hypo/hyper methylation}
+
+\item{\code{ratesHMMMatrix}}{numeric. Matrix of values that describes the exponential
+decay functions that define the distances between CpG values.}
+
+\item{\code{distType}}{character. Distribution used to generate replicates:}
+
+\item{\code{transitionSize}}{numeric.}
+
+\item{\code{PhiMeth}}{matrix. Transition matrix for CpG locations.}
+
+\item{\code{PhiDemeth}}{matrix. <Not used>}
+
+\item{\code{typesLocation}}{numeric. <Not used>}
+
+\item{\code{returnValue}}{character. Selected column:}
+
+\item{\code{betaThreshold}}{numeric. Beta threshold value used to calculate M values.}
 }}
 
+\keyword{internal}

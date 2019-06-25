@@ -1,4 +1,6 @@
 #' @include Simulator.R SimulatorRegion.R simulate_WGBS_functions.R
+#' @import HiddenMarkov IRanges S4Vectors
+#' @importFrom rlang .data
 NULL
 
 #
@@ -7,6 +9,14 @@ NULL
 # Based on simulate_WGBS.R script from WGBSSuite V 0.3 (owen.rackham@imperial.ac.uk)
 #
 setMethod("initialize", signature="SimMethylseq", function(.Object, idToGene, totalFeatures = nrow(idToGene), ...) {
+
+    # Due to package size restraints, default data has a loc DF used as idToGene for methylation.
+    if (ncol(idToGene) > 2) {
+        .Object@locs <- idToGene %>% dplyr::mutate(ID = paste(.data$chr, .data$start, .data$end, sep = "_"))
+
+        # Reconstruct original idToGene
+        idToGene <- .Object@locs %>% dplyr::select(.data$ID, .data$Gene)
+    }
 
     # Restrict the number of locations to totalFeatures
     # (Methyl-seq lacks "data")
@@ -17,10 +27,10 @@ setMethod("initialize", signature="SimMethylseq", function(.Object, idToGene, to
     .Object <- callNextMethod(.Object, idToGene = idToGene, totalFeatures = totalFeatures, ...)
 
     # Filter those CHR having less than 2 observations
-    .Object@locs <- dplyr::semi_join(.Object@locs, dplyr::count(.Object@locs, chr)
+    .Object@locs <- dplyr::semi_join(.Object@locs, dplyr::count(.Object@locs, .data$chr)
                                      %>% dplyr::filter(n > 1),
                                      by = "chr") %>%
-        dplyr::filter(!is.na(chr))
+        dplyr::filter(!is.na(.data$chr))
 
     # Override WGBS function to consider the CpG coordinates instead of the index
     find_adjusted_blocks <- function(a, positions) {
@@ -62,7 +72,7 @@ setMethod("initialize", signature="SimMethylseq", function(.Object, idToGene, to
         message("Creating methylation state blocks for chr ", chr)
 
         # Order by ascendent position
-        regions <- dplyr::arrange(.Object@locs[.Object@locs$chr == chr, ,drop=FALSE], start)
+        regions <- dplyr::arrange(.Object@locs[.Object@locs$chr == chr, ,drop=FALSE], .data$start)
 
         #simulate the state transition based on the location of the CpGs
         a <- simulate_state_transition((nrow(regions) * .Object@WGBSparams$m),
@@ -87,7 +97,6 @@ setMethod("initialize", signature="SimMethylseq", function(.Object, idToGene, to
     return(.Object)
 })
 
-# TODO: currently overwrites provided data
 setMethod("initializeData", signature="SimMethylseq", function(object, simulation) {
     #############################################################
     # Code from function generate_sim_set [simulate_WGBS.R]
@@ -105,14 +114,14 @@ setMethod("initializeData", signature="SimMethylseq", function(object, simulatio
         states<-unique(state_blocks[,3])
         n <-length(states)
         diff_meth <- matrix(data=0,nrow=1,ncol=l)
-        for(i in 1:n){
+        for(i in seq_len(n)){
             blocks <- state_blocks[state_blocks[,3]==i,]
             # MOD: sum only if it's matrix
             block_length <- if(is.null(dim(blocks))) blocks[4] else sum(blocks[,4])
             cutoff_length <- percentage[i]*block_length
             so_far <- 0
             while((so_far <= cutoff_length)&&!is.null(dim(blocks)[1])){
-                picked<- sample(1:dim(blocks)[1], 1)
+                picked<- sample(seq_len(dim(blocks)[1]), 1)
                 if(so_far+blocks[picked,4] < cutoff_length){
                     so_far <- so_far + blocks[picked,4]
                     diff_meth[blocks[picked,1]:blocks[picked,2]]<-1
@@ -159,7 +168,7 @@ setMethod("initializeData", signature="SimMethylseq", function(object, simulatio
 
     # DE genes identifiers
     # geneSamples
-    genesDE <- simulation@simSettings$geneSamples$DE
+    genesDE <- simulation@simSettings$featureSamples$SimRNAseq$DE
 
     # Settings for flat on all groups
     flatProfiles <- simulation@simSettings$geneProfiles$FlatGroups$SimRNAseq
@@ -170,8 +179,7 @@ setMethod("initializeData", signature="SimMethylseq", function(object, simulatio
         regTable <- list()
 
         # Select a random number of groups to be non-modified
-        # TODO: changed to perform it once per simulation, not chromosome
-        non_mod_groups <- runif(runif(1, 1, simulation@numberGroups - 1), 1, simulation@numberGroups)
+        non_mod_groups <- stats::runif(runif(1, 1, simulation@numberGroups - 1), 1, simulation@numberGroups)
 
         # Repeat process for every chromosome
         for (chr in as.character(unique(object@locs$chr))) {
@@ -242,7 +250,7 @@ setMethod("initializeData", signature="SimMethylseq", function(object, simulatio
             # other simulators.
             diffPhase <- rep(0, simulation@numberGroups)
 
-            prob_d_factor <- lapply(1:simulation@numberGroups, function(f) {
+            prob_d_factor <- lapply(seq_len(simulation@numberGroups), function(f) {
                 return(list(
                     d=hypo_hyper_diffs(prob_d, diffPhase[f], diff_methed, balance),
                     m=hypo_hyper_diffs(prob_m, diffPhase[f], diff_methed, balance)
@@ -264,7 +272,7 @@ setMethod("initializeData", signature="SimMethylseq", function(object, simulatio
                     prob_d_mod <- prob_d + max(phase_diff)
 
                     # Repeat for every block
-                    for (i in 1:nrow(flatMethProfiles)) {
+                    for (i in seq_len(nrow(flatMethProfiles))) {
                         blockProfiles <- unlist(flatMethProfiles[i, ])
 
                         # ID of the block
@@ -325,7 +333,7 @@ setMethod("initializeData", signature="SimMethylseq", function(object, simulatio
 
             probs <- vector("list", simulation@numberGroups)
 
-            for (f in 1:simulation@numberGroups) {
+            for (f in seq_len(simulation@numberGroups)) {
                 # Diff. sites for every factor
                 prob_f <- prob_d_factor[[f]]
 
@@ -343,7 +351,7 @@ setMethod("initializeData", signature="SimMethylseq", function(object, simulatio
                 # New matrix for every sample
                 repData <- matrix(data=0, nrow=simulation@numberReps, ncol=n)
 
-                for (r in 1:simulation@numberReps) {
+                for (r in seq_len(simulation@numberReps)) {
                     if (distType == 'binomial') {
                         sRepData <-
                             generate_replicat_methyl_bin_data(a, probs, means, 0, errors, locs, f, output_path)
@@ -383,12 +391,12 @@ setMethod("initializeData", signature="SimMethylseq", function(object, simulatio
         # This needs to be done on a "block basis".
         uniqueBlocks <- unique(methProfiles$Block)
 
-        object@WGBSparams$randomCounts <- lapply(1:simulation@numberGroups, function(group) {
+        object@WGBSparams$randomCounts <- lapply(seq_len(simulation@numberGroups), function(group) {
             # Min/max values
             simRange <- range(methData[[group]])
 
             # Create random values for every block
-            randomValues <- runif(length(uniqueBlocks), min = simRange[1], max = simRange[2])
+            randomValues <- stats::runif(length(uniqueBlocks), min = simRange[1], max = simRange[2])
 
             return(dplyr::inner_join(methProfiles, data.frame(Block=uniqueBlocks,
                                                               M=randomValues,
@@ -398,42 +406,20 @@ setMethod("initializeData", signature="SimMethylseq", function(object, simulatio
                        dplyr::mutate(M = jitter(M))
         })
 
-        # Reorder the columns from group1.rep1-n/group2.rep1-n to
-        # group1.rep1/group2.rep1/group1.rep2/group2.rep2/...
-        # so it follows the rest of the simulators that only have one set
-        # of counts per group.
-        # columnReorder <-
-        #     unlist(
-        #         lapply(
-        #             1:simulation@numberGroups,
-        #             seq,
-        #             by = simulation@numberReps - 1,
-        #             length.out = simulation@numberReps
-        #         )
-        #     )
         # Merge simulated data from every group
         methData <- do.call(cbind, methData)
 
         object@WGBSparams$blocks <- chrBlocks
-        object@data <- methData#columnReorder]
+        object@data <- methData
 
         # Pattern "Counts.Group" required for post-simulation. Later it will
         # be correctly renamed.
-        colnames(object@data) <- paste('Counts.Group', 1:ncol(object@data))
+        colnames(object@data) <- paste('Counts.Group', seq_len(ncol(object@data)))
 
         return(object)
     }))
 })
 
-# TO DO: remove this?
-setMethod("simulate", signature="SimMethylseq", function(object, simulation) {
-
-    # object <- initializeData(object, simulation)
-
-    object <- callNextMethod(object, simulation)
-
-    return(object)
-})
 
 setMethod("simulateParams", signature="SimMethylseq", function(object, simulation, counts, profiles, group, ids) {
     # Blocks
@@ -455,11 +441,18 @@ setMethod("simulateParams", signature="SimMethylseq", function(object, simulatio
                       list(n = length(counts), sd = 0.03)
                   ))
 
+    repressionMean <- stats::runif(length(M), min = (M+m)/2, max = M)
+    inductionMean <- stats::runif(length(m), min = m, max = (M+m)/2)
+
     return(list(
         'randomCounts' = randomValues$M,
         'noiseValues' = noiseValues,
         'm' = m,
-        'M' = M
+        'M' = M,
+        'repression.Mean' = repressionMean,
+        'induction.Mean' = inductionMean,
+        'mean.counts' = ifelse(grepl('repression', profiles),(repressionMean + m)/2, (inductionMean + M)/2),
+        'counts' = counts
     ))
 })
 
@@ -472,15 +465,14 @@ setMethod("postSimulation", signature="SimMethylseq", function(object, simulatio
     if (object@Mvalues) {
         # methLevel & rowData comes from BiSeq package?
         betaThreshold <- object@betaThreshold
-        #beta = pmin(pmax(methLevel(smooth.clust.lim), betaThreshold), 1 - betaThreshold)
+
         # Convert to numeric with data.matrix
         beta <- pmin(pmax(data.matrix(object@simData), betaThreshold), 1 - betaThreshold)
-        colnames(beta) <- colnames(object@simData)
-        #paste(seqnames(smooth.clust.lim@rowData),end(smooth.clust.lim@rowData), sep=":")
-        rownames(beta) <- rownames(object@simData)
-        #         - remove rows with zero variance:
 
-        # TODO: revertir esta modificación.
+        colnames(beta) <- colnames(object@simData)
+
+        rownames(beta) <- rownames(object@simData)
+
         # beta <- beta[rowVars(beta, na.rm=T)!=0,]
         M <- log2(beta/(1-beta))
 
@@ -499,7 +491,7 @@ setMethod("postSimulation", signature="SimMethylseq", function(object, simulatio
     numberTimes <- length(simulation@times)
 
     columnReorder <- unlist(
-        lapply(1:numberTimes,
+        lapply(seq_len(numberTimes),
            seq,
            by = numberTimes,
            length.out = simulation@numberReps)
@@ -526,79 +518,65 @@ setMethod("adjustProfiles", signature="SimMethylseq", function(object, simulatio
 
     availableEffects <- object@regulatorEffect[grep("NE", names(object@regulatorEffect), invert = TRUE)]
 
-    # newProfiles <-
     switch(step,
-           Effect = return(dplyr::left_join(profiles, object@locs, by = c("ID" = "ID")) %>%
-                               dplyr::group_by(chr) %>% dplyr::do({
-                                    # Chromosome name
-                                    chrName <- .$chr[[1]]
+           Effect = return(dplyr::left_join(profiles, unique(dplyr::select(object@locs, .data$chr, .data$start, .data$end, .data$ID)), by = c("ID" = "ID")) %>%
+                          dplyr::group_by(.data$chr) %>% dplyr::do({
+                              # Chromosome name
+                              chrName <- .$chr[[1]]
 
-                                    message(sprintf("Generating block methylation data for chromosome %s.", chrName))
+                              message(sprintf("Generating block methylation data for chromosome %s.", chrName))
 
-                                    # State blocks for the current chromosome
-                                    state_blocks <- data.frame(object@WGBSparams$chrBlocks[['state', as.character(chrName)]],
-                                                               stringsAsFactors = FALSE)
+                              # State blocks for the current chromosome
+                              # Note: almost half of the blocks generated by WGBS consist of a single CpG island repeated on another block
+                              # so we filter them.
+                              state_blocks <- data.frame(object@WGBSparams$chrBlocks[['state', as.character(chrName)]],
+                                                         stringsAsFactors = FALSE)
 
-                                    # TODO: performance botteneck. Change within with transform?
-                                    # return(do.call(rbind, lapply(1:nrow(state_blocks), function (j) {
-                                    #     return(within(subset(., start >= state_blocks[j, 1] & end < state_blocks[j, 2]), {
-                                    #         # Rename ID column to CpG
-                                    #         Keep.CpG <- ID
-                                    #         # Different name for every block
-                                    #         # Overwrite ID to allow grouping
-                                    #         ID <- paste('Block', chrName, j, sep = ".")
-                                    #         # Assign a random effect per block
-                                    #         # Keep the already set NA (non DE genes)
-                                    #         # if (any(!is.na(Effect))) browser()
-                                    #         Effect <- ifelse(is.na(Effect), NA, sample(object@regulatorEffect, size = 1))
-                                    #         # Remove unused variables
-                                    #         #rm(chr, end, start)
-                                    #     }))
-                                    # })))
-                                    do.call(rbind, lapply(1:nrow(state_blocks), function (j) {
-                                        within(subset(., start >= state_blocks[j, 1] & end < state_blocks[j, 2]), {
-                                            # Rename ID column to CpG
-                                            Keep.CpG <- ID
-                                            # Different name for every block
-                                            # Overwrite ID to allow grouping
-                                            ID <- paste('Block', chrName, j, sep = ".")
-                                            # Assign a random effect per block
-                                            # Keep the already set NA (non DE genes)
-                                            Effect <- ifelse(is.na(Effect), NA, sample(names(availableEffects), size = 1,
-                                                                                       prob = as.numeric(availableEffects)))
-                                            # Remove unused variables
-                                            #rm(chr, end, start)
-                                        })
-                                    }))
-                    }) %>% dplyr::ungroup()),
-        Groups = return({
+                              stateIRanges <- IRanges::IRanges(start = state_blocks[,1], end = state_blocks[,2] - 1)
+                              chrIRanges <- IRanges::IRanges(start = .$start, end = .$end)
+
+                              # The query column in overlaps will correspond to the block number.
+                              blockOverlaps <- IRanges::findOverlaps(stateIRanges, chrIRanges)
+
+                              blockNames <- S4Vectors::queryHits(blockOverlaps)
+
+                              if (length(blockNames) < nrow(.)) {
+                                  blockNames <- c(blockNames, seq(from = max(blockNames) + 1,
+                                                                  length.out = nrow(.) - length(blockNames)))
+                              }
+
+                              within(., {
+                                  # Rename ID column to CpG
+                                  Keep.CpG <- .$ID
+                                  # Different name for every block
+                                  # Overwrite ID to allow grouping
+                                  ID <- paste('Block', chrName, blockNames, sep = ".")
+                                  # Assign a random effect per block
+                                  # Keep the already set NA (non DE genes)
+                                  Effect <- ifelse(is.na(.$Effect), NA, sample(names(availableEffects), size = 1,
+                                                                                   prob = as.numeric(availableEffects)))
+                              })
+                          }) %>% dplyr::ungroup()),
+            Groups = return({
                     # Retrieve true group effect for each block
-                    dplyr::select(profiles, ID, Effect, dplyr::starts_with("Group")) %>%
-                        dplyr::filter(!is.na(Effect)) %>%
-                        dplyr::select(-Effect) %>%
+                    dplyr::select(profiles, .data$ID, .data$Effect, dplyr::starts_with("Group")) %>%
+                        dplyr::filter(!is.na(.data$Effect)) %>%
+                        dplyr::select(-.data$Effect) %>%
+                        dplyr::distinct_() %>%
+                        dplyr::bind_rows(dplyr::select(profiles, .data$ID, .data$Effect, dplyr::starts_with("Group")) %>%
+                                             dplyr::filter(is.na(.data$Effect)) %>%
+                                             dplyr::select(-.data$Effect) %>%
+                                             dplyr::distinct_()
+                        )%>%
                     # Join with the full profile table
                     dplyr::left_join(dplyr::select(profiles, - dplyr::starts_with("Group")), by = c("ID" = "ID")) %>%
-                    dplyr::mutate(Block = ID, ID = Keep.CpG) %>%
-                    dplyr::select(ID, Gene, Block, Effect, dplyr::starts_with("Effect.Group"), dplyr::starts_with("Group"), dplyr::starts_with("Tmax."))
-                    #     dplyr::group_by(Block) %>%
-                    #     dplyr::select(ID, Gene, Block, Effect, dplyr::starts_with("Effect.Group"), dplyr::starts_with("Group")) %>%
-                    #     dplyr::do({
-                    #         # Select "GroupX" column of the first row that affects some gene in the
-                    #         # block.
-                    #         profiles <- head(.[! is.na(.$Effect), grep("^Group", colnames(.))], 1)
-                    #
-                    #         # If there is any, mark all block profiles as the same. If not,
-                    #         # all will be 'flat' already.
-                    #         if (nrow(profiles)) {
-                    #             .[, grep("^Group", colnames(.))] <- profiles
-                    #         }
-                    #
-                    #         # Return the data frame
-                    #         .
-                    #     }) %>% dplyr::ungroup()
+                    dplyr::mutate(Block = .data$ID, ID = .data$Keep.CpG) %>%
+                    dplyr::select(.data$ID, .data$Gene, .data$Block, .data$Effect,
+                                  dplyr::starts_with("Effect.Group"), dplyr::starts_with("Group"), dplyr::starts_with("Tmax.")) %>%
+                    dplyr::distinct_()
             })
     )
 
     # By default return the same
-    return(newProfiles)
+    return(profiles)
 })

@@ -1,4 +1,11 @@
 
+#' Check if a variable is declared.
+#'
+#' @param object Variable name to check
+#' @param key Optional key to check inside object.
+#'
+#' @return TRUE or FALSE indicating if the variable is initialized & non-empty.
+#'
 is.declared <- function(object, key = NULL) {
 
     if (! is.null(key)) {

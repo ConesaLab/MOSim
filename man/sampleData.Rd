@@ -4,7 +4,15 @@
 \name{sampleData}
 \alias{sampleData}
 \title{Default data}
-\format{List with 6 elements:
+\format{An object of class \code{list} of length 6.}
+\usage{
+sampleData
+}
+\description{
+Dataset with base counts and id-gene tables.
+}
+\details{
+List with 6 elements:
 \describe{
   \item{SimRNAseq}{\describe{
   \item{data}{Dataframe with base counts with gene id as rownames.}
@@ -21,11 +29,6 @@
   \item{SimMethylseq}{\describe{
   \item{idToGene}{Dataframe with region as "ID" column and gene name on "Gene" column.}}}
   \item{CpGisland}{Dataframe of CpG to be used as initialization data, located on "Region" column}
-}}
-\usage{
-sampleData
 }
-\description{
-Dataset with base counts and id-gene tables.
 }
 \keyword{datasets}
