@@ -1,6 +1,6 @@
 Package: MOSim
 Title: Multi-Omics Simulation (MOSim)
-Version: 0.99.0
+Version: 0.99.1
 Authors@R: c(person("Carlos", "Martínez", email = "cmarmir+bioconductor@gmail.com", role = "cre"), person("Sonia", "Tarazona", email = "sotacam@gmail.com", role = "aut"))
 Description: MOSim package simulates multi-omic experiments that mimic regulatory mechanisms within the cell, allowing flexible experimental design including time course and multiple groups. 
 Encoding: UTF-8
