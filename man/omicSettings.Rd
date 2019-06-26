@@ -41,14 +41,14 @@ Retrieves the settings used in a simulation
 }
 \examples{
 
-omic_list <- c("RNA-seq")
-rnaseq_simulation <- mosim(omics = omic_list)
+omic_list <- c("RNA-seq", "miRNA-seq")
+multi_simulation <- mosim(omics = omic_list)
 
 # This will be a data frame with RNA-seq settings (DE flag, profiles)
-rnaseq_settings <- omicSettings(rnaseq_simulation, "RNA-seq")
+rnaseq_settings <- omicSettings(multi_simulation, "RNA-seq")
 
 # This will be a list containing all the simulated omics (RNA-seq
 # and DNase-seq in this case)
-all_settings <- omicSettings(rnaseq_simulation)
+all_settings <- omicSettings(multi_simulation)
 
 }

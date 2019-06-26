@@ -613,7 +613,7 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
         # TODO: fix this in other place. When working with blocks, sometimes there are duplicated rows
         # because they do not have the tmax columns properly filled.
         simProfiles <- dplyr::group_by(simProfiles, .data$ID) %>%
-            dplyr::summarise_all(dplyr::funs(dplyr::first(stats::na.omit(.)))) %>%
+            dplyr::summarise_all(list(~dplyr::first(stats::na.omit(.)))) %>%
             dplyr::ungroup()
     }
 

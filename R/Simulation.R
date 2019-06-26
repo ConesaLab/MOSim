@@ -478,7 +478,6 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
                         }
                     }
 
-
                     # Assign tmax
                     for (group in seq(.Object@numberGroups)) {
                         colName <- paste0("Tmax.Group", group)
@@ -488,11 +487,11 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
                                                                     else as.numeric(tmaxGroup[group])))
                     }
 
-
                     # Replace "NE" effect with NA
+                    # TODO: check if this is really required, no NE at this point?
                     profileGroup <- dplyr::mutate_at(profileGroup,
                                                      dplyr::vars(dplyr::contains("Effect")),
-                                                     dplyr::funs(ifelse(. == "NE", NA, .)))
+                                                     list(~ifelse(. == "NE", NA, .)))
 
                     # Return the processed (or not) profileGroup
                     return(profileGroup)

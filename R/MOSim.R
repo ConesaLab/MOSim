@@ -274,15 +274,15 @@ omicSim <- function(omic, depth = NULL, totalFeatures = NULL, regulatorEffect = 
 #'
 #' @examples
 #'
-#' omic_list <- c("RNA-seq")
-#' rnaseq_simulation <- mosim(omics = omic_list)
+#' omic_list <- c("RNA-seq", "miRNA-seq")
+#' multi_simulation <- mosim(omics = omic_list)
 #'
 #' # This will be a data frame with RNA-seq settings (DE flag, profiles)
-#' rnaseq_settings <- omicSettings(rnaseq_simulation, "RNA-seq")
+#' rnaseq_settings <- omicSettings(multi_simulation, "RNA-seq")
 #'
 #' # This will be a list containing all the simulated omics (RNA-seq
 #' # and DNase-seq in this case)
-#' all_settings <- omicSettings(rnaseq_simulation)
+#' all_settings <- omicSettings(multi_simulation)
 #'
 omicSettings <- function(simulation, omics = NULL, association = FALSE, reverse = FALSE, only.linked = FALSE, prefix = FALSE, include.lagged = TRUE) {
     # Select all omics by default
@@ -323,7 +323,8 @@ omicSettings <- function(simulation, omics = NULL, association = FALSE, reverse 
 
     # Remove & rename effects from data frames
     replace_effect_filter <- function(df) {
-        df <- dplyr::mutate_at(df, dplyr::vars(dplyr::starts_with("Effect.Group")), dplyr::funs(gsub("enhancer", "activator", .)))
+        df <- dplyr::mutate_at(df, dplyr::vars(dplyr::starts_with("Effect.Group")),
+                               list(~gsub("enhancer", "activator", .)))
 
         if (all(c("Group1", "Effect") %in% colnames(df))) {
 
@@ -372,7 +373,7 @@ omicSettings <- function(simulation, omics = NULL, association = FALSE, reverse 
             # Assign the same effect to regulator rows.
             df <- dplyr::group_by(df, .data$ID) %>%
                 dplyr::mutate_at(dplyr::vars(dplyr::starts_with("Group")),
-                                 dplyr::funs(propagate_profile(., .data$Effect))) %>%
+                                 list(~propagate_profile(., .data$Effect))) %>%
                 dplyr::ungroup() %>%
                 add_lagged_info()
 
@@ -437,7 +438,7 @@ omicSettings <- function(simulation, omics = NULL, association = FALSE, reverse 
 
             output.df <- dplyr::select(x.data, .data$Gene, .data$ID, .data$Effect, dplyr::starts_with("Effect.Group"), dplyr::starts_with("Tmax.Group")) %>%
                 dplyr::mutate(Omic = x) %>% dplyr::left_join(x.settings, by = c("ID" = "ID")) %>%
-                dplyr::mutate_at(dplyr::vars(dplyr::starts_with("Group")), dplyr::funs(ifelse(is.na(.), "flat", .)))
+                dplyr::mutate_at(dplyr::vars(dplyr::starts_with("Group")), list(~ifelse(is.na(.), "flat", .)))
 
             if (only.linked) {
                 linked.IDs <- dplyr::filter_at(output.df, dplyr::vars(dplyr::starts_with("Effect")), dplyr::any_vars(! is.na(.)))$ID
@@ -464,7 +465,7 @@ omicSettings <- function(simulation, omics = NULL, association = FALSE, reverse 
     if (length(omics) > 1 || length(outputList) > 1) {
         return(outputList)
     } else {
-        return(outputList[[omics]])
+        return(outputList[[unlist(omics)]])
     }
 }
 
