@@ -8,7 +8,8 @@ test_that("profileprobs settings", {
         flat = .2
     )
 
-    sim_no_induction <- mosim(omics = "RNA-seq", profileProbs = no_induction)
+    sim_no_induction <- mosim(omics = "RNA-seq", omicsOptions = list(
+        "RNA-seq"=list(totalFeatures=300)), profileProbs = no_induction)
 
     # Check the presence of induction profiles in settings
     expression_profiles <- sim_no_induction@simSettings$geneProfiles$SimRNAseq
