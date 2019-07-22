@@ -189,7 +189,7 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
 
         for (g in seq(.Object@numberGroups)) {
             profilesDE[, paste0("Tmax.Group", g)] <- ifelse(grepl("transitory", profilesDE[, 2 + g]), # Third column = Group 1
-                                                            stats::runif(nrow(profilesDE), min = 0.25 * tmax.T, max = 0.75 * tmax.T),
+                                                            stats::runif(nrow(profilesDE), min = 0.4 * tmax.T, max = 0.6 * tmax.T),
                                                             NA)
         }
 
