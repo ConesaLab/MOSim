@@ -7,8 +7,10 @@ Encoding: UTF-8
 Depends:
     R (>= 3.6)
 License: GPL-3
-LazyData: true
+LazyData: false
 biocViews: Software, TimeCourse, ExperimentalDesign, RNASeq
+BugReports: https://github.com/Neurergus/MOSim/issues
+URL: https://github.com/Neurergus/MOSim
 Imports:
     HiddenMarkov,
     zoo,
