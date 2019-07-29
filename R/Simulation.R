@@ -3,7 +3,7 @@
 #' @importFrom rlang .data
 NULL
 
-setMethod("initialize", signature="Simulation", function(.Object, ...) {
+setMethod("initialize", signature="MOSimulation", function(.Object, ...) {
     # Set slots
     .Object <- callNextMethod()
 
@@ -22,10 +22,12 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
     dataProvided <- sapply(.Object@simulators, is.declared, key = 'data')
 
     if (! any(dataProvided)) {
+        data(sampleData)
+
         .Object@simulators <- mapply(function(sim, data) {
             # Assign data only on list option, not already instantiated objects or those
             # that already have it on the options.
-            if (is.declared(data) && ! inherits(sim, "Simulator")) {
+            if (is.declared(data) && ! inherits(sim, "MOSimulator")) {
 
                 if (! is.declared(sim, "data")) {
                     sim$data <- if (exists('data', where = data)) data$data else NULL
@@ -56,7 +58,7 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
     # Initialize simulators
     .Object@simulators <- mapply(function(sim, class) {
         # Directly return the simulator if it has already been initialized
-        if (! inherits(sim, "Simulator")) {
+        if (! inherits(sim, "MOSimulator")) {
             # Add default params if not provided in the options list
             for (param in inheritParams) {
                 if (! exists(param, sim)) {
@@ -189,7 +191,7 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
 
         for (g in seq(.Object@numberGroups)) {
             profilesDE[, paste0("Tmax.Group", g)] <- ifelse(grepl("transitory", profilesDE[, 2 + g]), # Third column = Group 1
-                                                            stats::runif(nrow(profilesDE), min = 0.4 * tmax.T, max = 0.6 * tmax.T),
+                                                            stats::runif(nrow(profilesDE), min = 0.25 * tmax.T, max = 0.75 * tmax.T),
                                                             NA)
         }
 
@@ -696,7 +698,7 @@ setMethod("initialize", signature="Simulation", function(.Object, ...) {
     return(.Object)
 })
 
-setMethod("simulate", signature="Simulation", function(object) {
+setMethod("simulate", signature="MOSimulation", function(object) {
     object@simulators <- sapply(object@simulators, simulate, object)
 
     # TODO: as a special-case omic, keep it here or move to a proper location?
@@ -832,12 +834,12 @@ setMethod("simulate", signature="Simulation", function(object) {
 })
 
 
-setMethod("show", signature="Simulation", function(object) {
+setMethod("show", signature="MOSimulation", function(object) {
     # TO DO: temp...
     simSettings(object)
 })
 
-setMethod("simSettings", signature="Simulation", function(object) {
+setMethod("simSettings", signature="MOSimulation", function(object) {
     cat(sprintf("Simulation settings of class %s:\n", class(object)))
     cat(sprintf("- Default depth: %d\n", object@depth))
     cat(sprintf("- Total genes: %d\n", object@totalGenes))
@@ -851,7 +853,7 @@ setMethod("simSettings", signature="Simulation", function(object) {
     }
 })
 
-setValidity("Simulation", function(object) {
+setValidity("MOSimulation", function(object) {
     # Initialize list of errors
     errors <- c()
 
@@ -870,7 +872,7 @@ setValidity("Simulation", function(object) {
                                        )
 
     # Exclude those simulators already initialized
-    simuInitialized <- sapply(object@simulators, inherits, what = "Simulator")
+    simuInitialized <- sapply(object@simulators, inherits, what = "MOSimulator")
 
     # Simulators excluded from association checking (add RNA-seq)
     assocExcluded <- c(names(simuInitialized), "SimRNAseq")

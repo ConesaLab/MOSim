@@ -29,6 +29,9 @@ Set customized data for an omic.
 # purposes. We could also load it from a csv file or RData,
 # as long as we transform it to have 1 column named "Counts"
 # and the identifiers as row names.
+
+data(sampleData)
+
 custom_rnaseq <- head(sampleData$SimRNAseq$data, 100)
 
 # In this case, 'custom_rnaseq' is a data frame with

@@ -58,12 +58,12 @@ data should be used (TRUE) or not (FALSE), or a 3 column data frame
 containing custom associations. By default FALSE.}
 }
 \value{
-Instance of class "Simulation" containing the multiomic simulation
+Instance of class "MOSimulation" containing the multiomic simulation
   data.
 }
 \description{
 Performs a multiomic simulation by chaining two actions: 1) Creating the
-"Simulation" class with the provided params. 2) Calling "simulate" method on
+"MOSimulation" class with the provided params. 2) Calling "simulate" method on
 the initialized object.
 }
 \examples{

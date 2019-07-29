@@ -3,7 +3,7 @@
 NULL
 
 #' @rdname Generics
-setMethod("initialize", signature="Simulator", function(.Object, ...) {
+setMethod("initialize", signature="MOSimulator", function(.Object, ...) {
     .Object <- callNextMethod(.Object, ...)
 
     # Casting to dataframe
@@ -24,15 +24,15 @@ setMethod("initialize", signature="Simulator", function(.Object, ...) {
 #' for those genes (and associated regulators with an active effect on it)
 #' that are marked as DE with only flat profiles in all groups.
 #'
-#' @param object Instance of \linkS4class{Simulator} class.
-#' @param simulation Initialized instance of \linkS4class{Simulation} class
+#' @param object Instance of \linkS4class{MOSimulator} class.
+#' @param simulation Initialized instance of \linkS4class{MOSimulation} class
 #'
-#' @return An object of class \linkS4class{Simulator} with the @data slot filled
+#' @return An object of class \linkS4class{MOSimulator} with the @data slot filled
 #' with the correct initial data structure and values.
 #' @keywords internal
 #' @rdname Generics
 #'
-setMethod("initializeData", signature="Simulator", function(object, simulation) {
+setMethod("initializeData", signature="MOSimulator", function(object, simulation) {
 
     # Adjust sequencing depth
     object@depth <- object@depth*10^6
@@ -504,7 +504,7 @@ setMethod("initializeData", signature="Simulator", function(object, simulation) 
 
 #' @rdname Generics
 #' @keywords internal
-setMethod("simulate", signature="Simulator", function(object, simulation) {
+setMethod("simulate", signature="MOSimulator", function(object, simulation) {
     message(sprintf("Starting simulation of %s.", object@name))
 
     object <- initializeData(object, simulation)
@@ -927,15 +927,15 @@ setMethod("simulate", signature="Simulator", function(object, simulation) {
 #'
 #' For internal use only.
 #'
-#' @param object Instance of class \linkS4class{Simulator}.
-#' @param simulation Instance of class \linkS4class{Simulation}.
+#' @param object Instance of class \linkS4class{MOSimulator}.
+#' @param simulation Instance of class \linkS4class{MOSimulation}.
 #'
-#' @return Object of class \linkS4class{Simulation} with the simulated data (@simData)
+#' @return Object of class \linkS4class{MOSimulation} with the simulated data (@simData)
 #' correctly formatted.
 #' @keywords internal
 #' @rdname Generics
 #'
-setMethod("postSimulation", signature="Simulator", function(object, simulation) {
+setMethod("postSimulation", signature="MOSimulator", function(object, simulation) {
 
     if (ncol(object@simData) < simulation@numberGroups * simulation@numberReps * length(simulation@times))
         stop("Invalid number of columns after simulation. Please, contact package maintainer!")
@@ -998,7 +998,7 @@ setMethod("postSimulation", signature="Simulator", function(object, simulation) 
 #'
 #' Returns the regulator IDs associated to a particular set of genes identifiers.
 #'
-#' @param object Instance of class \linkS4class{Simulator}.
+#' @param object Instance of class \linkS4class{MOSimulator}.
 #' @param geneNames Character vector of the genes to look for in the association table.
 #' @param simplify Return only the genes IDs or a table containing both types of identifiers.
 #'
@@ -1007,7 +1007,7 @@ setMethod("postSimulation", signature="Simulator", function(object, simulation) 
 #' @keywords internal
 #' @rdname Generics
 #'
-setMethod("IDfromGenes", signature="Simulator", function(object, geneNames, simplify = TRUE) {
+setMethod("IDfromGenes", signature="MOSimulator", function(object, geneNames, simplify = TRUE) {
     regTable <- object@idToGene
 
     selCols <- if (simplify) c('ID') else c('ID', 'Gene')
@@ -1020,7 +1020,7 @@ setMethod("IDfromGenes", signature="Simulator", function(object, geneNames, simp
 #'
 #' Returns the gene identifiers associated to a particular set of regulator IDs.
 #'
-#' @param object Instance of class \linkS4class{Simulator}.
+#' @param object Instance of class \linkS4class{MOSimulator}.
 #' @param idNames Character vector of the regulator IDs to look for in the association table.
 #' @param simplify Return only the regulator IDs or a table containing both types of identifiers.
 #'
@@ -1029,7 +1029,7 @@ setMethod("IDfromGenes", signature="Simulator", function(object, geneNames, simp
 #' @keywords internal
 #' @rdname Generics
 #'
-setMethod("IDtoGenes", signature="Simulator", function(object, idNames, simplify = TRUE) {
+setMethod("IDtoGenes", signature="MOSimulator", function(object, idNames, simplify = TRUE) {
     regTable <- object@idToGene
 
     selCols <- if (simplify) c('ID') else c('ID', 'Gene')
@@ -1043,8 +1043,8 @@ setMethod("IDtoGenes", signature="Simulator", function(object, idNames, simplify
 #' For internal use. Creates the values to be replaced in the formulas used
 #' to simulate the profile values, including noise.
 #'
-#' @param object Instance of class \linkS4class{Simulator}.
-#' @param simulation Instance of class \linkS4class{Simulation}.
+#' @param object Instance of class \linkS4class{MOSimulator}.
+#' @param simulation Instance of class \linkS4class{MOSimulation}.
 #' @param counts Counts taken from the initial data.
 #' @param profiles Types of profiles to simulate.
 #' @param ids IDs associated. Needed in some simulators.
@@ -1059,7 +1059,7 @@ setMethod("IDtoGenes", signature="Simulator", function(object, idNames, simplify
 #' @keywords internal
 #' @rdname Generics
 #'
-setMethod("simulateParams", signature="Simulator", function(object, simulation, counts, profiles, group, ids) {
+setMethod("simulateParams", signature="MOSimulator", function(object, simulation, counts, profiles, group, ids) {
     # Reorder random counts
     randomCounts <- object@randData[ids]
 
@@ -1096,8 +1096,8 @@ setMethod("simulateParams", signature="Simulator", function(object, simulation, 
 #' For internal use. Allows every omic class to adjust the profiles matrix
 #' (simulation settings) to use, according to its needs.
 #'
-#' @param object Instance of class \linkS4class{Simulator}.
-#' @param simulation Instance of class \linkS4class{Simulation}.
+#' @param object Instance of class \linkS4class{MOSimulator}.
+#' @param simulation Instance of class \linkS4class{MOSimulation}.
 #' @param profiles Data frame containing the profile type associated to each
 #' ID.
 #' @param step It accepts two options \emph{Effect} and \emph{Groups} depending
@@ -1107,24 +1107,24 @@ setMethod("simulateParams", signature="Simulator", function(object, simulation, 
 #' @keywords internal
 #' @rdname Generics
 #'
-setMethod("adjustProfiles", signature="Simulator", function(object, simulation, profiles, step) {
+setMethod("adjustProfiles", signature="MOSimulator", function(object, simulation, profiles, step) {
     # By default return the same
     return(profiles)
 })
 
 #' @rdname Generics
-setMethod("show", signature="Simulator", function(object) {
+setMethod("show", signature="MOSimulator", function(object) {
     print(object@simData)
 })
 
 #' @rdname Generics
-setMethod("simSettings", signature="Simulator", function(object) {
+setMethod("simSettings", signature="MOSimulator", function(object) {
     cat(sprintf("Simulation settings of class %s:\n", class(object)))
     cat(sprintf("- Depth: %d\n", object@depth))
 })
 
 
-setValidity("Simulator", function(object) {
+setValidity("MOSimulator", function(object) {
     errors <- c()
 
     if (! is.declared(object@data) && ! object@pregenerated)

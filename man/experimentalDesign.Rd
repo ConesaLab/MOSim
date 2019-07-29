@@ -7,7 +7,7 @@
 experimentalDesign(simulation)
 }
 \arguments{
-\item{simulation}{A Simulation object}
+\item{simulation}{A MOSimulation object}
 }
 \value{
 A data frame containing the experimental design used to simulate the

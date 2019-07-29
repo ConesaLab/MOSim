@@ -7,7 +7,7 @@
 omicResults(simulation, omics = NULL, format = "data.frame")
 }
 \arguments{
-\item{simulation}{A Simulation object.}
+\item{simulation}{A MOSimulation object.}
 
 \item{omics}{List of the omics to retrieve the simulated data.}
 

@@ -21,12 +21,12 @@ NULL
 
 # The default 'mosim' values should be identical to the prototype values of
 # simulation class. To avoid warnings checking the package we use
-defaultPrototypeValues <- getClass("Simulation")@prototype
+defaultPrototypeValues <- getClass("MOSimulation")@prototype
 
 #' mosim
 #'
 #' Performs a multiomic simulation by chaining two actions: 1) Creating the
-#' "Simulation" class with the provided params. 2) Calling "simulate" method on
+#' "MOSimulation" class with the provided params. 2) Calling "simulate" method on
 #' the initialized object.
 #'
 #' @param omics Character vector containing the names of the omics to simulate,
@@ -69,7 +69,7 @@ defaultPrototypeValues <- getClass("Simulation")@prototype
 #' @param minMaxFC Numeric vector of length 2 with minimum and maximum fold-change
 #'   for differentially expressed features, respectively.
 #'
-#' @return Instance of class "Simulation" containing the multiomic simulation
+#' @return Instance of class "MOSimulation" containing the multiomic simulation
 #'   data.
 #' @export
 #'
@@ -99,7 +99,7 @@ mosim <-
     ) {
     # Check for mandatory parameters
     if (missing(omics))
-        stop("You must provide the list of omics to simulate.")
+        stop("You must provide the vector of omics to simulate.")
 
     # Params to initialize simulation instance
     mosimCall <- as.list(match.call(expand.dots = FALSE))[-1]
@@ -137,7 +137,7 @@ mosim <-
             }
 
             # Modify the param list or the slots directly
-            if (! inherits(simParams$simulators[[omicName]], "Simulator")) {
+            if (! inherits(simParams$simulators[[omicName]], "MOSimulator")) {
                 simParams$simulators[[omicName]] <- omicParams
             } else {
                 # Override every slot manually
@@ -148,10 +148,10 @@ mosim <-
         }
     }
 
-    # Remove keys not present in 'Simulation' class slots
-    simParams <- simParams[names(simParams) %in% slotNames("Simulation")]
+    # Remove keys not present in 'MOSimulation' class slots
+    simParams <- simParams[names(simParams) %in% slotNames("MOSimulation")]
 
-    oSim <- do.call(new, c("Class"="Simulation", simParams))
+    oSim <- do.call(new, c("Class"="MOSimulation", simParams))
     oSim <- simulate(oSim)
 
     return(oSim)
@@ -176,6 +176,9 @@ mosim <-
 #' # purposes. We could also load it from a csv file or RData,
 #' # as long as we transform it to have 1 column named "Counts"
 #' # and the identifiers as row names.
+#'
+#' data(sampleData)
+#'
 #' custom_rnaseq <- head(sampleData$SimRNAseq$data, 100)
 #'
 #' # In this case, 'custom_rnaseq' is a data frame with
@@ -251,7 +254,7 @@ omicSim <- function(omic, depth = NULL, totalFeatures = NULL, regulatorEffect = 
 
 #' Retrieves the settings used in a simulation
 #'
-#' @param simulation A Simulation object.
+#' @param simulation A MOSimulation object.
 #' @param omics List of omics to retrieve the settings.
 #' @param association A boolean indicating if the association must also be
 #'   returned for the regulators.
@@ -471,7 +474,7 @@ omicSettings <- function(simulation, omics = NULL, association = FALSE, reverse 
 
 #' Retrieves the simulated data.
 #'
-#' @param simulation A Simulation object.
+#' @param simulation A MOSimulation object.
 #' @param omics List of the omics to retrieve the simulated data.
 #' @param format Type of object to use for returning the results
 #'
@@ -531,7 +534,7 @@ omicResults <- function(simulation, omics = NULL, format = "data.frame") {
 
 #' Retrieves the experimental design
 #'
-#' @param simulation A Simulation object
+#' @param simulation A MOSimulation object
 #'
 #' @return A data frame containing the experimental design used to simulate the
 #'   data.
@@ -562,7 +565,7 @@ experimentalDesign <- function(simulation) {
 
 #' Generate a plot of a feature's profile for one or two omics.
 #'
-#' @param simulation A Simulation object
+#' @param simulation A MOSimulation object
 #' @param omics Character vector of the omics to simulate.
 #' @param featureIDS List containing the feature to show per omic. Must have the
 #'   omics as the list names and the features as values.

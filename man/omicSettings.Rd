@@ -9,7 +9,7 @@ omicSettings(simulation, omics = NULL, association = FALSE,
   include.lagged = TRUE)
 }
 \arguments{
-\item{simulation}{A Simulation object.}
+\item{simulation}{A MOSimulation object.}
 
 \item{omics}{List of omics to retrieve the settings.}
 

@@ -49,7 +49,7 @@ NULL
 #'
 #'
 setClass(
-    "Simulation",
+    "MOSimulation",
     slots = c(
         simulators = "list",
         totalGenes = "numeric",
@@ -131,7 +131,7 @@ setClass(
 #' @keywords internal
 #'
 setClass(
-    "Simulator",
+    "MOSimulator",
     slots = c(
         name = "character",
         data = "ANY",
@@ -195,7 +195,7 @@ setClass(
     prototype = list(
         splitChar = "_"
     ),
-    contains = c("Simulator", "VIRTUAL")
+    contains = c("MOSimulator", "VIRTUAL")
 )
 
 
@@ -218,7 +218,7 @@ setClass(
             "b" = 1.5 #1.5
         )
     ),
-    contains = "Simulator"
+    contains = "MOSimulator"
 )
 
 #'
@@ -260,7 +260,7 @@ setClass(
             "b" = 1.566
         )
     ),
-    contains = "Simulator"
+    contains = "MOSimulator"
 )
 
 #'

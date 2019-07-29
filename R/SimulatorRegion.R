@@ -65,7 +65,7 @@ setMethod("initialize", signature="SimulatorRegion", function(.Object, ...) {
 })
 
 # setValidity("SimulatorRegion", function(object) {
-#     return(getValidity(getClassDef("Simulator"))(object))
+#     return(getValidity(getClassDef("MOSimulator"))(object))
 # })
 
 

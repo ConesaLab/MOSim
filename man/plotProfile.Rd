@@ -7,7 +7,7 @@
 plotProfile(simulation, omics, featureIDS, drawReps = FALSE)
 }
 \arguments{
-\item{simulation}{A Simulation object}
+\item{simulation}{A MOSimulation object}
 
 \item{omics}{Character vector of the omics to simulate.}
 

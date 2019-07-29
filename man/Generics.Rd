@@ -12,16 +12,16 @@
 \alias{adjustProfiles}
 \alias{locGRanges}
 \alias{regionNames}
-\alias{initialize,Simulator-method}
-\alias{initializeData,Simulator-method}
-\alias{simulate,Simulator-method}
-\alias{postSimulation,Simulator-method}
-\alias{IDfromGenes,Simulator-method}
-\alias{IDtoGenes,Simulator-method}
-\alias{simulateParams,Simulator-method}
-\alias{adjustProfiles,Simulator-method}
-\alias{show,Simulator-method}
-\alias{simSettings,Simulator-method}
+\alias{initialize,MOSimulator-method}
+\alias{initializeData,MOSimulator-method}
+\alias{simulate,MOSimulator-method}
+\alias{postSimulation,MOSimulator-method}
+\alias{IDfromGenes,MOSimulator-method}
+\alias{IDtoGenes,MOSimulator-method}
+\alias{simulateParams,MOSimulator-method}
+\alias{adjustProfiles,MOSimulator-method}
+\alias{show,MOSimulator-method}
+\alias{simSettings,MOSimulator-method}
 \title{Simulate [internal use]}
 \usage{
 simulate(object, ...)
@@ -44,33 +44,33 @@ locGRanges(object, locs)
 
 regionNames(object, chrNumber, start, end = NULL)
 
-\S4method{initialize}{Simulator}(.Object, ...)
+\S4method{initialize}{MOSimulator}(.Object, ...)
 
-\S4method{initializeData}{Simulator}(object, simulation)
+\S4method{initializeData}{MOSimulator}(object, simulation)
 
-\S4method{simulate}{Simulator}(object, simulation)
+\S4method{simulate}{MOSimulator}(object, simulation)
 
-\S4method{postSimulation}{Simulator}(object, simulation)
+\S4method{postSimulation}{MOSimulator}(object, simulation)
 
-\S4method{IDfromGenes}{Simulator}(object, geneNames, simplify = TRUE)
+\S4method{IDfromGenes}{MOSimulator}(object, geneNames, simplify = TRUE)
 
-\S4method{IDtoGenes}{Simulator}(object, idNames, simplify = TRUE)
+\S4method{IDtoGenes}{MOSimulator}(object, idNames, simplify = TRUE)
 
-\S4method{simulateParams}{Simulator}(object, simulation, counts, profiles,
-  group, ids)
+\S4method{simulateParams}{MOSimulator}(object, simulation, counts,
+  profiles, group, ids)
 
-\S4method{adjustProfiles}{Simulator}(object, simulation, profiles, step)
+\S4method{adjustProfiles}{MOSimulator}(object, simulation, profiles, step)
 
-\S4method{show}{Simulator}(object)
+\S4method{show}{MOSimulator}(object)
 
-\S4method{simSettings}{Simulator}(object)
+\S4method{simSettings}{MOSimulator}(object)
 }
 \arguments{
-\item{object}{Object of class \linkS4class{Simulator} or \linkS4class{Simulation}.}
+\item{object}{Object of class \linkS4class{MOSimulator} or \linkS4class{MOSimulation}.}
 
 \item{...}{Extra parameters for extensibility.}
 
-\item{simulation}{Only in \linkS4class{Simulator} class. Initialized instance of Simulation class}
+\item{simulation}{Only in \linkS4class{MOSimulator} class. Initialized instance of Simulation class}
 
 \item{geneNames}{Names of genes to look up in the association table.}
 
@@ -97,17 +97,17 @@ of the settings simulation is called.}
 
 \item{end}{End positions of the regions}
 
-\item{object}{Object of class \linkS4class{Simulator} or \linkS4class{Simulation}.}
+\item{object}{Object of class \linkS4class{MOSimulator} or \linkS4class{MOSimulation}.}
 
-\item{object}{Instance of Simulator class.}
+\item{object}{Instance of MOSimulator class.}
 
-\item{simulation}{Instance of Simulation class.}
+\item{simulation}{Instance of MOSimulation class.}
 
-\item{object}{Instance of Simulator class.}
+\item{object}{Instance of MOSimulator class.}
 
-\item{simulation}{Instance of Simulation class.}
+\item{simulation}{Instance of MOSimulation class.}
 
-\item{object}{Instance of a Simulator class}
+\item{object}{Instance of a MOSimulator class}
 
 \item{object}{Instance of a simulator class.}
 
@@ -126,27 +126,27 @@ simulator.}
 
 \item{object}{Instace of a SimulatorRegion class}
 
-\item{object}{Instance of \linkS4class{Simulator} class.}
+\item{object}{Instance of \linkS4class{MOSimulator} class.}
 
-\item{simulation}{Initialized instance of \linkS4class{Simulation} class}
+\item{simulation}{Initialized instance of \linkS4class{MOSimulation} class}
 
-\item{object}{Instance of class \linkS4class{Simulator}.}
+\item{object}{Instance of class \linkS4class{MOSimulator}.}
 
-\item{simulation}{Instance of class \linkS4class{Simulation}.}
+\item{simulation}{Instance of class \linkS4class{MOSimulation}.}
 
-\item{object}{Instance of class \linkS4class{Simulator}.}
+\item{object}{Instance of class \linkS4class{MOSimulator}.}
 
 \item{geneNames}{Character vector of the genes to look for in the association table.}
 
-\item{object}{Instance of class \linkS4class{Simulator}.}
+\item{object}{Instance of class \linkS4class{MOSimulator}.}
 
 \item{idNames}{Character vector of the regulator IDs to look for in the association table.}
 
 \item{simplify}{Return only the regulator IDs or a table containing both types of identifiers.}
 
-\item{object}{Instance of class \linkS4class{Simulator}.}
+\item{object}{Instance of class \linkS4class{MOSimulator}.}
 
-\item{simulation}{Instance of class \linkS4class{Simulation}.}
+\item{simulation}{Instance of class \linkS4class{MOSimulation}.}
 
 \item{counts}{Counts taken from the initial data.}
 
@@ -154,9 +154,9 @@ simulator.}
 
 \item{ids}{IDs associated. Needed in some simulators.}
 
-\item{object}{Instance of class \linkS4class{Simulator}.}
+\item{object}{Instance of class \linkS4class{MOSimulator}.}
 
-\item{simulation}{Instance of class \linkS4class{Simulation}.}
+\item{simulation}{Instance of class \linkS4class{MOSimulation}.}
 
 \item{profiles}{Data frame containing the profile type associated to each
 ID.}
@@ -165,15 +165,15 @@ ID.}
 on the part of the process where this method is called. Check 'Simulation.R'.}
 }
 \value{
-A \linkS4class{Simulator} object containing the simulation data inside @simData
- if called on a \linkS4class{Simulator} class, or a \linkS4class{Simulation} object with all @simulators
+A \linkS4class{MOSimulator} object containing the simulation data inside @simData
+ if called on a \linkS4class{MOSimulator} class, or a \linkS4class{MOSimulation} object with all @simulators
  containing simulated data.
 
-The simulation settings used for the general process (for Simulation class) or the individual omic (Simulator class).
+The simulation settings used for the general process (for MOSimulation class) or the individual omic (MOSimulator class).
 
-An instance of Simulator class with modified options.
+An instance of MOSimulator class with modified options.
 
-An instance of Simulator class with modified options.
+An instance of MOSimulator class with modified options.
 
 IDs corresponding to the genes.
 
@@ -194,10 +194,10 @@ GRanges object with 1 as seqname and locs as starting positions.
 
 A character vector with the format "<chr>_<start>_<end>"
 
-An object of class \linkS4class{Simulator} with the @data slot filled
+An object of class \linkS4class{MOSimulator} with the @data slot filled
 with the correct initial data structure and values.
 
-Object of class \linkS4class{Simulation} with the simulated data (@simData)
+Object of class \linkS4class{MOSimulation} with the simulated data (@simData)
 correctly formatted.
 
 Depending on \emph{simplify} parameter it would be a character vector or a
@@ -242,17 +242,17 @@ For internal use only.
 
 
 This generic can dispatch methods for two types of classes: \describe{
-\item{\linkS4class{Simulation}}{in which case triggers the simulation on
+\item{\linkS4class{MOSimulation}}{in which case triggers the simulation on
 every simulator loaded.}
-\item{\linkS4class{Simulator}}{performs the simulation based on already
+\item{\linkS4class{MOSimulator}}{performs the simulation based on already
 initialized simulation settings.} }
 
 
 
 This generic can dispatch methods from two types of classes:
 \describe{
-     \item{\linkS4class{Simulation}}{show the general simulation settings (experimental design, default depth...)}
-     \item{\linkS4class{Simulator}}{individual omic options (depth, regulator effect...)}
+     \item{\linkS4class{MOSimulation}}{show the general simulation settings (experimental design, default depth...)}
+     \item{\linkS4class{MOSimulator}}{individual omic options (depth, regulator effect...)}
 }
 }
 

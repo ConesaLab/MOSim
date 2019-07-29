@@ -10,17 +10,17 @@ NULL
 #' @section Shared methods:
 #'
 #' This generic can dispatch methods for two types of classes: \describe{
-#' \item{\linkS4class{Simulation}}{in which case triggers the simulation on
+#' \item{\linkS4class{MOSimulation}}{in which case triggers the simulation on
 #' every simulator loaded.}
-#' \item{\linkS4class{Simulator}}{performs the simulation based on already
+#' \item{\linkS4class{MOSimulator}}{performs the simulation based on already
 #' initialized simulation settings.} }
 #'
-#' @param object Object of class \linkS4class{Simulator} or \linkS4class{Simulation}.
-#' @param simulation Only in \linkS4class{Simulator} class. Initialized instance of Simulation class
+#' @param object Object of class \linkS4class{MOSimulator} or \linkS4class{MOSimulation}.
+#' @param simulation Only in \linkS4class{MOSimulator} class. Initialized instance of Simulation class
 #' @param ... Extra parameters for extensibility.
 #'
-#' @return A \linkS4class{Simulator} object containing the simulation data inside @simData
-#'  if called on a \linkS4class{Simulator} class, or a \linkS4class{Simulation} object with all @simulators
+#' @return A \linkS4class{MOSimulator} object containing the simulation data inside @simData
+#'  if called on a \linkS4class{MOSimulator} class, or a \linkS4class{MOSimulation} object with all @simulators
 #'  containing simulated data.
 #' @keywords internal
 #'
@@ -33,12 +33,12 @@ setGeneric("simulate", function(object, ...) standardGeneric("simulate"))
 #'
 #' This generic can dispatch methods from two types of classes:
 #' \describe{
-#'      \item{\linkS4class{Simulation}}{show the general simulation settings (experimental design, default depth...)}
-#'      \item{\linkS4class{Simulator}}{individual omic options (depth, regulator effect...)}
+#'      \item{\linkS4class{MOSimulation}}{show the general simulation settings (experimental design, default depth...)}
+#'      \item{\linkS4class{MOSimulator}}{individual omic options (depth, regulator effect...)}
 #' }
 #'
-#' @param object Object of class \linkS4class{Simulator} or \linkS4class{Simulation}.
-#' @return The simulation settings used for the general process (for Simulation class) or the individual omic (Simulator class).
+#' @param object Object of class \linkS4class{MOSimulator} or \linkS4class{MOSimulation}.
+#' @return The simulation settings used for the general process (for MOSimulation class) or the individual omic (MOSimulator class).
 #' @keywords internal
 #'
 setGeneric("simSettings", function(object) standardGeneric("simSettings"))
@@ -57,10 +57,10 @@ setGeneric("simSettings", function(object) standardGeneric("simSettings"))
 #' This method will clone the seed data once per group to simulate and
 #' establish differences using the simulation settings.
 #'
-#' @param object Instance of Simulator class.
-#' @param simulation Instance of Simulation class.
+#' @param object Instance of MOSimulator class.
+#' @param simulation Instance of MOSimulation class.
 #'
-#' @return An instance of Simulator class with modified options.
+#' @return An instance of MOSimulator class with modified options.
 
 #'
 setGeneric("initializeData", function(object, simulation) standardGeneric("initializeData"))
@@ -73,10 +73,10 @@ setGeneric("initializeData", function(object, simulation) standardGeneric("initi
 #' Method called after performing the simulation, allowing different actions
 #' like adjusting depth, rounding values and so on, on a simulator basis.
 #'
-#' @param object Instance of Simulator class.
-#' @param simulation Instance of Simulation class.
+#' @param object Instance of MOSimulator class.
+#' @param simulation Instance of MOSimulation class.
 #'
-#' @return An instance of Simulator class with modified options.
+#' @return An instance of MOSimulator class with modified options.
 #' @keywords internal
 
 #'
@@ -89,7 +89,7 @@ setGeneric("postSimulation", function(object, simulation) standardGeneric("postS
 #'
 #' Method for transforming genes to IDs (regions, miRNA...)
 #'
-#' @param object Instance of a Simulator class
+#' @param object Instance of a MOSimulator class
 #' @param geneNames Names of genes to look up in the association table.
 #'
 #' @return IDs corresponding to the genes.
