@@ -23,6 +23,7 @@ NULL
 #'  if called on a \linkS4class{MOSimulator} class, or a \linkS4class{MOSimulation} object with all @simulators
 #'  containing simulated data.
 #' @keywords internal
+#' @noRd
 #'
 setGeneric("simulate", function(object, ...) standardGeneric("simulate"))
 
@@ -40,6 +41,7 @@ setGeneric("simulate", function(object, ...) standardGeneric("simulate"))
 #' @param object Object of class \linkS4class{MOSimulator} or \linkS4class{MOSimulation}.
 #' @return The simulation settings used for the general process (for MOSimulation class) or the individual omic (MOSimulator class).
 #' @keywords internal
+#' @noRd
 #'
 setGeneric("simSettings", function(object) standardGeneric("simSettings"))
 
@@ -61,7 +63,7 @@ setGeneric("simSettings", function(object) standardGeneric("simSettings"))
 #' @param simulation Instance of MOSimulation class.
 #'
 #' @return An instance of MOSimulator class with modified options.
-
+#' @noRd
 #'
 setGeneric("initializeData", function(object, simulation) standardGeneric("initializeData"))
 
@@ -78,6 +80,7 @@ setGeneric("initializeData", function(object, simulation) standardGeneric("initi
 #'
 #' @return An instance of MOSimulator class with modified options.
 #' @keywords internal
+#' @noRd
 
 #'
 setGeneric("postSimulation", function(object, simulation) standardGeneric("postSimulation"))
@@ -94,6 +97,7 @@ setGeneric("postSimulation", function(object, simulation) standardGeneric("postS
 #'
 #' @return IDs corresponding to the genes.
 #' @keywords internal
+#' @noRd
 #'
 setGeneric("IDfromGenes", function(object, geneNames, simplify = TRUE) standardGeneric("IDfromGenes"))
 
@@ -105,11 +109,12 @@ setGeneric("IDfromGenes", function(object, geneNames, simplify = TRUE) standardG
 #'
 #' Method for transforming IDs (regions, miRNAs, ...) to genes
 #'
-#' @param object Instance of a simulator class.
+#' @param object Instance of a MOSimulator class.
 #' @param idNames IDs to look up in the association table.
 #'
 #' @return Genes corresponding to the IDs.
 #' @keywords internal
+#' @noRd
 #'
 setGeneric("IDtoGenes", function(object, idNames, simplify = TRUE) standardGeneric("IDtoGenes"))
 
@@ -121,8 +126,8 @@ setGeneric("IDtoGenes", function(object, idNames, simplify = TRUE) standardGener
 #' Method to allow individual simulator classes to change the default behaviour
 #' of generating noise and time coefficients.
 #'
-#' @param object Instance of a simulator class.
-#' @param simulation  Instance of a simulation class
+#' @param object Instance of a MOSimulator class.
+#' @param simulation  Instance of a MOSimulation class
 #' @param counts Initial count values to simulate.
 #' @param profiles Generated simulation settings for the group being simulated.
 #' @param group Group being simulated.
@@ -136,8 +141,8 @@ setGeneric("IDtoGenes", function(object, idNames, simplify = TRUE) standardGener
 #'      \item{M}{numeric vector of maximum values comparing original and random counts.}
 #' }
 #' @keywords internal
+#' @noRd
 #'
-#'TODO: MODIFY THE GENERIC
 setGeneric("simulateParams", function(object, simulation, counts, profiles, group, ids, ...) standardGeneric("simulateParams"))
 
 #' adjustProfiles
@@ -148,8 +153,8 @@ setGeneric("simulateParams", function(object, simulation, counts, profiles, grou
 #' Modify the configuration profile generated when initializing simulation settings
 #' to allow for certain constrainsts if necessary.
 #'
-#' @param object Instance of simulator class.
-#' @param simulation Instance of simulation class.
+#' @param object Instance of MOSimulator class.
+#' @param simulation Instance of MOSimulation class.
 #' @param profiles Data frame containing the generated profile configuration for the
 #'  simulator.
 #' @param step Two possible options "Effect" and "Groups" indicating in which point
@@ -158,6 +163,7 @@ setGeneric("simulateParams", function(object, simulation, counts, profiles, grou
 #' @return The data.frame profile with the necessary modifications depending on
 #' each child class.
 #' @keywords internal
+#' @noRd
 #'
 setGeneric("adjustProfiles", function(object, simulation, profiles, step) standardGeneric("adjustProfiles"))
 
@@ -177,6 +183,7 @@ setGeneric("adjustProfiles", function(object, simulation, profiles, step) standa
 #'
 #' @return GRanges object with 1 as seqname and locs as starting positions.
 #' @keywords internal
+#' @noRd
 #'
 setGeneric("locGRanges", function(object, locs) standardGeneric("locGRanges"))
 
@@ -194,5 +201,6 @@ setGeneric("locGRanges", function(object, locs) standardGeneric("locGRanges"))
 #'
 #' @return A character vector with the format "<chr>_<start>_<end>"
 #' @keywords internal
+#' @noRd
 #'
 setGeneric("regionNames", function(object, chrNumber, start, end=NULL) standardGeneric("regionNames"))

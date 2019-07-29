@@ -3,6 +3,7 @@
 NULL
 
 #' @rdname Generics
+#' @noRd
 setMethod("initialize", signature="MOSimulator", function(.Object, ...) {
     .Object <- callNextMethod(.Object, ...)
 
@@ -31,6 +32,7 @@ setMethod("initialize", signature="MOSimulator", function(.Object, ...) {
 #' with the correct initial data structure and values.
 #' @keywords internal
 #' @rdname Generics
+#' @noRd
 #'
 setMethod("initializeData", signature="MOSimulator", function(object, simulation) {
 
@@ -504,6 +506,7 @@ setMethod("initializeData", signature="MOSimulator", function(object, simulation
 
 #' @rdname Generics
 #' @keywords internal
+#' @noRd
 setMethod("simulate", signature="MOSimulator", function(object, simulation) {
     message(sprintf("Starting simulation of %s.", object@name))
 
@@ -934,6 +937,7 @@ setMethod("simulate", signature="MOSimulator", function(object, simulation) {
 #' correctly formatted.
 #' @keywords internal
 #' @rdname Generics
+#' @noRd
 #'
 setMethod("postSimulation", signature="MOSimulator", function(object, simulation) {
 
@@ -1006,6 +1010,7 @@ setMethod("postSimulation", signature="MOSimulator", function(object, simulation
 #' data frame containing columns \emph{ID} and \emph{Gene}.
 #' @keywords internal
 #' @rdname Generics
+#' @noRd
 #'
 setMethod("IDfromGenes", signature="MOSimulator", function(object, geneNames, simplify = TRUE) {
     regTable <- object@idToGene
@@ -1028,6 +1033,7 @@ setMethod("IDfromGenes", signature="MOSimulator", function(object, geneNames, si
 #' data frame containing columns \emph{ID} and \emph{Gene}.
 #' @keywords internal
 #' @rdname Generics
+#' @noRd
 #'
 setMethod("IDtoGenes", signature="MOSimulator", function(object, idNames, simplify = TRUE) {
     regTable <- object@idToGene
@@ -1058,6 +1064,7 @@ setMethod("IDtoGenes", signature="MOSimulator", function(object, idNames, simpli
 #' }
 #' @keywords internal
 #' @rdname Generics
+#' @noRd
 #'
 setMethod("simulateParams", signature="MOSimulator", function(object, simulation, counts, profiles, group, ids) {
     # Reorder random counts
@@ -1106,6 +1113,7 @@ setMethod("simulateParams", signature="MOSimulator", function(object, simulation
 #' @return By default it returs the profiles data frame without modifications.
 #' @keywords internal
 #' @rdname Generics
+#' @noRd
 #'
 setMethod("adjustProfiles", signature="MOSimulator", function(object, simulation, profiles, step) {
     # By default return the same
@@ -1113,11 +1121,13 @@ setMethod("adjustProfiles", signature="MOSimulator", function(object, simulation
 })
 
 #' @rdname Generics
+#' @noRd
 setMethod("show", signature="MOSimulator", function(object) {
     print(object@simData)
 })
 
 #' @rdname Generics
+#' @noRd
 setMethod("simSettings", signature="MOSimulator", function(object) {
     cat(sprintf("Simulation settings of class %s:\n", class(object)))
     cat(sprintf("- Depth: %d\n", object@depth))
