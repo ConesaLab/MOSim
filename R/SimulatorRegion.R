@@ -1,7 +1,7 @@
 #' @include Simulator.R
 NULL
 
-setMethod("initialize", signature="SimulatorRegion", function(.Object, ...) {
+setMethod("initialize", signature="MOSimulatorRegion", function(.Object, ...) {
     .Object <- callNextMethod(.Object, ...)
 
     message("Configuring simulator ", .Object@name)

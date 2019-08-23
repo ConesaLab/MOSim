@@ -169,7 +169,7 @@ setGeneric("adjustProfiles", function(object, simulation, profiles, step) standa
 
 
 ################################################################################
-# SimulatorRegion
+# MOSimulatorRegion
 ################################################################################
 #' locGRanges
 #'
@@ -178,7 +178,7 @@ setGeneric("adjustProfiles", function(object, simulation, profiles, step) standa
 #'
 #' Creates a very basic GRanges object based on locations
 #'
-#' @param object Instance of a SimulatorRegion class
+#' @param object Instance of a MOSimulatorRegion class
 #' @param locs Positions of locations
 #'
 #' @return GRanges object with 1 as seqname and locs as starting positions.
@@ -194,7 +194,7 @@ setGeneric("locGRanges", function(object, locs) standardGeneric("locGRanges"))
 #'
 #' Creates a valid string of a region
 #'
-#' @param object Instace of a SimulatorRegion class
+#' @param object Instace of a MOSimulatorRegion class
 #' @param chrNumber IDs of the chromosomes
 #' @param start Starts positions of the regions
 #' @param end End positions of the regions

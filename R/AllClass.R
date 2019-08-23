@@ -187,7 +187,7 @@ setClass(
 #' @rdname Simulator-class
 #'
 setClass(
-    "SimulatorRegion",
+    "MOSimulatorRegion",
     slots = c(
         locs = "ANY",
         splitChar = "character"
@@ -288,7 +288,7 @@ setClass(
             "b" = 1.5
         )
     ),
-    contains = "SimulatorRegion"
+    contains = "MOSimulatorRegion"
 )
 
 #'
@@ -316,7 +316,7 @@ setClass(
             "b" = 1.5
         )
     ),
-    contains = "SimulatorRegion"
+    contains = "MOSimulatorRegion"
 )
 
 #'
@@ -419,5 +419,5 @@ setClass(
         ),
         depthAdjust = FALSE
         ),
-    contains = "SimulatorRegion"
+    contains = "MOSimulatorRegion"
 )
