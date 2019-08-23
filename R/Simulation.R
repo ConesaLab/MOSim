@@ -22,7 +22,7 @@ setMethod("initialize", signature="MOSimulation", function(.Object, ...) {
     dataProvided <- sapply(.Object@simulators, is.declared, key = 'data')
 
     if (! any(dataProvided)) {
-        data(sampleData)
+        data(sampleData, envir = environment())
 
         .Object@simulators <- mapply(function(sim, data) {
             # Assign data only on list option, not already instantiated objects or those

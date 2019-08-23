@@ -52,8 +52,6 @@ to `rnorm`}
 \item{\code{profileProbs}}{Numeric vector with the probabilities to assign each of
 the patterns. Defaults to 0.2 for each.}
 
-\item{\code{minMaxQuantile}}{Min and max quantile used to restrain the data.}
-
 \item{\code{noiseParams}}{Default noise parameters to be used with noise function.}
 
 \item{\code{depth}}{Default depth to simulate.}

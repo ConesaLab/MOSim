@@ -30,8 +30,6 @@ features. The structure must be 2 columns, one named "ID" and the other
 
 \item{\code{depth}}{Sequencing depth to simulate.}
 
-\item{\code{noise}}{Noise value for the NB mean.}
-
 \item{\code{depthRound}}{Number of decimal places to round when adjusting depth.}
 
 \item{\code{depthAdjust}}{Boolean indicating whether to adjust by sequencing depth or
@@ -44,15 +42,32 @@ data with a subset.}
 accept the parameter 'n' and return a vector of the same length. Defaults
 to `rnorm`}
 
-\item{\code{noiseParam}}{Named list with the parameters to apply to the noise
-function.}
-
 \item{\code{increment}}{Read-only. Minimum value to increase when simulating counts.}
 
 \item{\code{simData}}{Contains the final simulated data.}
 
 \item{\code{pregenerated}}{Indicates if the child class will generate the simulated
 data instead of the general process.}
+
+\item{\code{randData}}{Auxiliary vector containing the original count data in random
+order with other adjustments.}
+
+\item{\code{noiseParams}}{Noise parameters to be used with noise function.}
+
+\item{\code{roundDigits}}{Number of digits to round the simulated count values.}
+
+\item{\code{minMaxQuantile}}{Numeric vector of length 2 indicating the quantiles to
+use in order to retrieve the absolute minimum and maximum value that a
+differentially expressed feature can have.}
+
+\item{\code{minMaxFC}}{Numeric vector of length 2 indicating the minimum and maximum
+fold-change that a differentially expressed feature can have.}
+
+\item{\code{minMaxDist}}{Named list containing different minimum and maximum
+constraints values calculated at the beginning of the simulation process.}
+
+\item{\code{replicateParams}}{Named list containing the parameters a and b to be used
+in the replicates generation process, see the vignette for more info.}
 }}
 
 \keyword{internal}

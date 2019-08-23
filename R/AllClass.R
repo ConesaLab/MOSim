@@ -1,5 +1,6 @@
 #' @import methods stringi matrixStats
 #' @importFrom stats rnorm runif rbeta rbinom rpois quantile
+#' @importFrom utils data
 NULL
 
 #'
@@ -33,7 +34,6 @@ NULL
 #' @slot profiles Named list containing the patterns with their coefficients.
 #' @slot profileProbs Numeric vector with the probabilities to assign each of
 #'   the patterns. Defaults to 0.2 for each.
-#' @slot minMaxQuantile Min and max quantile used to restrain the data.
 #' @slot noiseParams Default noise parameters to be used with noise function.
 #' @slot depth Default depth to simulate.
 #' @slot TFtoGene Boolean (for default data) or 3 column data frame containing
@@ -111,7 +111,6 @@ setClass(
 #' @slot min Minimum value allowed in the omic.
 #' @slot max Maximum value allowed in the omic.
 #' @slot depth Sequencing depth to simulate.
-#' @slot noise Noise value for the NB mean.
 #' @slot depthRound Number of decimal places to round when adjusting depth.
 #' @slot depthAdjust Boolean indicating whether to adjust by sequencing depth or
 #'   not.
@@ -120,12 +119,23 @@ setClass(
 #' @slot noiseFunction Noise function to apply when simulating counts. Must
 #'   accept the parameter 'n' and return a vector of the same length. Defaults
 #'   to `rnorm`
-#' @slot noiseParam Named list with the parameters to apply to the noise
-#'   function.
 #' @slot increment Read-only. Minimum value to increase when simulating counts.
 #' @slot simData Contains the final simulated data.
 #' @slot pregenerated Indicates if the child class will generate the simulated
 #'   data instead of the general process.
+#' @slot randData Auxiliary vector containing the original count data in random
+#'   order with other adjustments.
+#' @slot noiseParams Noise parameters to be used with noise function.
+#' @slot roundDigits Number of digits to round the simulated count values.
+#' @slot minMaxQuantile Numeric vector of length 2 indicating the quantiles to
+#'   use in order to retrieve the absolute minimum and maximum value that a
+#'   differentially expressed feature can have.
+#' @slot minMaxFC Numeric vector of length 2 indicating the minimum and maximum
+#'   fold-change that a differentially expressed feature can have.
+#' @slot minMaxDist Named list containing different minimum and maximum
+#'   constraints values calculated at the beginning of the simulation process.
+#' @slot replicateParams Named list containing the parameters a and b to be used
+#'   in the replicates generation process, see the vignette for more info.
 #'
 #' @export
 #' @keywords internal

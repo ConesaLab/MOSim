@@ -223,6 +223,8 @@ For illustration purposes, consider as our custom data a subset of the default g
 # purposes. We could also load it from a csv file or RData,
 # as long as we transform it to have 1 column named "Counts"
 # and the identifiers as row names.
+data("sampleData")
+
 custom_rnaseq <- head(sampleData$SimRNAseq$data, 100)
 
 # In this case, 'custom_rnaseq' is a data frame with
@@ -249,6 +251,8 @@ RNA-seq is a special case of omic data type because it does not require an assoc
 
 <<code6, echo=TRUE, eval=TRUE, tidy=FALSE, include=TRUE, results='hide', message=FALSE>>=
 # Select a subset of the available data as a custom dataset
+data("sampleData")
+
 custom_dnaseseq <- head(sampleData$SimDNaseseq$data, 100)
 
 # Retrieve a subset of the default association list.
@@ -297,6 +301,8 @@ Instead of applying \Rfunction{omicData} function for this purpose, the \texttt{
 
 <<code6.1, echo=TRUE, eval=TRUE, tidy=FALSE, results='hide', message=FALSE>>=
 # Select a subset of the available data as a custom dataset
+data("sampleData")
+
 custom_tf <- head(sampleData$SimRNAseq$TFtoGene, 100)
 #      TF             TFgene         LinkedGene
 # 1  Aebp2 ENSMUSG00000030232 ENSMUSG00000000711
@@ -319,6 +325,8 @@ For methylation, a seed count sample does not need to be provided because it wil
 
 <<code6.2, echo=TRUE, eval=TRUE, tidy=FALSE, results='hide', message=FALSE>>=
 # Select a subset of the available data as a custom dataset
+data("sampleData")
+
 custom_cpgs <- head(sampleData$SimMethylseq$idToGene, 100)
 
 # The ID column will be splitted using the "_" char

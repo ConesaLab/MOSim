@@ -21,6 +21,7 @@ Imports:
     lazyeval,
     rlang,
     stats,
+    utils,
     purrr,
     scales,
     stringr,
