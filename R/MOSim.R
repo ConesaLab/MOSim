@@ -571,6 +571,8 @@ experimentalDesign <- function(simulation) {
 #'   omics as the list names and the features as values.
 #' @param drawReps Logical to enable/disable the representation of the
 #'   replicates inside the plot.
+#' @param groups  Character vector indicating the groups to plot in the form
+#'   "GroupX" (i.e. Group1)
 #'
 #' @return A ggplot2 object.
 #' @export
@@ -588,9 +590,14 @@ plotProfile <-
     function(simulation,
              omics,
              featureIDS,
-             drawReps = FALSE) {
+             drawReps = FALSE,
+             groups = NULL) {
 
     numberOfReps <- simulation@numberReps
+
+    if (is.null(groups)) {
+        groups <- paste0("Group", seq_len(simulation@numberGroups))
+    }
 
     calculateRowMeans <- function(colPattern, df, sd = FALSE) {
 
@@ -633,6 +640,10 @@ plotProfile <-
         simuData <- omicResults(simulation, omicName)
         simuSettings <- omicSettings(simulation, omicName)
 
+        groupColRegex <- paste0(paste(paste0(groups, "\\."), collapse="|"), ".*")
+
+        simuData <- dplyr::select(simuData, dplyr::matches(groupColRegex))
+
         if (! feature %in% simuSettings$ID) {
             stop(sprintf("Feature %s does not exists for omic %s.", feature, omicName))
         }
@@ -661,15 +672,15 @@ plotProfile <-
                               dplyr::mutate(Rep = "Mean") %>%
                               dplyr::mutate(Point = factor(.data$Point, levels = unique(timeProfiles), ordered = TRUE))
 
-        if(drawReps) {
-            repDF <- tibble::rownames_to_column(data.frame(featureData)) %>%
-                tidyr::gather(key = .data$Time, value = .data$Mean, -c(.data$rowname)) %>%
-                tidyr::extract(.data$Time, c("Group", "Point", "Rep"), "(.*)\\.(Time[0-9]+)\\.(.*)") %>%
-                dplyr::mutate(SD = 0, SE = 0, Profile = .data$timeProfile, Point = factor(.data$Point, levels = unique(.data$timeProfiles), ordered = TRUE), Omic = as.factor(.data$omicName)) %>%
-                dplyr::rename(ID = .data$rowname)
-
-            outputDF <- outputDF %>% dplyr::bind_rows(repDF)
-        }
+        # if(drawReps) {
+        #     repDF <- tibble::rownames_to_column(data.frame(featureData)) %>%
+        #         tidyr::gather(key = .data$Time, value = .data$Mean, -c(.data$rowname)) %>%
+        #         tidyr::extract(.data$Time, c("Group", "Point", "Rep"), "(.*)\\.(Time[0-9]+)\\.(.*)") %>%
+        #         dplyr::mutate(SD = 0, SE = 0, Profile = .data$timeProfile, Point = factor(.data$Point, levels = unique(.data$timeProfiles), ordered = TRUE), Omic = as.factor(.data$omicName)) %>%
+        #         dplyr::rename(ID = .data$rowname)
+        #
+        #     outputDF <- outputDF %>% dplyr::bind_rows(repDF)
+        # }
 
         return(outputDF)
     }

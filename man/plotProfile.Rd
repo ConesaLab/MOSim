@@ -4,7 +4,8 @@
 \alias{plotProfile}
 \title{Generate a plot of a feature's profile for one or two omics.}
 \usage{
-plotProfile(simulation, omics, featureIDS, drawReps = FALSE)
+plotProfile(simulation, omics, featureIDS, drawReps = FALSE,
+  groups = NULL)
 }
 \arguments{
 \item{simulation}{A MOSimulation object}
@@ -16,6 +17,9 @@ omics as the list names and the features as values.}
 
 \item{drawReps}{Logical to enable/disable the representation of the
 replicates inside the plot.}
+
+\item{groups}{Character vector indicating the groups to plot in the form
+"GroupX" (i.e. Group1)}
 }
 \value{
 A ggplot2 object.
