@@ -623,7 +623,7 @@ setMethod("initialize", signature="MOSimulation", function(.Object, ...) {
             # sameCond <- apply(apply(dplyr::select(profilesDE, dplyr::starts_with("Group")), 2, '==', 'flat'), 1, all)
             sameCond <- dplyr::select(profilesDE, dplyr::starts_with("Group")) %>%
                 purrr::map(`==`, 'flat') %>%
-                purrr::pmap_int(all)
+                purrr::pmap_lgl(all)
 
             # NULL by default
             FlatRNAseq <- NULL
