@@ -3,6 +3,7 @@
 %\usepackage[utf8]{inputenc}
 
 \documentclass{article}
+\usepackage[utf8]{inputenc}
 <<style-knitr, eval=TRUE, echo=FALSE, results="asis">>=
 BiocStyle::latex()
 options(tidy.opts=list(blank=FALSE, width.cutoff=60))
