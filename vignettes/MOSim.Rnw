@@ -15,7 +15,7 @@ options(tidy.opts=list(blank=FALSE, width.cutoff=60))
 
 \bioctitle[MOSim]{MOSim}
 \author{Sonia Tarazona, Carlos Mart\'inez}
-
+\DeclareUnicodeCharacter{2217}{*}
 \begin{document}
 
 \maketitle
