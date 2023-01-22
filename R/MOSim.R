@@ -465,7 +465,18 @@ omicSettings <- function(simulation, omics = NULL, association = FALSE, reverse 
         outputList <- sapply(outputList, replace_effect_filter, simplify = FALSE, USE.NAMES = TRUE)
     }
 
+    ## Filter out regulators not linked to a gene
+    # This function is passed to purr and run on all regulatory omics
+    #filter_reg_nogene <- function(vec){
+    #  if("Gene" %in% colnames(vec))
+    #  {vec %>% tidyr::drop_na("Gene")} else {vec}
+    #}
+
+    ## When returning the settings, removing rows where gene is NA
+
+
     if (length(omics) > 1 || length(outputList) > 1) {
+        #return (purrr::map(outputList, filter_reg_nogene))
         return(outputList)
     } else {
         return(outputList[[unlist(omics)]])
@@ -507,7 +518,11 @@ omicResults <- function(simulation, omics = NULL, format = "data.frame") {
     if (is.null(omics)) {
         omics <- lapply(simulation@simulators, slot, name = "name")
     }
-
+    
+    ## If TFtoGene true, add TF to the list of dataframes to return
+    if (! is.null(simulation@TFtoGene)){
+        omics <- append(omics, "TF")
+    }
     # Convert the name to the proper class name
     omicsClasses <- paste0("Sim", gsub("-", "", omics))
 
@@ -529,6 +544,10 @@ omicResults <- function(simulation, omics = NULL, format = "data.frame") {
         return(outputList)
     } else {
         return(outputList[[omics]])
+    }
+    # Remove TF from omics to go back to previous configuration
+    if (! is.null(simulation@TFtoGene)){
+      omics[! omics == "TF"]
     }
 }
 
