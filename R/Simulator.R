@@ -437,10 +437,10 @@ setMethod("initializeData", signature="MOSimulator", function(object, simulation
         } else {
             # In case of regulators, the initial value will depend on the effect
             # on the associated gene.
-            profileSubset <- dplyr::rename(flatProfiles, Gene = .data$ID) %>%
+            profileSubset <- dplyr::rename(flatProfiles, Gene = ID) %>%
                 dplyr::inner_join(simulation@simSettings$geneProfiles[[class(object)]][, c('ID', 'Effect', 'Gene')], by = c("Gene" = "Gene")) %>%
-                dplyr::select(.data$ID, .data$Effect, dplyr::starts_with("Group")) %>%
-                dplyr::filter(! is.na(.data$Effect))
+                dplyr::select(ID, Effect, dplyr::starts_with("Group")) %>%
+                dplyr::filter(! is.na(Effect))
 
             # TODO: change object@data with object@randData?
             if (nrow(profileSubset)) {
@@ -592,12 +592,12 @@ setMethod("simulate", signature="MOSimulator", function(object, simulation) {
         # If the object is pregenerated (e.g. methylation) then keep the profiles
         # as they are.
         if (object@pregenerated) {
-            simProfiles <- dplyr::select(simProfiles, .data$ID, dplyr::starts_with("Group"), dplyr::starts_with("Tmax")) %>%
-                dplyr::distinct_()
+            simProfiles <- dplyr::select(simProfiles, ID, dplyr::starts_with("Group"), dplyr::starts_with("Tmax")) %>%
+                dplyr::distinct()
         } else {
-            simProfiles <- dplyr::filter(simProfiles, ! is.na(.data$Effect)) %>%
-                dplyr::select(.data$ID, dplyr::starts_with("Group"), dplyr::starts_with("Tmax")) %>%
-                dplyr::distinct_()
+            simProfiles <- dplyr::filter(simProfiles, ! is.na(Effect)) %>%
+                dplyr::select(ID, dplyr::starts_with("Group"), dplyr::starts_with("Tmax")) %>%
+                dplyr::distinct()
 
             # Add remaining IDs present on data with a flat profile
             simProfiles <- rbind(simProfiles, do.call(cbind, setNames(append(
@@ -610,12 +610,12 @@ setMethod("simulate", signature="MOSimulator", function(object, simulation) {
     }
 
     # Filtering step
-    simProfiles <- dplyr::filter(simProfiles, .data$ID %in% rownames(object@data))
+    simProfiles <- dplyr::filter(simProfiles, ID %in% rownames(object@data))
 
     if (object@pregenerated) {
         # TODO: fix this in other place. When working with blocks, sometimes there are duplicated rows
         # because they do not have the tmax columns properly filled.
-        simProfiles <- dplyr::group_by(simProfiles, .data$ID) %>%
+        simProfiles <- dplyr::group_by(simProfiles, ID) %>%
             dplyr::summarise_all(list(~dplyr::first(stats::na.omit(.)))) %>%
             dplyr::ungroup()
     }

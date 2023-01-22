@@ -121,7 +121,7 @@ setMethod("initialize", signature="MOSimulation", function(.Object, ...) {
 
             # Exclude those not present on gene expression data
             .Object@TFtoGene <- dplyr::filter(.Object@TFtoGene,
-                                              .data$TFgene %in% .Object@geneNames)
+                                              TFgene %in% .Object@geneNames)
 
             # TF to be DE
             allGeneTF <- unique(.Object@TFtoGene$TFgene)
@@ -270,9 +270,9 @@ setMethod("initialize", signature="MOSimulation", function(.Object, ...) {
             )
 
             # Set non-DEG or non-selected regulators to <NA>
-            discardedReg <- dplyr::filter(effectByID, .data$Effect == "NE") %>% dplyr::pull(.data$ID)
+            discardedReg <- dplyr::filter(effectByID, Effect == "NE") %>% dplyr::pull(ID)
 
-            regTable <- dplyr::mutate(regTable, Effect = replace(.data$Effect, (! .data$Gene %in% sampleDE) | (.data$ID %in% discardedReg), NA))
+            regTable <- dplyr::mutate(regTable, Effect = replace(Effect, (! Gene %in% sampleDE) | (ID %in% discardedReg), NA))
 
             # Copy the effect to each group
             regTable[, paste0("Effect.Group", seq(.Object@numberGroups))] <- regTable[, rep("Effect", times =.Object@numberGroups)]
@@ -310,7 +310,7 @@ setMethod("initialize", signature="MOSimulation", function(.Object, ...) {
 
             # Populate tmax values with the ones found in gene settings table
             regTable <- dplyr::select(regTable, -dplyr::starts_with("Tmax")) %>%
-                dplyr::left_join(dplyr::select(profilesDE, .data$ID, dplyr::starts_with("Tmax")), by = c("Gene" = "ID"))
+                dplyr::left_join(dplyr::select(profilesDE, ID, dplyr::starts_with("Tmax")), by = c("Gene" = "ID"))
 
             if (any(regDupsDE)) {
                 # Reset effect on the duplicated DE
@@ -349,7 +349,7 @@ setMethod("initialize", signature="MOSimulation", function(.Object, ...) {
                     # Note: dplyr renames the unneeded ID column of "." to ID.y
                     # TODO: room for optimization, remove this join from the loop.
                     regGenes <- dplyr::inner_join(profilesDE, profileGroup, by = c("ID" = "Gene")) %>%
-                        dplyr::select(-.data$DE, -.data$ID.y, -dplyr::starts_with("Effect.Group"), -dplyr::ends_with(".y"), dplyr::starts_with("Keep."))
+                        dplyr::select(-DE, -ID.y, -dplyr::starts_with("Effect.Group"), -dplyr::ends_with(".y"), dplyr::starts_with("Keep."))
 
                     # Initialize Tmax.GroupX considering all, for those cases in which
                     # there is only one row.
@@ -388,8 +388,8 @@ setMethod("initialize", signature="MOSimulation", function(.Object, ...) {
                             # I.e. in methylation we keep <NA> effect up to this point
                             # so there could be two majoritary groups and one of them
                             # without effect.
-                            excludedGroups <- dplyr::summarize(classSplit, Exclude = all(is.na(.data$Effect))) %>%
-                                dplyr::pull(.data$Exclude)
+                            excludedGroups <- dplyr::summarize(classSplit, Exclude = all(is.na(Effect))) %>%
+                                dplyr::pull(Exclude)
 
                             # Remove those groups that have no effect (in methylation)
                             groupSample <- setdiff(which(groupSizes == max(groupSizes[! excludedGroups])), which(excludedGroups))
@@ -461,7 +461,7 @@ setMethod("initialize", signature="MOSimulation", function(.Object, ...) {
                                 )
                             }
 
-                            profileGroup <- dplyr::mutate(profileGroup, Effect = ifelse(.data$Gene %in% selGenes, selEffect, NA))
+                            profileGroup <- dplyr::mutate(profileGroup, Effect = ifelse(Gene %in% selGenes, selEffect, NA))
 
                         } else {
                             # Select the group effect (either only one group or multiple but all of them with NE effect)
@@ -499,7 +499,7 @@ setMethod("initialize", signature="MOSimulation", function(.Object, ...) {
                     return(profileGroup)
                 }
 
-                regTable[regDupsDE, ] <- dplyr::group_by(regTable[regDupsDE, ], .data$ID) %>% dplyr::do(classifyDups(.))
+                regTable[regDupsDE, ] <- dplyr::group_by(regTable[regDupsDE, ], ID) %>% dplyr::do(classifyDups(.))
             }
 
             message("- Adjusting regulator effect")
@@ -508,7 +508,7 @@ setMethod("initialize", signature="MOSimulation", function(.Object, ...) {
             condTable <- dplyr::left_join(regTable, dplyr::select(profilesAll, -dplyr::starts_with("Tmax.")),
                                           by = c("Gene" = "ID")) %>% dplyr::ungroup()
 
-            subCondTable <- dplyr::select(condTable, .data$ID, .data$Gene, .data$Effect,
+            subCondTable <- dplyr::select(condTable, ID, Gene, Effect,
                                           dplyr::starts_with("Effect.Group"),
                                           dplyr::starts_with("Tmax.Group"),
                                           dplyr::starts_with("Keep."))
@@ -581,7 +581,7 @@ setMethod("initialize", signature="MOSimulation", function(.Object, ...) {
 
         featuresAll <- sapply(profilesReg, function(simulatorProfiles) {
 
-            test <- dplyr::select(simulatorProfiles, .data$ID, dplyr::starts_with(("Effect.Group")))
+            test <- dplyr::select(simulatorProfiles, ID, dplyr::starts_with(("Effect.Group")))
 
             # nonDE.pos <- dplyr::select(simulatorProfiles, dplyr::starts_with(("Effect.Group"))) %>%
             #     pmap(~ all(is.na(.))) %>%
@@ -589,9 +589,9 @@ setMethod("initialize", signature="MOSimulation", function(.Object, ...) {
             #
             # nonDE.ids <- unique(simulatorProfiles$ID[nonDE.pos])
 
-            nonDE.ids <- unique(dplyr::group_by(simulatorProfiles, .data$ID) %>%
-                                    dplyr::filter(all(is.na(.data$Effect))) %>%
-                                    dplyr::pull(.data$ID))
+            nonDE.ids <- unique(dplyr::group_by(simulatorProfiles, ID) %>%
+                                    dplyr::filter(all(is.na(Effect))) %>%
+                                    dplyr::pull(ID))
 
             DE.ids <- setdiff(simulatorProfiles$ID, nonDE.ids)
 
@@ -662,9 +662,9 @@ setMethod("initialize", signature="MOSimulation", function(.Object, ...) {
                 if (is.null(FlatRNAseq))
                     return(NULL)
 
-                profileSubsetID <- dplyr::rename(FlatRNAseq, Gene = .data$ID) %>%
+                profileSubsetID <- dplyr::rename(FlatRNAseq, Gene = ID) %>%
                     dplyr::inner_join(profilesReg[[class(regulator)]][, c('ID', 'Effect', 'Gene')], by = c("Gene" = "Gene")) %>%
-                    dplyr::filter(! is.na(.data$Effect)) %>% dplyr::select(.data$ID)
+                    dplyr::filter(! is.na(Effect)) %>% dplyr::select(ID)
 
                 return(profileSubsetID)
             })
@@ -728,7 +728,7 @@ setMethod("simulate", signature="MOSimulation", function(object) {
             dplyr::inner_join(expression.settings, by = c("LinkedGene" = "ID"), suffix = c(".TF", ".Gene")) %>%
             dplyr::left_join(expression.settings.flat, by = c("TFgene" = "ID")) %>%
             dplyr::left_join(expression.settings.flat, by = c("LinkedGene" = "ID"), suffix = c(".FlatTF", ".FlatGene")) %>%
-            dplyr::select(ID = .data$Symbol, Gene = .data$LinkedGene, .data$DE.TF, .data$DE.Gene, dplyr::starts_with("Group")) %>%
+            dplyr::select(ID = Symbol, Gene = LinkedGene, DE.TF, DE.Gene, dplyr::starts_with("Group")) %>%
             dplyr::mutate(Effect = NA)
 
         # Check effect for every group
@@ -802,7 +802,7 @@ setMethod("simulate", signature="MOSimulation", function(object) {
 
         # Assign an effect
         settingsTF <- dplyr::select(settingsTF,
-                                    .data$ID, .data$Gene, .data$Effect,
+                                    ID, Gene, Effect,
                                     dplyr::starts_with("Effect"),
                                     dplyr::ends_with(".TF"))
 

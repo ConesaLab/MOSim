@@ -14,10 +14,10 @@ setMethod("initialize", signature="SimMethylseq", function(.Object, idToGene, to
 
     # Due to package size restraints, default data has a loc DF used as idToGene for methylation.
     if (ncol(idToGene) > 2) {
-        .Object@locs <- idToGene %>% dplyr::mutate(ID = paste(.data$chr, .data$start, .data$end, sep = "_"))
+        .Object@locs <- idToGene %>% dplyr::mutate(ID = paste(chr, start, end, sep = "_"))
 
         # Reconstruct original idToGene
-        idToGene <- .Object@locs %>% dplyr::select(.data$ID, .data$Gene)
+        idToGene <- .Object@locs %>% dplyr::select(ID, Gene)
     }
 
     # Restrict the number of locations to totalFeatures
@@ -29,10 +29,10 @@ setMethod("initialize", signature="SimMethylseq", function(.Object, idToGene, to
     .Object <- callNextMethod(.Object, idToGene = idToGene, totalFeatures = totalFeatures, ...)
 
     # Filter those CHR having less than 2 observations
-    .Object@locs <- dplyr::semi_join(.Object@locs, dplyr::count(.Object@locs, .data$chr)
+    .Object@locs <- dplyr::semi_join(.Object@locs, dplyr::count(.Object@locs, chr)
                                      %>% dplyr::filter(n > 1),
                                      by = "chr") %>%
-        dplyr::filter(!is.na(.data$chr))
+        dplyr::filter(!is.na(chr))
 
     # Override WGBS function to consider the CpG coordinates instead of the index
     find_adjusted_blocks <- function(a, positions) {
@@ -74,7 +74,7 @@ setMethod("initialize", signature="SimMethylseq", function(.Object, idToGene, to
         message("Creating methylation state blocks for chr ", chr)
 
         # Order by ascendent position
-        regions <- dplyr::arrange(.Object@locs[.Object@locs$chr == chr, ,drop=FALSE], .data$start)
+        regions <- dplyr::arrange(.Object@locs[.Object@locs$chr == chr, ,drop=FALSE], start)
 
         #simulate the state transition based on the location of the CpGs
         a <- simulate_state_transition((nrow(regions) * .Object@WGBSparams$m),
@@ -521,8 +521,8 @@ setMethod("adjustProfiles", signature="SimMethylseq", function(object, simulatio
     availableEffects <- object@regulatorEffect[grep("NE", names(object@regulatorEffect), invert = TRUE)]
 
     switch(step,
-           Effect = return(dplyr::left_join(profiles, unique(dplyr::select(object@locs, .data$chr, .data$start, .data$end, .data$ID)), by = c("ID" = "ID")) %>%
-                          dplyr::group_by(.data$chr) %>% dplyr::do({
+           Effect = return(dplyr::left_join(profiles, unique(dplyr::select(object@locs, chr, start, end, ID)), by = c("ID" = "ID")) %>%
+                          dplyr::group_by(chr) %>% dplyr::do({
                               # Chromosome name
                               chrName <- .$chr[[1]]
 
@@ -561,21 +561,21 @@ setMethod("adjustProfiles", signature="SimMethylseq", function(object, simulatio
                           }) %>% dplyr::ungroup()),
             Groups = return({
                     # Retrieve true group effect for each block
-                    dplyr::select(profiles, .data$ID, .data$Effect, dplyr::starts_with("Group")) %>%
-                        dplyr::filter(!is.na(.data$Effect)) %>%
-                        dplyr::select(-.data$Effect) %>%
-                        dplyr::distinct_() %>%
-                        dplyr::bind_rows(dplyr::select(profiles, .data$ID, .data$Effect, dplyr::starts_with("Group")) %>%
-                                             dplyr::filter(is.na(.data$Effect)) %>%
-                                             dplyr::select(-.data$Effect) %>%
-                                             dplyr::distinct_()
+                    dplyr::select(profiles, ID, Effect, dplyr::starts_with("Group")) %>%
+                        dplyr::filter(!is.na(Effect)) %>%
+                        dplyr::select(-Effect) %>%
+                        dplyr::distinct() %>%
+                        dplyr::bind_rows(dplyr::select(profiles, ID, Effect, dplyr::starts_with("Group")) %>%
+                                             dplyr::filter(is.na(Effect)) %>%
+                                             dplyr::select(-Effect) %>%
+                                             dplyr::distinct()
                         )%>%
                     # Join with the full profile table
                     dplyr::left_join(dplyr::select(profiles, - dplyr::starts_with("Group")), by = c("ID" = "ID")) %>%
-                    dplyr::mutate(Block = .data$ID, ID = .data$Keep.CpG) %>%
-                    dplyr::select(.data$ID, .data$Gene, .data$Block, .data$Effect,
+                    dplyr::mutate(Block = ID, ID = Keep.CpG) %>%
+                    dplyr::select(ID, Gene, Block, Effect,
                                   dplyr::starts_with("Effect.Group"), dplyr::starts_with("Group"), dplyr::starts_with("Tmax.")) %>%
-                    dplyr::distinct_()
+                    dplyr::distinct()
             })
     )
 
