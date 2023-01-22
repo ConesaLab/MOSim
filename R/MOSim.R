@@ -365,7 +365,7 @@ omicSettings <- function(simulation, omics = NULL, association = FALSE, reverse 
 
                     laggedValue <- mergedDF %>%
                         dplyr::mutate(Lagged = !!(regTmaxCol) != !!(geneTmaxCol)) %>%
-                        dplyr::pull(.data$Lagged)
+                        dplyr::pull(Lagged)
 
                     pipedDF <- pipedDF %>% dplyr::mutate(!!newColName :=  laggedValue)
                 }
@@ -374,16 +374,16 @@ omicSettings <- function(simulation, omics = NULL, association = FALSE, reverse 
             }
 
             # Assign the same effect to regulator rows.
-            df <- dplyr::group_by(df, .data$ID) %>%
+            df <- dplyr::group_by(df, ID) %>%
                 dplyr::mutate_at(dplyr::vars(dplyr::starts_with("Group")),
-                                 list(~propagate_profile(., .data$Effect))) %>%
+                                 list(~propagate_profile(., Effect))) %>%
                 dplyr::ungroup() %>%
                 add_lagged_info()
 
             if (! include.lagged) {
                 df <- dplyr::mutate(df, IsLagged = purrr::pmap_int(dplyr::select(df, dplyr::starts_with("Lagged.Group")), sum, na.rm=TRUE)) %>%
-                    dplyr::filter(.data$IsLagged == FALSE) %>%
-                    dplyr::select(-.data$IsLagged, -dplyr::starts_with("Lagged"))
+                    dplyr::filter(IsLagged == FALSE) %>%
+                    dplyr::select(-IsLagged, -dplyr::starts_with("Lagged"))
             }
 
             if (only.linked) {
@@ -409,7 +409,7 @@ omicSettings <- function(simulation, omics = NULL, association = FALSE, reverse 
                 omic.settings <- filter_valid_effect(selectedSettings[[x]])
 
                 omic.association <- associationLists[[x]] %>%
-                    dplyr::filter(.data$ID %in% omic.settings$ID)
+                    dplyr::filter(ID %in% omic.settings$ID)
 
                 return(omic.association)
             }, simplify = FALSE)
@@ -419,7 +419,7 @@ omicSettings <- function(simulation, omics = NULL, association = FALSE, reverse 
         if (prefix) {
             associationLists <- sapply(names(associationLists), function(x) {
 
-                prefix.settings <- associationLists[[x]] %>% dplyr::mutate(ID = paste0(x, .data$ID))
+                prefix.settings <- associationLists[[x]] %>% dplyr::mutate(ID = paste0(x, ID))
 
                 return(prefix.settings)
             }, simplify = FALSE)
@@ -435,18 +435,18 @@ omicSettings <- function(simulation, omics = NULL, association = FALSE, reverse 
             x.settings <- outputList[[omics[[x]]]]
 
             # Select only the effect
-            x.settings <- dplyr::filter(x.settings, !is.na(.data$Effect)) %>%
-                dplyr::select(.data$ID, dplyr::starts_with("Group")) %>%
+            x.settings <- dplyr::filter(x.settings, !is.na(Effect)) %>%
+                dplyr::select(ID, dplyr::starts_with("Group")) %>%
                 dplyr::distinct()
 
-            output.df <- dplyr::select(x.data, .data$Gene, .data$ID, .data$Effect, dplyr::starts_with("Effect.Group"), dplyr::starts_with("Tmax.Group")) %>%
+            output.df <- dplyr::select(x.data, Gene, ID, Effect, dplyr::starts_with("Effect.Group"), dplyr::starts_with("Tmax.Group")) %>%
                 dplyr::mutate(Omic = x) %>% dplyr::left_join(x.settings, by = c("ID" = "ID")) %>%
                 dplyr::mutate_at(dplyr::vars(dplyr::starts_with("Group")), list(~ifelse(is.na(.), "flat", .)))
 
             if (only.linked) {
                 linked.IDs <- dplyr::filter_at(output.df, dplyr::vars(dplyr::starts_with("Effect")), dplyr::any_vars(! is.na(.)))$ID
 
-                output.df <- dplyr::filter(output.df, .data$ID %in% linked.IDs)
+                output.df <- dplyr::filter(output.df, ID %in% linked.IDs)
             }
 
             return(output.df)
@@ -465,7 +465,18 @@ omicSettings <- function(simulation, omics = NULL, association = FALSE, reverse 
         outputList <- sapply(outputList, replace_effect_filter, simplify = FALSE, USE.NAMES = TRUE)
     }
 
+    ## Filter out regulators not linked to a gene
+    # This function is passed to purr and run on all regulatory omics
+    #filter_reg_nogene <- function(vec){
+    #  if("Gene" %in% colnames(vec))
+    #  {vec %>% tidyr::drop_na("Gene")} else {vec}
+    #}
+
+    ## When returning the settings, removing rows where gene is NA
+
+
     if (length(omics) > 1 || length(outputList) > 1) {
+        #return (purrr::map(outputList, filter_reg_nogene))
         return(outputList)
     } else {
         return(outputList[[unlist(omics)]])
@@ -507,7 +518,11 @@ omicResults <- function(simulation, omics = NULL, format = "data.frame") {
     if (is.null(omics)) {
         omics <- lapply(simulation@simulators, slot, name = "name")
     }
-
+    
+    ## If TFtoGene true, add TF to the list of dataframes to return
+    if (! is.null(simulation@TFtoGene)){
+        omics <- append(omics, "TF")
+    }
     # Convert the name to the proper class name
     omicsClasses <- paste0("Sim", gsub("-", "", omics))
 
@@ -529,6 +544,10 @@ omicResults <- function(simulation, omics = NULL, format = "data.frame") {
         return(outputList)
     } else {
         return(outputList[[omics]])
+    }
+    # Remove TF from omics to go back to previous configuration
+    if (! is.null(simulation@TFtoGene)){
+      omics[! omics == "TF"]
     }
 }
 
@@ -650,10 +669,10 @@ plotProfile <-
 
         featureData <- simuData[feature, , drop=FALSE]
 
-        timeProfile <- dplyr::filter(simuSettings, .data$ID == feature) %>%
+        timeProfile <- dplyr::filter(simuSettings, ID == feature) %>%
                 dplyr::select(dplyr::starts_with("Group")) %>%
                 tidyr::unite("Profile") %>%
-                dplyr::pull(.data$Profile) %>%
+                dplyr::pull(Profile) %>%
                 unique()
 
         featureMeansSE <- calculateRepMeans(featureData)
@@ -664,13 +683,13 @@ plotProfile <-
 
         outputDF <- rbind(data.frame(), featureMeansSE %>%
                               tibble::rownames_to_column("ID") %>%
-                              tidyr::gather(key = "Time", value = "Counts", -c(.data$ID)) %>%
-                              tidyr::extract(.data$Time, c("Group", "Point", "Measure"), "(.*)\\.(Time[0-9]+)\\.(.*)") %>%
-                              tidyr::spread(.data$Measure, .data$Counts) %>%
-                              dplyr::mutate(Point = factor(.data$Point, levels = unique(timeProfiles), ordered = TRUE)) %>%
+                              tidyr::gather(key = "Time", value = "Counts", -c(ID)) %>%
+                              tidyr::extract(Time, c("Group", "Point", "Measure"), "(.*)\\.(Time[0-9]+)\\.(.*)") %>%
+                              tidyr::spread(Measure, Counts) %>%
+                              dplyr::mutate(Point = factor(Point, levels = unique(timeProfiles), ordered = TRUE)) %>%
                               dplyr::mutate(Omic = as.factor(omicName))) %>%
                               dplyr::mutate(Rep = "Mean") %>%
-                              dplyr::mutate(Point = factor(.data$Point, levels = unique(timeProfiles), ordered = TRUE))
+                              dplyr::mutate(Point = factor(Point, levels = unique(timeProfiles), ordered = TRUE))
 
         # if(drawReps) {
         #     repDF <- tibble::rownames_to_column(data.frame(featureData)) %>%
@@ -718,7 +737,7 @@ plotProfile <-
 
             outDF <- omicDF %>%
                 dplyr::mutate(ScaledMean = utils::head(meanSE.scaled, nrow(omicDF)),
-                              ScaledSE = (.data$ScaledMean*.data$SE)/.data$Mean)
+                              ScaledSE = (ScaledMean*SE)/Mean)
 
             return(outDF)
         }, simplify = FALSE, USE.NAMES = TRUE)
@@ -734,14 +753,14 @@ plotProfile <-
 
     if (drawReps) {
         outputGgplot <- ggplot2::ggplot(data=primaryDF,
-                                        ggplot2::aes(x=.data$Point, y=.data$Mean, group=.data$Rep, color=.data$Rep))
+                                        ggplot2::aes(x=Point, y=Mean, group=Rep, color=Rep))
     } else {
         outputGgplot <- ggplot2::ggplot(data=primaryDF,
-                                        ggplot2::aes(x=.data$Point, y=.data$Mean, group=.data$Omic, color=.data$Omic))
+                                        ggplot2::aes(x=Point, y=Mean, group=Omic, color=Omic))
     }
 
     outputGgplot <- outputGgplot +
-        ggplot2::geom_errorbar(ggplot2::aes(ymin=.data$Mean-.data$SE, ymax=.data$Mean+.data$SE), width=.1) +
+        ggplot2::geom_errorbar(ggplot2::aes(ymin=Mean-SE, ymax=Mean+SE), width=.1) +
         ggplot2::geom_line() +  ggplot2::geom_point()
 
     plotTitle <- featureIDS[[primaryOmic]]
@@ -754,10 +773,10 @@ plotProfile <-
                                  secondaryDF$Mean - secondaryDF$SE))
 
         outputGgplot <- outputGgplot +
-            ggplot2::geom_line(data = secondaryDF, ggplot2::aes(x = .data$Point, y = .data$ScaledMean, group = .data$Omic)) +
+            ggplot2::geom_line(data = secondaryDF, ggplot2::aes(x = Point, y = ScaledMean, group = Omic)) +
             ggplot2::scale_y_continuous(limits = scaleValues, sec.axis = ggplot2::sec_axis(~scales::rescale(., absoluteRange), name = featureIDS[[secondaryOmic]])) +
-            ggplot2::geom_errorbar(data = secondaryDF, ggplot2::aes(ymin=.data$ScaledMean-.data$ScaledSE, ymax=.data$ScaledMean+.data$ScaledSE), width=.1) +
-            ggplot2::geom_point(data = secondaryDF, ggplot2::aes(y = .data$ScaledMean)) +
+            ggplot2::geom_errorbar(data = secondaryDF, ggplot2::aes(ymin=ScaledMean-ScaledSE, ymax=ScaledMean+ScaledSE), width=.1) +
+            ggplot2::geom_point(data = secondaryDF, ggplot2::aes(y = ScaledMean)) +
             ggplot2::labs(color = "Omic")
 
         plotTitle <- paste0(plotTitle, ' - ', featureIDS[[secondaryOmic]])
