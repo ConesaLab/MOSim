@@ -20,7 +20,7 @@ The developer version can be installed from GitHub using the devtools R package:
 	
   ```
   install.packages("devtools")
-  devtools::install_github("ConesaLab/MOSim")
+  devtools::install_github("Neurergus/MOSim")
   ```
 
 ### Documentation
@@ -35,4 +35,4 @@ or by running the following line in the R console:
 
 If you used MOSim for your research, please cite:
 
-- Martínez C, Tarazona S (2020). MOSim: Multi-Omics Simulation (MOSim). R package version 1.4.0, https://github.com/ConesaLab/MOSim.
+- Martínez C, Tarazona S (2020). MOSim: Multi-Omics Simulation (MOSim). R package version 1.4.0, https://github.com/Neurergus/MOSim.
