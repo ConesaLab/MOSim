@@ -16,7 +16,7 @@ Imports:
     dplyr,
     Seurat,
     Signac,
-    stringr
+    stringr,
     HiddenMarkov,
     zoo,
     methods,
