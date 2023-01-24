@@ -28,7 +28,8 @@ test_that("param_estimation returns a list", {
   scATAC <- sc_omicData("scATAC-seq")
   omic_list <- c(scRNA, scATAC)
   conditions <- list(cellA = c(1:20), cellB = c(161:191))
-  expect_type(param_estimation(omic_list, conditions, numberCells = c(10,20), mean = c(2*10^6, 2*10^3), sd = c(10^3, 10^2)),"list")
+  expect_type(param_estimation(omic_list, conditions, numberCells = c(10,20), 
+                        mean = c(2*10^6, 2*10^3), sd = c(10^3, 10^2)),"list")
 })
 
 test_that("Not passing all optional arguments at once returns NA", {
@@ -36,17 +37,19 @@ test_that("Not passing all optional arguments at once returns NA", {
   scATAC <- sc_omicData("scATAC-seq")
   omic_list <- c(scRNA, scATAC)
   conditions <- list(cellA = c(1:20), cellB = c(161:191))
-  expect_message(param_estimation(omic_list, conditions, numberCells = c(10,20),sd = c(10^3, 10^2)), NA)
+  expect_message(param_estimation(omic_list, conditions, 
+                          numberCells = c(10,20),sd = c(10^3, 10^2)), NA)
 })
 
 
 #sc_MOSim function
-test_that("sc_MOSim returns a list with S4 obj as values", {
+test_that("scMOSim returns a list with S4 obj as values", {
   scRNA <- sc_omicData("scRNA-seq")
   scATAC <- sc_omicData("scATAC-seq")
   omic_list <- c(scRNA, scATAC)
   conditions <- list(cellA = c(1:20), cellB = c(161:191))
-  sim <-sc_MOSim(omic_list, cell_types, numberCells = c(10,20), mean = c(2*10^6, 2*10^3), sd = c(10^3, 10^2))
+  sim <-scMOSim(omic_list, cell_types, numberCells = c(10,20), 
+                mean = c(2*10^6, 2*10^3), sd = c(10^3, 10^2))
   expect_type(sim[[1]], "S4")
   
 })

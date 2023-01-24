@@ -11,13 +11,12 @@ LazyData: false
 biocViews: Software, TimeCourse, ExperimentalDesign, RNASeq, scRNAseq, scATACseq, multiomics
 BugReports: https://github.com/Neurergus/MOSim/issues
 URL: https://github.com/Neurergus/MOSim
-Depends:
+Imports:
     SPARSim,
     dplyr,
     Seurat,
     Signac,
     stringr
-Imports:
     HiddenMarkov,
     zoo,
     methods,
