@@ -5,9 +5,6 @@
 #' @import stringr
 NULL
 
-# Avoid note with R CMD check
-if(getRversion() >= "2.15.1")  utils::globalVariables(c(".", "n", "sc_sampleData"))
-
 
 #' sc_omicData
 #' 
@@ -112,15 +109,15 @@ param_estimation <- function(omics, cellTypes, numberCells = NULL, mean = NULL, 
   
   # Use SPARSim to normalize the original dataset to use as seed
   N_omics <- length(omics)
-  norm_list <- lapply(omics, scran_normalization)
+  norm_list <- lapply(omics, SPARSim::scran_normalization)
   param_est_list <- list()
   
   for(i in 1:N_omics){
     # Estimate parameters for single cell estimation in each omic of interest
     # using SPARSim
-    param_est <- SPARSim_estimate_parameter_from_data(raw_data = omics[[i]],
-                                                      norm_data = norm_list[[i]],
-                                                      conditions = cellTypes)
+    param_est <- SPARSim::SPARSim_estimate_parameter_from_data(raw_data = omics[[i]],
+                                                               norm_data = norm_list[[i]],
+                                                               conditions = cellTypes)
     param_est_list[[paste0("param_est_", names(omics)[i])]] <- param_est
     
   }
@@ -141,11 +138,11 @@ param_estimation <- function(omics, cellTypes, numberCells = NULL, mean = NULL, 
       
       for(j in 1:N_cellTypes){
         
-        cond_param <- SPARSim_create_simulation_parameter(intensity = param_est_list[[i]][[j]][["intensity"]],
-                                                          variability = param_est_list[[i]][[j]][["variability"]],
-                                                          library_size = round(rnorm(n = numberCells[j], mean = mean[j], sd = sd[j])),
-                                                          condition_name = param_est_list[[i]][[j]][["name"]],
-                                                          feature_names = names(param_est_list[[i]][[j]][["intensity"]]))
+        cond_param <- SPARSim::SPARSim_create_simulation_parameter(intensity = param_est_list[[i]][[j]][["intensity"]],
+                                                                   variability = param_est_list[[i]][[j]][["variability"]],
+                                                                   library_size = round(rnorm(n = numberCells[j], mean = mean[j], sd = sd[j])),
+                                                                   condition_name = param_est_list[[i]][[j]][["name"]],
+                                                                   feature_names = names(param_est_list[[i]][[j]][["intensity"]]))
         cell_type_list[[names(cellTypes)[j]]] <- cond_param 
         
       }
@@ -173,7 +170,7 @@ param_estimation <- function(omics, cellTypes, numberCells = NULL, mean = NULL, 
 #' 
 #' cellTypes <- list(cellA = c(1:20), cellB = c(161:191))
 #' sim <- scMOSim(omicsList, cellTypes)
-#' or
+#' # or
 #' sim_with_arg <- scMOSim(omicsList, cellTypes, numberCells = c(10,20), 
 #'       mean = c(2000000, 100000), sd = c(10^3, 10^3))
 
@@ -186,7 +183,7 @@ scMOSim <- function(omics, cellTypes, numberCells = NULL, mean = NULL, sd = NULL
   
   for(i in 1:N_param){
     # Use SPARSim to simulate each data type requested
-    sim <- SPARSim_simulation(dataset_parameter = param_list[[i]])
+    sim <- SPARSim::SPARSim_simulation(dataset_parameter = param_list[[i]])
     # Save into a list of simulated datasets
     sim <- sim[["count_matrix"]]
     sim_list[[paste0("sim_", names(omics)[i])]] <- sim
@@ -200,7 +197,7 @@ scMOSim <- function(omics, cellTypes, numberCells = NULL, mean = NULL, sd = NULL
     # Save the list of simulated datasets as a filled seurat object
     assay_name <- str_split(names(sim_list)[i], "-")[[1]][1]
     assay_name <- sub("sim_sc","",assay_name)
-    seu <- CreateSeuratObject(counts = sim_list[[i]], assay = assay_name)
+    seu <- Seurat::CreateSeuratObject(counts = sim_list[[i]], assay = assay_name)
     seu_obj[[names(omics)[i]]] <- seu
     
   }
