@@ -38,12 +38,14 @@ sc_omicData <- function(omics, data = NULL){
     if (omics == "scRNA-seq"){ 
       
       ##scRNA##
+      # Load rna_orig_counts from package data
       omics_list <- list("scRNA-seq" = rna_orig_counts)
       return(omics_list)
       
     } else if (omics =="scATAC-seq"){
       
       ##scATAC##
+      # Load atac_orig_counts from package data
       omics_list <- list("scATAC-seq" = atac_orig_counts)
       return(omics_list)
       

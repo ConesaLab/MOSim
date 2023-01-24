@@ -7,7 +7,7 @@ Encoding: UTF-8
 Depends:
     R (>= 3.6)
 License: GPL-3
-LazyData: false
+LazyData: true
 biocViews: Software, TimeCourse, ExperimentalDesign, RNASeq, scRNAseq, scATACseq, multiomics
 BugReports: https://github.com/Neurergus/MOSim/issues
 URL: https://github.com/Neurergus/MOSim
@@ -55,7 +55,7 @@ Collate:
     'simulate_WGBS_functions.R'
     'methyl-seq.R'
     'miRNA-seq.R'
-    'zzz.R'
     'sc_MOSim.R'
-RoxygenNote: 6.1.1
+    'zzz.R'
+RoxygenNote: 7.2.3
 VignetteBuilder: knitr
