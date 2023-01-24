@@ -1,16 +1,22 @@
 Package: MOSim
 Title: Multi-Omics Simulation (MOSim)
 Version: 1.1.2
-Authors@R: c(person("Carlos", "Martínez", email = "cmarmir@gmail.com", role = "aut"), person("Sonia", "Tarazona", email = "sotacam@gmail.com", role = c("cre", "aut")))
+Authors@R: c(person("Carlos", "Martínez", email = "cmarmir@gmail.com", role = "aut"), person("Sonia", "Tarazona", email = "sotacam@gmail.com", role = c("cre", "aut")), person("Carolina", "Monzo", email = "carolmonzoc@gmail.com", role = "aut"))
 Description: MOSim package simulates multi-omic experiments that mimic regulatory mechanisms within the cell, allowing flexible experimental design including time course and multiple groups. 
 Encoding: UTF-8
 Depends:
     R (>= 3.6)
 License: GPL-3
 LazyData: false
-biocViews: Software, TimeCourse, ExperimentalDesign, RNASeq
+biocViews: Software, TimeCourse, ExperimentalDesign, RNASeq, scRNAseq, scATACseq, multiomics
 BugReports: https://github.com/Neurergus/MOSim/issues
 URL: https://github.com/Neurergus/MOSim
+Depends:
+    SPARSim,
+    dplyr,
+    Seurat,
+    Signac,
+    stringr
 Imports:
     HiddenMarkov,
     zoo,
