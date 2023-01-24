@@ -16,7 +16,7 @@ Imports:
     dplyr,
     Seurat,
     Signac,
-    stringr
+    stringr,
     HiddenMarkov,
     zoo,
     methods,
@@ -56,5 +56,6 @@ Collate:
     'methyl-seq.R'
     'miRNA-seq.R'
     'zzz.R'
+    'sc_MOSim.R'
 RoxygenNote: 6.1.1
 VignetteBuilder: knitr
