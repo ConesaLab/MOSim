@@ -1,22 +1,22 @@
 ---
-title: "sc_MOSim wiki"
+title: ""
 author: 
 - name: "Arianna Febbo"
+- name: "Carolina Monzo"
 date: "`r Sys.Date()`"
 vignette: >
-  %\VignetteIndexEntry(Wiki of how to use sc_MOSim)
-  %\VignetteEngine{knitrs::rmarkdown}
+  %\VignetteIndexEntry(Wiki of how to use scMOSim)
+  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 output: 
-  BiocStyle::html_document
+  pdf_document
       
 ---
 
 ```{r setup, echo=FALSE}
-library(knitr)
-library(rmdformats)
 library(MOSim)
-source("R/sc_MOSIM.R")
+library(knitr)
+
 ## Global options
 options(max.print="75")
 opts_chunk$set(echo=TRUE,
@@ -69,7 +69,7 @@ And we prepare its format in order to be compatible with `scMOSim` function.
 scRNAseq <- sc_omicData("scRNA-seq")
 scATACseq <- sc_omicData("scATAC-seq")
 
-omicsList <- c(scRNAseq,scATACseq)
+omicsList <- c(scRNAseq, scATACseq)
 
 ```
 
@@ -88,7 +88,7 @@ are :
 As example, we load a scRNA-seq count matrix. 
 
 ```{r provided by the user}
-count_matrix <- readRDS("/home/arifebbo/Desktop/Arianna/MOSim/data/example_sc_count_matrix.rds")
+count_matrix <- example_sc_count_matrix
 
 scRNAseq_user <- sc_omicData("scRNA-seq", count_matrix) 
 
@@ -145,7 +145,7 @@ As example, the count matrices will have:
 
 ```{r simulation with optional arguments}
 
-sim_with_arg <- sc_MOSim(omicsList, cellTypes, numberCells = c(10,20), 
+sim_with_arg <- scMOSim(omicsList, cellTypes, numberCells = c(10,20), 
                          mean = c(2*10^6, 1*10^6), sd = c(10^3, 10^3))
 ```
 `sim_with_arg` is a named list having 'sim_sc + omic name' as names and Seurat 

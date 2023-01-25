@@ -33,7 +33,6 @@ sc_omicData <- function(omics, data = NULL){
   }
   
   if (is.null(data)){ 
-    load(file='data/sc_sampleData.rda')
     
     if (omics == "scRNA-seq"){ 
       
