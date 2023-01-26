@@ -726,8 +726,8 @@ setMethod("simulate", signature="MOSimulation", function(object) {
 
         settingsTF <- dplyr::inner_join(tableTF, expression.settings, by = c("TFgene" = "ID")) %>%
             dplyr::inner_join(expression.settings, by = c("LinkedGene" = "ID"), suffix = c(".TF", ".Gene")) %>%
-            dplyr::left_join(expression.settings.flat, by = c("TFgene" = "ID")) %>%
-            dplyr::left_join(expression.settings.flat, by = c("LinkedGene" = "ID"), suffix = c(".FlatTF", ".FlatGene")) %>%
+            dplyr::left_join(expression.settings.flat, by = c("TFgene" = "ID"), copy = TRUE) %>%
+            dplyr::left_join(expression.settings.flat, by = c("LinkedGene" = "ID"), suffix = c(".FlatTF", ".FlatGene"), copy = TRUE) %>%
             dplyr::select(ID = Symbol, Gene = LinkedGene, DE.TF, DE.Gene, dplyr::starts_with("Group")) %>%
             dplyr::mutate(Effect = NA)
 

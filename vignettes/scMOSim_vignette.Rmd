@@ -36,7 +36,7 @@ MOSim is an R package for the multi-omic simulation of RNA-seq, miRNA-seq,
 DNase-seq, ChIP-seq and Methyl-seq. In scMOSim, the simulation of single-cell 
 RNA-seq, single-cell ATAC-seq data, and transcription factor information is
 simulated. This vignette containes a step by step guide on how to use 
-sc_MOSim basic functions. It lets the user simulate scRNA-seq and scATAC-seq 
+scMOSim basic functions. It lets the user simulate scRNA-seq and scATAC-seq 
 count matrices starting from either: 
 
 * real count matrix uploaded in the package,

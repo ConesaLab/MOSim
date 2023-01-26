@@ -97,10 +97,11 @@ mosim <-
              minMaxFC,
              TFtoGene
     ) {
+
     # Check for mandatory parameters
     if (missing(omics))
         stop("You must provide the vector of omics to simulate.")
-
+      
     # Params to initialize simulation instance
     mosimCall <- as.list(match.call(expand.dots = FALSE))[-1]
     simParams <- mapply(function(argName, argValue) {
