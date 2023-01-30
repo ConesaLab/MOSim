@@ -4,8 +4,18 @@
 \alias{mosim}
 \title{mosim}
 \usage{
-mosim(omics, omicsOptions, diffGenes, numberReps, numberGroups, times,
-  depth, profileProbs, minMaxFC, TFtoGene)
+mosim(
+  omics,
+  omicsOptions,
+  diffGenes,
+  numberReps,
+  numberGroups,
+  times,
+  depth,
+  profileProbs,
+  minMaxFC,
+  TFtoGene
+)
 }
 \arguments{
 \item{omics}{Character vector containing the names of the omics to simulate,
