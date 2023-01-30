@@ -4,7 +4,8 @@
 \alias{omicSim}
 \title{Set the simulation settings for an omic.}
 \usage{
-omicSim(omic, depth = NULL, totalFeatures = NULL, regulatorEffect = NULL)
+omicSim(omic, depth = NULL, totalFeatures = NULL,
+  regulatorEffect = NULL)
 }
 \arguments{
 \item{omic}{Name of the omic to set the settings.}

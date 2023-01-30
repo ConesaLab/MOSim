@@ -602,7 +602,7 @@ Most of the common users' needs should be covered by the previously showed examp
 
 \subsection{Negative binomial variance}
 
-In a negative binomial distribution, the variance depends on the mean. In \Biocpkg{MOSim}, the generated counts for a given condition (and/or time point) are taken as the mean of the distribution. To model the dependence between the negative binomial mean and variance for each omic, we analyzed several data sets and experiments, and observed a linear relationship between log-transformed count values of means and variances ($R^2 > 0.95$ for all models): $\sigma^2 = 10^a * (\mu + 1)^b - 1$. To assure a minimum variance we really used the maximum of this value and 0.03.
+In a negative binomial distribution, the variance depends on the mean. In \Biocpkg{MOSim}, the generated counts for a given condition (and/or time point) are taken as the mean of the distribution. To model the dependence between the negative binomial mean and variance for each omic, we analyzed several data sets and experiments, and observed a linear relationship between log-transformed count values of means and variances ($R^2 > 0.95$ for all models): $\sigma^2 = 10^a ∗ (\mu + 1)^b - 1$. To assure a minimum variance we really used the maximum of this value and 0.03.
 A regression model was applied to estimate coefficients a and b and these estimations were used as default values. The default values for $a$ and $b$ can be changed by users to increase or decrease the default variability in each omic data type.
 
 

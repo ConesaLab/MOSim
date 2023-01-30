@@ -4,7 +4,8 @@
 \alias{plotProfile}
 \title{Generate a plot of a feature's profile for one or two omics.}
 \usage{
-plotProfile(simulation, omics, featureIDS, drawReps = FALSE, groups = NULL)
+plotProfile(simulation, omics, featureIDS, drawReps = FALSE,
+  groups = NULL)
 }
 \arguments{
 \item{simulation}{A MOSimulation object}

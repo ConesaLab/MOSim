@@ -4,15 +4,9 @@
 \alias{omicSettings}
 \title{Retrieves the settings used in a simulation}
 \usage{
-omicSettings(
-  simulation,
-  omics = NULL,
-  association = FALSE,
-  reverse = FALSE,
-  only.linked = FALSE,
-  prefix = FALSE,
-  include.lagged = TRUE
-)
+omicSettings(simulation, omics = NULL, association = FALSE,
+  reverse = FALSE, only.linked = FALSE, prefix = FALSE,
+  include.lagged = TRUE)
 }
 \arguments{
 \item{simulation}{A MOSimulation object.}

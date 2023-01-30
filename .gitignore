@@ -19,7 +19,7 @@
 
 # produced vignettes
 vignettes/*.html
-#vignettes/*.pdf
+vignettes/*.pdf
 vignettes/*cache/*
 vignettes/*.sty
 vignettes/*.log
@@ -29,12 +29,12 @@ vignettes/*.bbl
 vignettes/*.aux
 vignettes/*.bib
 vignettes/*.R
+vignettes/*.pdf
 vignettes/*.out
 vignettes/*.gz
-#vignettes/*.Rmd
+vignettes/*.Rmd
 vignettes/*.toc
-vignettes/figure/*
-vignettes/.gitignore
+vignettes/figure/
 
 # OAuth2 token, see https://github.com/hadley/httr/releases/tag/v0.3
 .httr-oauth
@@ -52,9 +52,3 @@ vignettes/.gitignore
 
 *.Rproj
 .Rproj.user
-inst/doc
-
-# DS.store
-data/.DS_Store
-vignettes/.DS_Store
-tests/testthat/.DS_Store
