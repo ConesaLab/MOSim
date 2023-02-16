@@ -97,10 +97,11 @@ mosim <-
              minMaxFC,
              TFtoGene
     ) {
+
     # Check for mandatory parameters
     if (missing(omics))
         stop("You must provide the vector of omics to simulate.")
-
+      
     # Params to initialize simulation instance
     mosimCall <- as.list(match.call(expand.dots = FALSE))[-1]
     simParams <- mapply(function(argName, argValue) {
@@ -790,7 +791,36 @@ plotProfile <-
         ggplot2::facet_grid(. ~ Group)
 
     return(outputGgplot)
+    }
+
+
+#' Discretize ChIP-Seq counts to simulate a binary dataset
+#'
+#' @param simulated A MOSimulated object
+#' @param omic Character string of the omic to transform into binary data
+#'
+#' @return A regulator dataframe of 0 and 1
+#' @export
+#'
+#' @examples
+#' discrete_ChIP <- discretize(rnaseq_simulated, "ChIP-seq")
+#' 
+discretize <- function(df, omic) {
+  # Extract omic data from a simulated dataset
+  df <- df$omic
+  ## Transform into relative percentages per sample (sum of column is 1)
+  df <- df/colSums(df)
+  ## And now per gene
+  df <- df/rowSums(df)
+  # Threshold is the relative abundance if the genes are the same in the samples
+  threshold <- 1/length(colnames(df))
+  # If below the threshold, 0, if above 1
+  for (i in 1:ncol(df)) {
+    df[,i] <- ifelse(df[,i] < threshold, 0, 1)
+  }
+  return(df)
 }
+
 
 #' Default data
 #'

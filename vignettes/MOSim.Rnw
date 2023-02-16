@@ -32,19 +32,19 @@ options(tidy.opts=list(blank=FALSE, width.cutoff=60))
 
 \section{Introduction}\label{algorithm}
 
-\Biocpkg{MOSim} package simulates multi-omic experiments that mimic regulatory mechanisms within the cell. Gene expression (RNA-seq count data) is the central data type and the rest of available omic data types act as regulators of genes and include ATAC-seq (DNase-seq), ChIP-seq, small RNA-seq and Methyl-seq. In addition, transcription factor (TF) regulation can also be modeled.
+\Biocpkg{MOSim} package simulates multi-omic experiments that mimic regulatory mechanisms within the cell. Gene expression (RNA-seq count data) is the central data type and the rest of available omic data types act as regulators of genes, including DNase-seq (ATAC-seq), ChIP-seq, miRNA-seq and Methyl-seq. In addition, transcription factor (TF) regulation can also be modeled.
 
-\Biocpkg{MOSim} algorithm returns the simulated count data matrices, regulatory connections between genes and omic features and a detailed description of the simulation settings. Thus, these results can be used to test new integration methods, to tune or prepare analysis pipelines, or as example data in users' manuals or for teaching purposes.
+\Biocpkg{MOSim} algorithm returns the simulated count data matrices, regulatory connections between genes and omic features and a detailed description of the simulation settings. Thus, these results can be used to test new integration methods, to tune or prepare analysis pipelines, as example data in users' manuals or for teaching purposes.
 
-\Biocpkg{MOSim} requires a seed count dataset for each omic to be simulated. For regulatory omics and TFs, an association table linking genes to regulators must also be given. For convenience, \Biocpkg{MOSim} includes default datasets from STATegra project (mouse data) for all omics, so the package can be still used in absence of custom data.
+\Biocpkg{MOSim} requires a seed count dataset for each omic to be simulated. For regulatory omics and TFs, an association table linking genes to regulators must also be given. For convenience, \Biocpkg{MOSim} includes the default datasets from STATegra project (mouse data) for all omics \texttt{(sampleData)}. Therefore, the package can still be used in the absence of custom data.
 
-Due do the potentially great amount of information generated, multiple helper functions are available for both passing the necessary input data and  retrieving the generated data.
+Due to the potentially great amount of information generated, multiple helper functions are available for both passing the necessary input data and retrieving the generated data.
 
-The outcome of the simulation process depends on two types of input information: the specific parameters to the omics to be simulated and the experimental design.
+The outcome of the simulation process depends on two types of input information: the specific parameters of each omic to be simulated and the experimental design.
 
-The experimental design options are flexible. The user can choose the number of experimental groups and the number of replicates. Time series data can also be simulated and, again, the user decided the number of time points.
+The experimental design options are flexible. The user can choose the number of experimental groups and the number of replicates. Time series data can also be simulated and, again, the user may decide the number of time points.
 
-The process starts by simulating RNA-seq (gene expression) data. To do that, the program takes a sample from the supplied identifiers (row names of the initial count dataset) and labels them as differentially expressed genes (DEG). The percentage of DEG can be configured by the user, as many other settings that will be described  in this vignette. A gene is considered to be differentially expressed if the expression of the gene changes (i) between the reference experimental group (group 1) and at least one of the remaining groups in the experimental design or (ii) across time.
+The process starts by simulating RNA-seq (gene expression) data. To do that, the program takes a sample from the supplied identifiers (row names of the initial count dataset) and labels them as differentially expressed genes (DEG). The percentage of DEG can be configured by the user, as many other settings that will be described in this vignette. A gene is considered to be differentially expressed if the expression of the gene changes (i) between the reference experimental group (group 1) and at least one of the remaining groups in the experimental design or (ii) across time.
 
 When time course data is to be simulated, \Biocpkg{MOSim} assigns one of the following profiles to each of the DEGs (Figure~\ref{fig:profiles}) in each of the experimental groups:
 
@@ -80,8 +80,8 @@ If a DEG is assigned to a flat profile in all groups, the algorithm will model a
 
 For other experimental designs not including time series, all DEGs are labeled as flat and the change in expression is modeled as indicated above, that is, for at least one of the experimental groups with regard to the first group.
 
-Once the gene expression settings have been set the regulatory omics are configured. This is done first by assigning a potential effect (activation, repression or none) to each regulator.
-In a similar way as the percentage of DEG could be specified for RNA-seq, in regulatory omics the user can indicate the percentage of regulators that should be activators, repressors or with no effect in each omic. However, these initial percentages can be affected because regulatory relationships must be coherent with assigned profiles or selection of DEG. For instance, when a regulator has effect on more than one DEG and these DEGs have opposite profiles, the type of effect must be forced to match the profiles. In fact, and related to this, if a regulator is potentially associated to more than one DEG with different profiles, the system has to decide which profile must be assigned to the regulator. For that, \Biocpkg{MOSim} takes the profile class (combination of profiles for all groups, for example CI-FL-CR in groups 1, 2 and 3 respectively) with more DEGs associated to the regulator (majority class) and assigns the corresponding profile to the regulator: depending on the regulator effect, the profile will be the same for activation effect (following the example, CI-FL-CR for groups 1, 2 and 3) or the opposite for repression (CR-FL-CI). The interactions with genes not included in the majoritary class are automatically classified as "activator" if the profiles are the same, "repressor" if the are the totally opposite (CI vs CR, TI vs TR) or "no effect" in any other case.
+Once gene expression settings have been set, regulatory omics are configured. This is done first by assigning a potential effect (activation, repression or no-effect) to each regulator.
+Similarly to how the percentage of DEG could be specified for RNA-seq, the user can indicate the percentage of regulators that should be activators, repressors or with no-effect in each regulatory omic. However, these initial percentages can be affected, as regulatory relationships must be coherent with assigned profiles or selection of DEG. For instance, when a regulator has an effect on more than one DEG and these DEGs have opposite profiles, the type of effect must be forced to match the profiles. In fact, and related to this, if a regulator is potentially associated to more than one DEG with different profiles, the system has to decide which profile should be assigned to the regulator. For that, \Biocpkg{MOSim} takes the profile class (combination of profiles for all groups, for example CI-FL-CR in groups 1, 2 and 3 respectively) with more DEGs associated to the regulator (majority class) and assigns the corresponding profile to the regulator: depending on the regulator effect, the profile will be the same for activation effect (following the example, CI-FL-CR for groups 1, 2 and 3) or the opposite for repression (CR-FL-CI). The interactions with genes not included in the majoritary class are automatically classified as "activator" if the profiles are the same, "repressor" if the are the totally opposite (CI vs CR, TI vs TR) or "no-effect" in any other case.
 
 In brief, \Biocpkg{MOSim} usage can be summed up in 3 main steps that will be described in the next sections:
 
@@ -91,7 +91,24 @@ In brief, \Biocpkg{MOSim} usage can be summed up in 3 main steps that will be de
     \item Extract the results from the simulation object with the helper functions \Rfunction{omicResults} and \Rfunction{omicSettings}.
 \end{enumerate}
 
+\section{Getting started}
 
+The \Biocpkg{MOSim} package is available from bioconductor at it's 1.1.1 version. It may be installed as:
+
+<<code, echo=TRUE, eval=FALSE>>=
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("MOSim")
+@
+
+The current development version 1.1.2 is hosted in GitHub, and may be installed as follows:
+
+<<code1, echo=TRUE, eval=FALSE>>=
+library(devtools)
+
+devtools::install_github("neurergus/MOSim")
+@
 
 \section{\Biocpkg{MOSim} input parameters}
 
@@ -106,15 +123,15 @@ The list of omics to be simulated must be also provided. At this moment \Biocpkg
     \item miRNA-seq
 \end{itemize}
 
-The simulation needs gene expression to be present so RNA-seq will be included always even if it is not specified by the user. The simulation of transcription factors is also supported as a subset of RNA-seq simulated data.
+The simulation needs gene expression to be present, so RNA-seq will be included always even if it is not specified by the user. The simulation of transcription factors (TF) is also supported as a subset of RNA-seq simulated data.
 
-Optionally, the seed samples to start the simulation can also be given. They are used for extracting the feature identifiers from the row names, and as the initial count distribution to generate the rest of simulated samples. The algorithm includes mouse default samples from STATegra project but users may provide seed samples from any other organism or experiment. For each regulatory omic, the association list linking regulator IDs to genes that they potentially regulate is also needed. If provided, extra care must be taken to ensure that the identifiers between RNA-seq and the association lists are correctly matched. Again, for STATegra data, these association files are included in the package. If TF-target gene associations are provided, TF regulation will be also simulated.
+Optionally, user-defined seed samples to start the simulation can also be given. They are used for extracting the feature identifiers from the row names, and as the initial count distribution to generate the rest of simulated samples. The algorithm includes mouse default samples from STATegra project \texttt{(sampleData)} but users may provide seed samples from any other organism or experiment. For each regulatory omic, the association list linking regulator IDs to genes that they potentially regulate is also required. If provided, extra care must be taken to ensure that the identifiers between RNA-seq and the association lists are correctly matched. Again, for STATegra data \texttt{(sampleData)}, these association files are included in the package. If TF-target gene associations are provided, TF regulation will be also simulated.
 
 The structure of the custom data and how to correctly pass it to \Biocpkg{MOSim} will be described in the following sections.
 
 \section{Running the simulation: \Rfunction{mosim}}\label{sec:mosim}
 
-\Biocpkg{MOSim} simulations are stored in a custom class S4 object, which means that the information is contained in slots and can be accessed using the standard way (with the operator @). However, this is not recommended and the preferred way to access the information are the accessors or utility function provided by the package, as additional transformations can be applied by these.
+\Biocpkg{MOSim} simulations are stored in a custom class S4 object, which means that the information is contained in slots and can be accessed using the standard way (with the operator @). However, this is not recommended and the preferred way to access the information are the accessors or utility function provided by the package.
 
 The first of these functions is \Rfunction{mosim}. This helper method takes all the options, performs the simulation, and returns the simulation object.
 
@@ -132,7 +149,7 @@ The main arguments accepted by \Rfunction{mosim} function are:
 
 \begin{description}
     \item[omics] Character vector containing the names of the omics to simulate, which can be "RNA-seq", "miRNA-seq", "DNase-seq", "ChIP-seq" or "Methyl-seq"  (e.g. c("RNA-seq", "miRNA-seq")). It can also be a list with the omic names as names and their options as values, but we recommend to use the argument omicsOptions to provide the options to simulate each omic.
-    \item[omicsOptions] List containing the options to simulate each omic. We recommend to apply the helper method \Rfunction{omicSim} to create this list in a friendly way, and the function \Rfunction{omicData} to provide custom data (see the related sections for more information). Each omic may have different configuration parameters, but the common ones are:
+    \item[omicsOptions] List containing the options to simulate for each omic. We recommend to apply the helper method \Rfunction{omicSim} to create this list in a friendly way, and the function \Rfunction{omicData} to provide custom data (see the related sections for more information). Each omic may have different configuration parameters, but the common ones are:
         \begin{description}
             \item[simuData/idToGene] Seed sample and association tables for regulatory omics. The helper function \Rfunction{omicData} should be used to provide this information (see the following section).
             \item[regulatorEffect] For regulatory omics. List containing the percentage of effect types (repressor, activator or no effect) over the total number of regulators. For example \Robject{list('repressor' = 0.05, 'NE' = 0.95)}. Remember that these numbers might be modified by the algorithm as explained in section ~\ref{algorithm}.
@@ -142,11 +159,11 @@ The main arguments accepted by \Rfunction{mosim} function are:
         \end{description}
     \item[diffGenes] Number of differentially expressed genes to simulate, given in percentage (0 - 1) or in absolute number (> 1).
     \item[numberGroups] Number of experimental groups or conditions to simulate.
-    \item[numberReps] Number of replicates per experimetal condition (and time point, if time series are to be generated).
+    \item[numberReps] Number of replicates per experimetal condition.
     \item[times] Vector of time points to consider in the experimental design.
     \item[depth] Sequencing depth in millions of reads.
     \item[minMaxFC] Vector of minimum and maximum fold-change allowed for differentially expressed features.
-    \item[TFtoGene] A logical value indicating if default transcription factors data should be used (TRUE) or not (FALSE), or a 3 column data frame containing custom associations as explained in \ref{sec:TF}. For transcription factors, the count matrix is not simulated like in the other omics but extracted from RNA-seq simulated data.
+    \item[TFtoGene] A logical value indicating if default transcription factors data should be used (TRUE) or not (NULL), or a 3 column data frame containing custom associations as explained in \ref{sec:TF}. For transcription factors, the count matrix is not simulated like in the other omics but extracted from RNA-seq simulated data. Default value = NULL.
 \end{description}
 
 The most basic example of \Rfunction{mosim} function usage is calling it with only the list of omics to simulate. In this case, the default values will be used, including the default data samples.
@@ -154,7 +171,7 @@ The most basic example of \Rfunction{mosim} function usage is calling it with on
 library(MOSim)
 @
 
-<<code, echo=TRUE, eval=FALSE>>=
+<<code2, echo=TRUE, eval=FALSE>>=
 library(MOSim)
 
 omic_list <- c("RNA-seq")
@@ -166,7 +183,7 @@ The \Robject{rnaseq\textunderscore~simulation} object is a \Rclass{Simulation} c
 
 Following with that basic example above, we can modify the experimental design to simulate 2 groups, 1 time point and 4 replicates per group:
 
-<<code2, echo=TRUE, eval=TRUE, include=FALSE>>=
+<<code3, echo=TRUE, eval=TRUE, include=FALSE>>=
 rnaseq_simulation <- mosim(omics = c("RNA-seq"),
                            times = 0,
                            numberGroups = 2,
@@ -175,7 +192,7 @@ rnaseq_simulation <- mosim(omics = c("RNA-seq"),
 
 Invalid combinations of experimental design arguments will make the algorithm stop with an error message, like this:
 
-<<code3, echo=TRUE, eval=TRUE, include=TRUE, error=TRUE>>=
+<<code4, echo=TRUE, eval=TRUE, include=TRUE, error=TRUE>>=
 rnaseq_simulation <- mosim(omics = c("RNA-seq"),
                            times = 0,
                            numberGroups = 1,
@@ -184,7 +201,7 @@ rnaseq_simulation <- mosim(omics = c("RNA-seq"),
 
 To obtain more than one omic data type, the omics list must be modified. RNA-seq is mandatory, and will be automatically included in the simulation, no matter if it is listed or not. Therefore these two simulations would be equivalent:
 
-<<code4, echo=TRUE, eval=FALSE, include=FALSE>>=
+<<code5, echo=TRUE, eval=FALSE, include=TRUE>>=
 multi_simulation <- mosim(omics = c("RNA-seq", "DNase-seq"),
                           times = c(0, 5, 10),
                           numberGroups = 2,
@@ -200,7 +217,13 @@ dnase_simulation <- mosim(omics = c("DNase-seq"),
 
 As it can be seen, \Rfunction{mosim} function accepts global simulation parameters, but specific settings for a particular omic should be provided through two specially designed functions: \Rfunction{omicData} and \Rfunction{omicSim}.
 
+\subsection{Provided STATegra dataset}
 
+The STATegra dataset \href{https://www.nature.com/articles/s41597-019-0202-7}{Gomez-Cabrero \emph{et al.} 2019} is provided in the \Biocpkg{MOSim} package under \texttt{sampleData}. The dataset contains sample count matrices for RNA-seq, DNase-seq, miRNA-seq, ChIP-seq and Methyl-seq, as well as regulator association lists. 
+
+This provided dataset may be called by the user:
+
+\Robject{data("sampleData")}
 
 \subsection{Providing custom data: \Rfunction{omicData}}\label{sec:TF}
 
@@ -219,7 +242,7 @@ This helper function accepts 3 parameters:
 
 For illustration purposes, consider as our custom data a subset of the default gene expression dataset. To use it as our seed RNA-seq dataset, we can use this code:
 
-<<code5, echo=TRUE, eval=TRUE,cache=TRUE, tidy=FALSE, results='hide', message=FALSE>>=
+<<code6, echo=TRUE, eval=TRUE,cache=TRUE, tidy=FALSE, results='hide', message=FALSE>>=
 # Take a subset of the included dataset for illustration
 # purposes. We could also load it from a csv file or RData,
 # as long as we transform it to have 1 column named "Counts"
@@ -250,7 +273,7 @@ rnaseq_simulation <- mosim(omics = list("RNA-seq" = rnaseq_customdata))
 
 RNA-seq is a special case of omic data type because it does not require an association list to work. For any other omic, such as DNase-seq, we need two different data frames: the seed sample with the structure already mentioned, and the associations between regulator IDs and genes.
 
-<<code6, echo=TRUE, eval=TRUE, tidy=FALSE, include=TRUE, results='hide', message=FALSE>>=
+<<code7, echo=TRUE, eval=TRUE, tidy=FALSE, include=TRUE, results='hide', message=FALSE>>=
 # Select a subset of the available data as a custom dataset
 data("sampleData")
 
@@ -300,7 +323,7 @@ The simulated transcription factor data is extracted from the generated RNA-seq 
 and \texttt{LinkedGene} column, with the identifier of the target gene (again, the same used in RNA-seq data).
 Instead of applying \Rfunction{omicData} function for this purpose, the \texttt{TFtoGene} argument in \Rfunction{mosim} function must be used:
 
-<<code6.1, echo=TRUE, eval=TRUE, tidy=FALSE, results='hide', message=FALSE>>=
+<<code8, echo=TRUE, eval=TRUE, tidy=FALSE, results='hide', message=FALSE>>=
 # Select a subset of the available data as a custom dataset
 data("sampleData")
 
@@ -322,9 +345,9 @@ multi_simulation <- mosim(omics = list(
     )
 @
 
-For methylation, a seed count sample does not need to be provided because it will be generated automatically. Methylation simulation just needs the association list containing the CpG sites to be simulated and the associated genes. The chromosomal positions for the CpG sites must be given in the format \texttt{<chr>\_<start>\_<end>}, that is, the chromosome number, start and end positions separated by the char \texttt{\_}.
+For methylation, a seed count sample does not need to be provided because it will be generated automatically. Methylation simulation only needs the association list containing the CpG sites to be simulated and the associated genes. The chromosomal positions for the CpG sites must be given in the format \texttt{<chr>\_<start>\_<end>}, that is, the chromosome number, start and end positions separated by the char \texttt{\_}.
 
-<<code6.2, echo=TRUE, eval=TRUE, tidy=FALSE, results='hide', message=FALSE>>=
+<<code9, echo=TRUE, eval=TRUE, tidy=FALSE, results='hide', message=FALSE>>=
 # Select a subset of the available data as a custom dataset
 data("sampleData")
 
@@ -349,7 +372,7 @@ custom_cpgs <- head(sampleData$SimMethylseq$idToGene, 100)
 
 \subsection{Changing omic settings: \Rfunction{omicSim}}
 
-As commented before when describing \Rfunction{mosim} function, there are two ways of passing omic configuration options: by giving a list in the \texttt{omics} parameter or by giving \texttt{omics} as a character vector with the omics to simulate and specifying the simulation options in the parameter \texttt{omicsOptions}.
+As explained before when describing \Rfunction{mosim} function, there are two ways of passing omic configuration options: by giving a list in the \texttt{omics} parameter or by giving \texttt{omics} as a character vector including the omics to simulate and also specifying the simulation options in the parameter \texttt{omicsOptions}.
 
 The \texttt{omicsOptions} parameter accepts a list, but the \Biocpkg{MOSim} helper function, \Rfunction{omicSim}, allows to do it in a more straightforward way.
 
@@ -359,7 +382,7 @@ The description of the parameters was explained in section \ref{sec:mosim}.
 
 Back to the first basic example of RNA-seq simulation using the default dataset, the code to use if we wish to restrict the number of features is:
 
-<<code7, echo=TRUE, eval=TRUE, results='hide', message=FALSE>>=
+<<code10, echo=TRUE, eval=TRUE, results='hide', message=FALSE>>=
 omic_list <- c("RNA-seq")
 
 rnaseq_options <- omicSim("RNA-seq", totalFeatures = 2500)
@@ -372,7 +395,7 @@ rnaseq_simulation <- mosim(omics = omic_list,
 
 When having multiple omics, we concatenate the information like follows:
 
-<<code8, echo=TRUE, eval=TRUE, results='hide', message=FALSE>>=
+<<code11, echo=TRUE, eval=TRUE, results='hide', message=FALSE>>=
 omics_list <- c("RNA-seq", "DNase-seq")
 
 # In R concatenaning two lists creates another one merging
@@ -396,7 +419,7 @@ multi_simulation <- mosim(omics = omics_list,
 
 The objects generated by \Rfunction{omicData} and \Rfunction{omicSim} are different and special attention must be paid to combine them. The following code shows an example on how to do it:
 
-<<code9, echo=TRUE, eval=TRUE, results='hide', message=FALSE>>=
+<<code12, echo=TRUE, eval=TRUE, results='hide', message=FALSE>>=
 rnaseq_customdata <- omicData("RNA-seq", data = custom_rnaseq)
 rnaseq_options <- omicSim("RNA-seq", totalFeatures = 100)
 
@@ -412,6 +435,31 @@ rnaseq_simulation <- mosim(omics = list("RNA-seq" = rnaseq_customdata),
 The information contained in a simulation object can be classified in two categories: the simulation settings used to perform the simulation, and the count data matrices generated by the process.
 
 To access this information, \Biocpkg{MOSim} provides two helper functions: \Rfunction{omicSettings} to retrieve the simulation settings and \Rfunction{omicResults} for accessing the count matrices.
+
+\subsection{The \Rclass{simulation} object}
+
+After running \Rfunction{mosim}, an S4 object is generated containing all the information from the simulation. This object may be parsed using \Rfunction{omicResults} and \Rfunction{omicSettings} functions. The \Rclass{simulation} object contains the information about the global \Rclass{simulation} process, including association of genes with gene classes, regulatory programs and other settings.
+
+For user understanding, the \Rclass{simulation} object has the following structure:
+
+\begin{description}
+    \item[simulators] Vector containing either S4 initialized classes of simulators or a list with the class name as keys, and its options as value.
+    \item[totalGenes] A number with the total number of genes including not expressed. Overwritten if a genome reference is provided.
+    \item[diffGenes] A scalar with the total number of differential genes if value > 1 or if value < 1, the \% of total genes.
+    \item[numberReps] Number of replicates of the experiment.
+    \item[numberGroups] Number of groups considered on the experiment.
+    \item[times] Numeric vector containing the measured times. If numberGroups < 2, the number of times must be at least 2.
+    \item[geneNames] Read only. List containing the IDs of the genes. Overwritten by the genome reference if provided.
+    \item[simSettings] List of settings that overrides initializing the configuration of the simulation by passing a previously generated list.
+    \item[noiseFunction] Noise function to apply when simulating counts. Must accept the parameter 'n' and return a vector of the same length. Defaults to `rnorm` function.
+    \item[profiles] Named list containing the patterns with their coefficients.
+    \item[profileProbs] Numeric vector with the probabilities to assign each of the patterns. Defaults to 0.2 for each.
+    \item[noiseParams] Default noise parameters to be used with noise function.
+    \item[depth] Default depth to simulate (million of reads).
+    \item[TFtoGene] Boolean (for default data) or 3 column data frame containing Symbol-TFGene-LinkedGene
+    \item[minMaxQuantile] Numeric vector of length 2 indicating the quantiles to use in order to retrieve the absolute minimum and maximum value that a differentially expressed feature can have.
+    \item[minMaxFC] Numeric vector of length 2 indicating the minimum and maximum fold-change that a differentially expressed feature can have.
+\end{description}
 
 
 \subsection{Retrieving the simulation settings: \Rfunction{omicSettings}}
@@ -433,7 +481,7 @@ The following parameters are accepted by the function:
 
 Users can choose to recover the setting for all the simulated omics or just for some of them:
 
-<<code10b, echo=TRUE, eval=TRUE, results='hide', message=FALSE>>=
+<<code13, echo=TRUE, eval=TRUE, results='hide', message=FALSE>>=
 # This will be a data frame with RNA-seq settings (DE flag, profiles)
 rnaseq_settings <- omicSettings(multi_simulation, "RNA-seq")
 
@@ -446,8 +494,8 @@ For RNA-seq, the settings table has an structure similar to this:
 
 % latex table generated in R 3.4.4 by xtable 1.8-2 package
 % Tue Jun 19 14:46:02 2018
-\begin{table}[ht]
 \centering
+\begin{table}[ht]
 \resizebox{\textwidth}{!}{
 \begin{tabular}{llllrr}
   \hline
@@ -468,7 +516,7 @@ Each column provides different information about the settings used to carry on t
 
 \begin{description}
     \item[ID] Gene identifier.
-    \item[DEG] A logical value indicating if the gene was selected as differentially expressed (TRUE) or not (FALSE).
+    \item[DE] A logical value indicating if the gene was selected as differentially expressed (TRUE) or not (FALSE).
     \item[GroupX] There will be as many group columns as groups defined in the experimental design, each one containing the type of expression profile assigned to the gene in the simulation.
     \item[Tmax.GroupX] For transitory profiles, the time point with the absolute maximum (or minimum) value.
 \end{description}
@@ -477,8 +525,8 @@ For regulatory omics, the structure will slightly differ from RNA-seq, adding ad
 
 % latex table generated in R 3.4.4 by xtable 1.8-2 package
 % Tue Jun 19 14:45:44 2018
-\begin{table}[ht]
 \centering
+\begin{table}[ht]
 \resizebox{\textwidth}{!}{
 \begin{tabular}{llllllc}
   \hline
@@ -508,13 +556,13 @@ Each row describes a regulator-gene interaction, with the following columns:
 
 To retrieve the original association lists, the parameter \Robject{association} must be set to $TRUE$:
 
-<<code10c, echo=TRUE, eval=TRUE, tidy=TRUE, results='hide', message=FALSE>>=
+<<code14, echo=TRUE, eval=TRUE, tidy=TRUE, results='hide', message=FALSE>>=
 # This will be a list with 3 keys: settings, association and regulators
 dnase_settings <- omicSettings(multi_simulation, "DNase-seq",
                                association = TRUE)
 @
 
-When settings the \Robject{association} parameter to $TRUE$, the output object will be a list of lists with the following key names:
+When setting the \Robject{association} parameter to $TRUE$, the output object will be a list of lists with the following key names:
 
 \begin{description}
     \item[association] List containing the association table for each omic.
@@ -533,7 +581,7 @@ The last helper function is \Rfunction{omicResults}:
 
 This function can accept 2 parameters: the simulation output object and, optionally, the omics we want to retrieve. As in the previous helper function, retrieving one omic will result in a data frame object, and for more than one a list of data frames will be provided.
 
-<<code10, echo=TRUE, eval=TRUE, results='hide', message=FALSE>>=
+<<code15, echo=TRUE, eval=TRUE, results='hide', message=FALSE>>=
 # multi_simulation is an object returned by mosim function.
 
 # This will be a data frame with RNA-seq counts
@@ -559,11 +607,25 @@ The structure of the final count matrix will have the features as row names, and
 
 Alternatively a \texttt{ExpressionSet} object can be returned by setting the \texttt{format} argument to \texttt{"ExpressionSet"}.
 
+\subsection{Obtaining the experimental design matrix: \Rfunction{experimentalDesign}}
+
+Downstream analysis of the simulated datasets will require an experimental design matrix depicting the simulated comparisons between groups and throughout time. To generate an experiental design matrix, function \Rfunction{experimentalDesign} needs a simulaton object.
+
+<<code16, echo=TRUE, eval=TRUE, message=FALSE, warning=FALSE>>=
+# Generate a simulation object
+omic_list <- c("RNA-seq")
+rnaseq_simulation <- mosim(omics = omic_list)
+
+# This will be a data frame with RNA-seq counts
+design_matrix <- experimentalDesign(rnaseq_simulation)
+design_matrix
+@
+
 \subsection{Plotting results: \Rfunction{plotProfile}}
 
 Graphical plots are useful to check a feature profile or to compare gene \& regulator interactions. To generate them, the function \Rfunction{plotProfile} needs the simulation object, the omic or two omics to plot, and one feature for each omic.
 
-<<code11, echo=TRUE, eval=TRUE, message=FALSE, warning=FALSE>>=
+<<code17, echo=TRUE, eval=TRUE, message=FALSE, warning=FALSE>>=
 
 # The methods returns a ggplot plot, if called directly
 # it will be automatically plotted.
@@ -577,7 +639,7 @@ plotProfile(multi_simulation,
 
 The returned ggplot can be stored in a variable to customize other attributes.
 
-<<code12, echo=TRUE, eval=TRUE, message=FALSE, warning=FALSE>>=
+<<code18, echo=TRUE, eval=TRUE, message=FALSE, warning=FALSE>>=
 library(ggplot2)
 
 # Store the plot in a variable
@@ -602,10 +664,33 @@ Most of the common users' needs should be covered by the previously showed examp
 
 \subsection{Negative binomial variance}
 
-In a negative binomial distribution, the variance depends on the mean. In \Biocpkg{MOSim}, the generated counts for a given condition (and/or time point) are taken as the mean of the distribution. To model the dependence between the negative binomial mean and variance for each omic, we analyzed several data sets and experiments, and observed a linear relationship between log-transformed count values of means and variances ($R^2 > 0.95$ for all models): $\sigma^2 = 10^a ∗ (\mu + 1)^b - 1$. To assure a minimum variance we really used the maximum of this value and 0.03.
+In a negative binomial distribution, the variance depends on the mean. In \Biocpkg{MOSim}, the generated counts for a given condition (and/or time point) are taken as the mean of the distribution. To model the dependence between the negative binomial mean and variance for each omic, we analyzed several data sets and experiments, and observed a linear relationship between log-transformed count values of means and variances ($R^2 > 0.95$ for all models): $\sigma^2 = 10^a * (\mu + 1)^b - 1$. To assure a minimum variance we really used the maximum of this value and 0.03.
 A regression model was applied to estimate coefficients a and b and these estimations were used as default values. The default values for $a$ and $b$ can be changed by users to increase or decrease the default variability in each omic data type.
 
+\subsection{Transforming regulator data to 1/0 format}
 
+In some special cases, it may be necessary to transform a regulator matrix into
+0/1 format (e.g. to simulate datasets counting presence/absence of an event). 
+We can generate a dataframe of 1 and 0 by running:
+
+<<code19, echo=TRUE, eval=FALSE, message=FALSE, warning=FALSE>>=
+discrete_ChIP <- discretize(rnaseq_simulated, "ChIP-seq")
+@
+
+
+\subsection{Special simulation case: \emph{Transcription Factors}}
+
+Transcription factors may be simulated using \Biocpkg{MOSim}, but are a special case, as they represent a subset of the simulated RNA-seq data. They are the result of including parameter \texttt{TFtoGene = TRUE} in the simulation using \Rfunction{mosim} function. It is \textbf{important} to remember Transcription Factors are not simulated when included in the input list to \texttt{(omic)} parameter.
+
+However, similar to other omic simulation results, the simulated dataframe for TF is extracted by default (if \texttt{TFtoGene = TRUE}) by \Rfunction{omicResults}, and the association list and regulator effect by \Rfunction{omicSettings}.
+
+\section{How to cite \Biocpkg{MOSim}}
+
+The \Biocpkg{MOSim} package is currently on biorxiv:
+
+Martínez-Mira C., Conesa A., Tarazona S. (2018) MOSim: Multi-Omics Simulation in R. DOI: 10.1101/421834
+
+\url{https://www.biorxiv.org/content/10.1101/421834v1}
 
 \section{Setup}
 
