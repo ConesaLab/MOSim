@@ -445,7 +445,7 @@ setMethod("initialize", signature="MOSimulation", function(.Object, ...) {
                                     vectorize_all = FALSE
                                 )
 
-				## CM_Fix
+				
                                 ## When simulating methylation for more than 1 
                                 # timepoint, there are repeated matches between 
                                 # profile group and groupCols, so there are 
@@ -518,8 +518,18 @@ setMethod("initialize", signature="MOSimulation", function(.Object, ...) {
                     # Return the processed (or not) profileGroup
                     return(profileGroup)
                 }
-
-                regTable[regDupsDE, ] <- dplyr::group_by(regTable[regDupsDE, ], ID) %>% dplyr::do(classifyDups(.))
+		# In methylseq, classify the duplicated values outside and then
+                # append them to the end of the matrix
+		if (sim@name == 'Methyl-seq'){
+                    # Get the blocks direction
+                    dupProfiles <- dplyr::group_by(regTable[regDupsDE, ], ID) %>% dplyr::do(classifyDups(.))
+                    # Remove the duplicates from the regulatory table
+                    regTable <- regTable[!regDupsDE,]
+                    # Bring back the classified directions of the blocks
+                    regTable <- rbind(regTable, dupProfiles)
+                } else {
+                    regTable[regDupsDE, ] <- dplyr::group_by(regTable[regDupsDE, ], ID) %>% dplyr::do(classifyDups(.))
+                }
             }
 
             message("- Adjusting regulator effect")
