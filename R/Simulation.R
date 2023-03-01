@@ -445,6 +445,26 @@ setMethod("initialize", signature="MOSimulation", function(.Object, ...) {
                                     vectorize_all = FALSE
                                 )
 
+				## CM_Fix
+                                ## When simulating methylation for more than 1 
+                                # timepoint, there are repeated matches between 
+                                # profile group and groupCols, so there are 
+                                # repeated indexes in matchTable. When this 
+                                # happens, get the unique overlap, as the 
+                                # methylation block identifyer keeps the info
+                                # of which CpGs are involved
+
+                                if (sim@name == 'Methyl-seq'){
+                                    if (any(duplicated(matchTable))){
+                                        matchTable <- unique(matchTable)
+                                        profileGroup <- profileGroup[c(matchTable), ]
+                                        rownames(profileGroup) <- c(1:length(matchTable))
+                                        groupCols <- groupCols[matchTable, ]
+                                        rownames(groupCols) <- c(1:length(matchTable))
+                                        matchTable <- c(1:length(matchTable))
+                                    }
+                                }
+
                                 profileGroup[matchTable, paste0("Effect.Group", i)] <- ifelse(
                                     # Check if group is the same as the selected class in this group
                                     groupCols[, i] == as.character(selectedProfile[i]), #selGroup[1, i + 1]),
