@@ -1,4 +1,4 @@
-2#' @import methods stringi matrixStats
+#' @import methods stringi matrixStats
 #' @importFrom stats rnorm runif rbeta rbinom rpois quantile
 #' @importFrom utils data
 NULL
