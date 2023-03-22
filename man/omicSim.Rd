@@ -4,8 +4,7 @@
 \alias{omicSim}
 \title{Set the simulation settings for an omic.}
 \usage{
-omicSim(omic, depth = NULL, totalFeatures = NULL,
-  regulatorEffect = NULL)
+omicSim(omic, depth = NULL, totalFeatures = NULL, regulatorEffect = NULL)
 }
 \arguments{
 \item{omic}{Name of the omic to set the settings.}
@@ -29,9 +28,9 @@ Set the simulation settings for an omic.
 }
 \examples{
 
-omic_list <- c("RNA-seq")
+omic_list <- c("RNA-seq", "miRNA-seq")
 
-rnaseq_options <- omicSim("RNA-seq", totalFeatures = 2500)
+rnaseq_options <- c(omicSim("miRNA-seq", totalFeatures = 2500))
 
 # The return value is an associative list compatible with
 # 'omicsOptions'

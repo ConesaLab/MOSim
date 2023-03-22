@@ -21,7 +21,7 @@ simulators or a list with the class name as keys, and its options as value,
 see example.}
 
 \item{\code{totalGenes}}{A number with the total number of genes including not
-expressed. Overwrited if a genome reference is provided. Currently not used
+expressed. Overwritten if a genome reference is provided. Currently not used
 as we force to provide real data.}
 
 \item{\code{diffGenes}}{A number with the total number of differential genes (if

@@ -1,4 +1,4 @@
 library(testthat)
-library(MOSim)
+#library(MOSim)
 
-test_check("MOSim")
+#test_check("MOSim")

@@ -4,18 +4,23 @@
 \alias{discretize}
 \title{Discretize ChIP-Seq counts to simulate a binary dataset}
 \usage{
-discretize(df)
+discretize(df, omic)
 }
 \arguments{
-\item{simulated}{A MOSimulated object}
+\item{df}{A MOSimulated object}
+
+\item{omic}{Character string of the omic to transform into binary data}
 }
 \value{
-A ChIP-seq dataframe of 0 and 1
+A regulator dataframe of 0 and 1
 }
 \description{
 Discretize ChIP-Seq counts to simulate a binary dataset
 }
 \examples{
-discrete_ChIP <- discretize(rnaseq_simulated)
+omic_list <- c("RNA-seq", "ChIP-seq")
+rnaseq_simulation <- mosim(omics = omic_list, omicsOptions = c(omicSim("ChIP-seq", totalFeatures = 2500)))
+rnaseq_simulated <- omicResults(rnaseq_simulation, omic_list)
+discrete_ChIP <- discretize(rnaseq_simulated, "ChIP-seq")
 
 }

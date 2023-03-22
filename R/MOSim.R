@@ -230,9 +230,9 @@ omicData <- function(omic, data = NULL, associationList = NULL) {
 #'
 #' @examples
 #'
-#' omic_list <- c("RNA-seq")
+#' omic_list <- c("RNA-seq", "miRNA-seq")
 #'
-#' rnaseq_options <- omicSim("RNA-seq", totalFeatures = 2500)
+#' rnaseq_options <- c(omicSim("miRNA-seq", totalFeatures = 2500))
 #'
 #' # The return value is an associative list compatible with
 #' # 'omicsOptions'
@@ -599,7 +599,10 @@ experimentalDesign <- function(simulation) {
 #'
 #' @examples
 #' omic_list <- c("RNA-seq", "miRNA-seq")
-#' rnaseq_simulation <- mosim(omics = omic_list)
+#' 
+#' rnaseq_options <- c(omicSim("miRNA-seq", totalFeatures = 2500))
+#' rnaseq_simulation <- mosim(omics = omic_list,
+#'                            omicsOptions = rnaseq_options)
 #'
 #' plotProfile(rnaseq_simulation,
 #'     omics = c("RNA-seq", "miRNA-seq"),
@@ -796,18 +799,21 @@ plotProfile <-
 
 #' Discretize ChIP-Seq counts to simulate a binary dataset
 #'
-#' @param simulated A MOSimulated object
+#' @param df A MOSimulated object
 #' @param omic Character string of the omic to transform into binary data
 #'
 #' @return A regulator dataframe of 0 and 1
 #' @export
 #'
 #' @examples
+#' omic_list <- c("RNA-seq", "ChIP-seq")
+#' rnaseq_simulation <- mosim(omics = omic_list, omicsOptions = c(omicSim("ChIP-seq", totalFeatures = 2500)))
+#' rnaseq_simulated <- omicResults(rnaseq_simulation, omic_list)
 #' discrete_ChIP <- discretize(rnaseq_simulated, "ChIP-seq")
 #' 
 discretize <- function(df, omic) {
   # Extract omic data from a simulated dataset
-  df <- df$omic
+  df <- df[[omic]]
   ## Transform into relative percentages per sample (sum of column is 1)
   df <- df/colSums(df)
   ## And now per gene
@@ -845,3 +851,8 @@ discretize <- function(df, omic) {
 #'   \item{CpGisland}{Dataframe of CpG to be used as initialization data, located on "Region" column}
 #' }
 "sampleData"
+
+
+utils::globalVariables(c("Block", "Counts", "DE", "DE.Gene", "DE.TF", "Effect", "Exclude", "Gene", "ID", "ID.y", "IsLagged",
+                         "Lagged", "LinkedGene", "Mean", "Measure", "Omic", "Point", "Profile", "Rep", "SE", "ScaledMean",
+                         "ScaledSE", "Symbol", "TFgene", "Time", "chr", "end", "start"))

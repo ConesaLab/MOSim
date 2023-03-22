@@ -445,7 +445,6 @@ setMethod("initialize", signature="MOSimulation", function(.Object, ...) {
                                     vectorize_all = FALSE
                                 )
 
-				
                                 ## When simulating methylation for more than 1 
                                 # timepoint, there are repeated matches between 
                                 # profile group and groupCols, so there are 
@@ -518,9 +517,9 @@ setMethod("initialize", signature="MOSimulation", function(.Object, ...) {
                     # Return the processed (or not) profileGroup
                     return(profileGroup)
                 }
-		# In methylseq, classify the duplicated values outside and then
+                # In methylseq, classify the duplicated values outside and then
                 # append them to the end of the matrix
-		if (sim@name == 'Methyl-seq'){
+                if (sim@name == 'Methyl-seq'){
                     # Get the blocks direction
                     dupProfiles <- dplyr::group_by(regTable[regDupsDE, ], ID) %>% dplyr::do(classifyDups(.))
                     # Remove the duplicates from the regulatory table

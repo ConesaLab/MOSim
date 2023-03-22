@@ -13,7 +13,7 @@ NULL
 #'   simulators or a list with the class name as keys, and its options as value,
 #'   see example.
 #' @slot totalGenes A number with the total number of genes including not
-#'   expressed. Overwrited if a genome reference is provided. Currently not used
+#'   expressed. Overwritten if a genome reference is provided. Currently not used
 #'   as we force to provide real data.
 #' @slot diffGenes A number with the total number of differential genes (if
 #'   value > 1) or \% or total genes (if value < 1).
@@ -390,11 +390,11 @@ setClass(
             # Number of repeats (NOT REPLICATES!)
             m = 1,
             # Transition matrix for CpG locations
-            Pi_m = matrix(c(0.65, 0.35, 0.2, 0.8), byrow =
-                              TRUE, nrow = 2),
+            Pi_m = matrix(c(0.65, 0.35, 0.2, 0.8), byrow = 
+                            TRUE, nrow = 2),
             # Transition matrix for probability distributions
-            Pi_d = matrix(c(0.9, 0.1, 0.1, 0.9), byrow =
-                              TRUE, nrow = 2),
+            Pi_d = matrix(c(0.9, 0.1, 0.1, 0.9), byrow = 
+                            TRUE, nrow = 2),
             # Type of locations
             type_of_locations = 2,
             # Mean number of reads in methylated region

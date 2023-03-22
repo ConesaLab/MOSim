@@ -9,8 +9,8 @@ Depends:
 License: GPL-3
 LazyData: false
 biocViews: Software, TimeCourse, ExperimentalDesign, RNASeq
-BugReports: https://github.com/Neurergus/MOSim/issues
-URL: https://github.com/Neurergus/MOSim
+BugReports: https://github.com/ConesaLab/MOSim/issues
+URL: https://github.com/SoniaTC/MOSim
 Imports:
     HiddenMarkov,
     zoo,
@@ -51,5 +51,5 @@ Collate:
     'methyl-seq.R'
     'miRNA-seq.R'
     'zzz.R'
-RoxygenNote: 6.1.1
+RoxygenNote: 7.2.3
 VignetteBuilder: knitr

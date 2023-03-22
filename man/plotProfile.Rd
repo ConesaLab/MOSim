@@ -4,8 +4,7 @@
 \alias{plotProfile}
 \title{Generate a plot of a feature's profile for one or two omics.}
 \usage{
-plotProfile(simulation, omics, featureIDS, drawReps = FALSE,
-  groups = NULL)
+plotProfile(simulation, omics, featureIDS, drawReps = FALSE, groups = NULL)
 }
 \arguments{
 \item{simulation}{A MOSimulation object}
@@ -29,7 +28,10 @@ Generate a plot of a feature's profile for one or two omics.
 }
 \examples{
 omic_list <- c("RNA-seq", "miRNA-seq")
-rnaseq_simulation <- mosim(omics = omic_list)
+
+rnaseq_options <- c(omicSim("miRNA-seq", totalFeatures = 2500))
+rnaseq_simulation <- mosim(omics = omic_list,
+                           omicsOptions = rnaseq_options)
 
 plotProfile(rnaseq_simulation,
     omics = c("RNA-seq", "miRNA-seq"),

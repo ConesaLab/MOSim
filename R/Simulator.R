@@ -613,8 +613,9 @@ setMethod("simulate", signature="MOSimulator", function(object, simulation) {
     simProfiles <- dplyr::filter(simProfiles, ID %in% rownames(object@data))
 
     if (object@pregenerated) {
-        # TODO: fix this in other place. When working with blocks, sometimes there are duplicated rows
+        # When working with blocks, sometimes there are duplicated rows
         # because they do not have the tmax columns properly filled.
+      # This is now fixed in Simulation.R inside MOSimulation
         simProfiles <- dplyr::group_by(simProfiles, ID) %>%
             dplyr::summarise_all(list(~dplyr::first(stats::na.omit(.)))) %>%
             dplyr::ungroup()
