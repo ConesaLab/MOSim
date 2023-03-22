@@ -20,7 +20,7 @@ The developer version can be installed from GitHub using the devtools R package:
 	
   ```
   install.packages("devtools")
-  devtools::install_github("SoniaTC/MOSim")
+  devtools::install_github("ConesaLab/MOSim")
   ```
 
 ### Documentation

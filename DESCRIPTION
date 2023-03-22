@@ -10,7 +10,7 @@ License: GPL-3
 LazyData: false
 biocViews: Software, TimeCourse, ExperimentalDesign, RNASeq
 BugReports: https://github.com/ConesaLab/MOSim/issues
-URL: https://github.com/SoniaTC/MOSim
+URL: https://github.com/ConesaLab/MOSim
 Imports:
     HiddenMarkov,
     zoo,
