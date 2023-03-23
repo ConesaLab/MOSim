@@ -93,7 +93,7 @@ In brief, \Biocpkg{MOSim} usage can be summed up in 3 main steps that will be de
 
 \section{Getting started}
 
-The \Biocpkg{MOSim} package is available from bioconductor at it's 1.1.1 version. It may be installed as:
+The \Biocpkg{MOSim} package is available from bioconductor at it's 1.1.2 version. It may be installed as:
 
 <<code, echo=TRUE, eval=FALSE>>=
 if (!require("BiocManager", quietly = TRUE))
@@ -102,12 +102,12 @@ if (!require("BiocManager", quietly = TRUE))
 BiocManager::install("MOSim")
 @
 
-The current development version 1.1.2 is hosted in GitHub, and may be installed as follows:
+The current development version 1.2.0 is hosted in GitHub, and may be installed as follows:
 
 <<code1, echo=TRUE, eval=FALSE>>=
 library(devtools)
 
-devtools::install_github("SoniaTC/MOSim")
+devtools::install_github("ConesaLab/MOSim")
 @
 
 \section{\Biocpkg{MOSim} input parameters}
