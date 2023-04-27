@@ -80,3 +80,221 @@ sc_MOSim <- function(omics, cellTypes, numberCells = NULL, mean = NULL, sd = NUL
     return(SPARSim_sim_param)
   }
 }
+
+
+#' @param sim named list containing the omic simulated as names ("scRNA-seq" and "scATAC-seq") , and seurat objects as values.
+#' @param cellTypes list where the i-th element of the list contains the column indices for i-th experimental conditions. List must be a named list.
+#' @param totalFeatures OPTIONAL. Numeric value. Total number of features for the regulatory omic.
+#' @param regulatorEffect OPTIONAL. Named list of length 3 where the user can pass the percentage of activators, repressors and NE he wants as output.
+#' @return named list containing a 3 columns dataframe (peak_id, activity, cell_type), one per each couple of \code{cellTypes}.
+
+sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL, regulatoreEffect = NULL ){
+
+  if(is.null(totalFeatures)){
+
+    atac_counts <- sim[["scATAC-seq"]]@assays[["ATAC"]]@counts
+
+  } else if (is.numeric(totalFeatures)){
+
+    if(totalFeatures <= nrow(sim[["scATAC-seq"]]@assays[["ATAC"]]@counts)){
+
+      # Set the number of features you want to select
+      num_features <- totalFeatures
+      # Get the data from the ATAC assay of the scATAC-seq object
+      atac_data <- sim[["scATAC-seq"]]@assays[["ATAC"]]@counts
+      # Subset the ATAC data to retain only the selected number of features
+      atac_data <- atac_data[sample(nrow(atac_data), num_features, replace = FALSE), ]
+      # Update the ATAC assay with the subsetted data
+      sim[["scATAC-seq"]]@assays[["ATAC"]]@counts<- atac_data
+      atac_counts <- sim[["scATAC-seq"]]@assays[["ATAC"]]@counts
+
+    } else if (totalFeatures > nrow(sim[["scRNA-seq"]]@assays[["RNA"]]@counts)){
+
+      print(paste("the number of totalFeatures you have inserted is higher than what's possible to be generated, ", nrow(sim[["scATAC-seq"]]@assays[["ATAC"]]@counts), " peaks were generated instead." ))
+      atac_counts <- sim[["scATAC-seq"]]@assays[["ATAC"]]@counts
+
+    }
+  }
+
+  rna_counts <- sim[["scRNA-seq"]]@assays[["RNA"]]@counts
+
+  #calculate gene expression for each cellTypes
+  gene_expression_list <- lapply(names(cellTypes), function(cellTypes) {
+
+    gene_expression <- rowSums(rna_counts[, cellTypes[[cellTypes]]])
+    names(gene_expression) <- rownames(rna_counts)
+    return(gene_expression)
+
+  })
+
+  names(gene_expression_list) <- paste0("gene_expr_", names(cellTypes))
+
+  if(length(cellTypes) > 2){
+
+    da_peaks_atac_list <- lapply(seq_along(cellTypes), function(i) {
+
+      j <- i %% length(cellTypes) + 1
+      ident1 <- names(cellTypes)[i]
+      ident2 <- names(cellTypes)[j]
+      FindMarkers(object = sim[["scATAC-seq"]], ident.1 = ident1, ident.2 = ident2, min.pct = 0.05)
+
+    })
+
+    names(da_peaks_atac_list) <- paste0(names(cellTypes), "markers_", c(names(cellTypes)[-1], names(cellTypes)[1]))
+
+  } else if(length(cellTypes) ==2 ){
+
+    da_peaks_atac_list <- list()
+    da_peaks_atac <- FindMarkers(object = sim[["scATAC-seq"]], ident.1 = names(cellTypes[1]), ident.2 = names(cellTypes[2]) , min.pct = 0.05)
+    da_peaks_atac_list[[paste0("markers_", names(cellTypes[1]), "_", names(cellTypes[2]) )]] <- da_peaks_atac
+
+  }
+
+  #subselecting the dataframe according to upregulated peaks in celltype 1 and 2
+
+  subset_list <- lapply(seq_along(da_peaks_atac_list), function(i) {
+
+    names_i <- strsplit(names(da_peaks_atac_list), "_")[[i]]
+    cell_type_1 <- names_i[2]
+    cell_type_2 <- names_i[3]
+
+    x <- da_peaks_atac_list[[i]]
+    subset_up_cell1 <- x[x$avg_log2FC > 0,]
+    subset_up_cell2 <- x[x$avg_log2FC < 0,]
+
+    upreg_1 <- rownames(subset_up_cell1)
+    upreg_2 <- rownames(subset_up_cell2)
+
+    subset_list_upreg <- list(upreg_1, upreg_2)
+    names(subset_list_upreg) <- c(paste0("up_reg_", cell_type_1),paste0("up_reg_", cell_type_2))
+    subset_list_upreg
+
+  })
+  names(subset_list) <- paste0(names(da_peaks_atac_list))
+
+  #loading human association list
+  association_list <- read.csv("../data/seurat_association_list.csv",sep = ";")
+
+  result_list <- lapply(seq_along(subset_list), function(j) {
+    #open empty dataframe
+    peak_df <- data.frame(peak_id = character(),
+                          activity = character(),
+                          cell_type = character(),
+                          stringsAsFactors = FALSE)
+
+    for(i in 1:nrow(association_list)) {
+
+      peak <- association_list[i,1]
+      gene <- association_list[i,2]
+
+      # Check if the gene is in the rownames of the rna_counts matrix
+      if(gene %in% rownames(rna_counts)) {
+
+        # Check if the peak is upregulated in cell type A and the gene expression of gene i for cell type A is >0
+        if(peak %in% subset_list[[j]][[1]] && gene_expression_list[[j]][gene] > 0) {
+
+          activity <- "activator"
+          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, cell_type = strsplit(names(subset_list[[j]]),"_")[[1]][3], stringsAsFactors = FALSE))
+
+          #check if the peak is upregulated in cell type A and the gene expression of gene i for cell type A is ==0
+          #or
+          # if the peak is downregulated in cell type A (up in B) and the gene expression of gene i for cell type A is >0
+        } else if((peak %in% subset_list[[j]][[1]] && gene_expression_list[[j]][gene] == 0) ||
+                  (peak %in% subset_list[[j]][[2]] && gene_expression_list[[j]][gene] > 0)) {
+
+          activity <- "repressor"
+          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, cell_type = strsplit(names(subset_list[[j]]),"_")[[1]][3], stringsAsFactors = FALSE))
+
+          #check if the peak is upregulated in cell type B and the gene expression of gene i for cell type B is >0
+        } else if(peak %in% subset_list[[j]][[2]] && gene_expression_list[[j+1]][gene] > 0) {
+
+          activity <- "activator"
+          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, cell_type = strsplit(names(subset_list[[j]]),"_")[[2]][3], stringsAsFactors = FALSE))
+
+          #check if the peak is upregulated in cell type B and the gene expression of gene i for cell type B is ==0
+          #or
+          #check if the peak is downregulated in cell type B (up in A) and the gene expression of gene i for cell type B is >0
+        } else if((peak %in% subset_list[[j]][[2]] && gene_expression_list[[j+1]][gene] == 0) ||
+                  (peak %in% subset_list[[j]][[1]] && gene_expression_list[[j+1]][gene] > 0)) {
+
+          activity <- "repressor"
+          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, cell_type = strsplit(names(subset_list[[j]]),"_")[[2]][3], stringsAsFactors = FALSE))
+
+          #otherwise the regulator has a No effect Activity "NE"
+        } else {
+
+          activity <- "NE"
+          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, cell_type = "NA", stringsAsFactors = FALSE))
+
+        }
+
+      } else {
+
+        print(paste(gene,"is not in the association list "))
+
+      }
+
+    }
+
+    peak_df
+
+  })
+
+  names(result_list) <- paste0(names(da_peaks_atac_list))
+
+  #sub-setting the dataframes contained in result list according to regulatorEffect percentages
+
+  #if regulatorEffect is null then it returns the dataframe without subsetting
+  if (is.null(regulatorEffect)){
+
+    return(result_list)
+
+
+  } # if regulatorEffect is not null then it return the sub-setted dataframe according to percentages passed
+
+  else if(typeof(regulatorEffect) =="list"){
+
+    if(length(regulatorEffect) == 3){
+
+      subset_df <- function(df) {
+        #take dataframe of activators
+        activator_df <- df[df$activity == 'activator', ]
+        #multiplies the n* of rows for the input percentage
+        n_activator <- round(nrow(activator_df) * regulatorEffect[['activator']])
+        #create new df randomly containing n_activators activators
+        activator_subset <- activator_df[sample(nrow(activator_df), n_activator), ]
+
+        #take dataframe of repressors
+        repressor_df <- df[df$activity == 'repressor', ]
+        #multiplies the n* of rows for the input percentage
+        n_repressor <- round(nrow(repressor_df) * regulatorEffect[['repressor']])
+        #create new df randomly containing n_repressors repressors
+        repressor_subset <- repressor_df[sample(nrow(repressor_df), n_repressor), ]
+
+        #take dataframe of NE
+        NE_df <- df[df$activity == 'NE', ]
+        #multiplies the n* of rows for the input percentage
+        n_NE <- round(nrow(NE_df) * regulatorEffect[['NE']])
+        #create new df randomly containing n_NE NE
+        NE_subset <- NE_df[sample(nrow(NE_df), n_NE), ]
+
+        # Combine the subsets and return the df
+        subset_df <- rbind(activator_subset, repressor_subset, NE_subset)
+        return(subset_df)
+      }
+
+      # Apply the function to each dataframe in result_list and store the results in a new named list
+      sub_result_list <- lapply(result_list, subset_df)
+      names(sub_result_list) <- paste0(names(result_list), "_subset")
+      return(sub_result_list)
+
+    } else {
+
+      print("regulatorEffect must be a named list with percentages as values of length 3. The names must be 'activator', 'repressor', 'NE' ")
+      return(NA)
+
+    }
+
+  }
+
+}
