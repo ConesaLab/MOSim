@@ -1,8 +1,19 @@
-#' @param omic A string which can be either "scRNA-seq" or "scATAC-seq"
-#' @param data A user input matrix with genes (peaks in case of scATAC-seq) as rows and cells as columns. Alternatively MOSim allows user to estimate the input parameters from an existing count table by typing 'example_matrix'
-#' @return a named list with omic type as name and the count matrix as value
+#'
+#' Checks if the user defined data is in the correct format, or loads
+#' the pbmc dataset from https://satijalab.org/seurat/articles/pbmc3k_tutorial.html
+#'
+#' @param omics_types A list of strings which can be either "scRNA-seq" or "scATAC-seq"
+#' @param data A user input matrix with genes (peaks in case of scATAC-seq) as rows and cells as columns. Alternatively sc_MOSim allows you to use a default dataset (PBMC) by not specifying the argument.
+#' @return a named list with omics type as name and the count matrix as value
 
-length(rna_orig_counts)
+#' @export
+#'
+#' @examples
+#'
+#' scRNAseq <- sc_omicData("scRNA-seq")
+#' scATACseq <- sc_omicData("scATAC-seq")
+#' scRNAseq_user <- sc_omicData("scRNA-seq", count_matrix)
+
 
 sc_omicData <- function(omic, data = NULL){
 
@@ -58,8 +69,17 @@ sc_omicData <- function(omic, data = NULL){
 }
 
 
-#' @param omics named list containing the omic to simulate as names, which can be "scRNA-seq" or "scATAC-seq, and the input count matrix as
-#' @param cellTypes list where the i-th element of the list contains the column indices for i-th experimental conditions. List must be a named list.
+#' param_estimation
+#'
+#' Evaluate the users parameters for single cell simulation and use SPARSim
+#' to simulate the main dataset
+#'
+#' @param omics named list containing the omics to simulate as names, which can be "scRNA-seq" or "scATAC-seq".
+#' @param cellTypes list where the i-th element of the list contains the column indices for i-th cell type. List must be a named list.
+#' @param numberCells vector of numbers. The numbers correspond to the number of cells the user wants to simulate per each cell type. The length of the vector must be the same as length of \code{cellTypes}.
+#' @param mean vector of numbers of mean per each cell type. Must be specified just if \code{numberCells} is specified.
+#' @param sd vector of numbers of standard deviation per each cell type. Must be specified just if \code{numberCells} is specified.
+#' @return a named list with simulation parameters for each omics as values.
 
 param_estimation <- function(omic, numberCells){
   omic_norm <- scran_normalization(omic)
@@ -68,6 +88,28 @@ param_estimation <- function(omic, numberCells){
                                                     conditions = numberCells)
   return(param_est)
 }
+
+#' sc_MOSim
+#'
+#' Performs multiomic simulation of single cell datasets
+#'
+#' @param omics named list containing the omic to simulate as names, which can be "scRNA-seq" or "scATAC-seq".
+#' @param cellTypes list where the i-th element of the list contains the column indices for i-th experimental conditions. List must be a named list.
+#' @param numberCells vector of numbers. The numbers correspond to the number of cells the user wants to simulate per each cell type. The length of the vector must be the same as length of \code{cellTypes}.
+#' @param mean vector of numbers of mean per each cell type. Must be specified just if \code{numberCells} is specified.The length of the vector must be the same as length of \code{cellTypes}.
+#' @param sd vector of numbers of standard deviation per each cell type. Must be specified just if \code{numberCells} is specified.The length of the vector must be the same as length of \code{cellTypes}.
+#' @return a list of Seurat object, one per each omic.
+
+#' @export
+#'
+#' @examples
+#'
+#' cellTypes <- list(cellA = c(1:20), cellB = c(161:191))
+#' sim <- scMOSim(omicsList, cellTypes)
+#' # or
+#' sim_with_arg <- scMOSim(omicsList, cellTypes, numberCells = c(10,20),
+#'       mean = c(2000000, 100000), sd = c(10^3, 10^3))
+#'
 
 sc_MOSim <- function(omics, cellTypes, numberCells = NULL, mean = NULL, sd = NULL, sim_parameter = NULL ){
 
@@ -82,11 +124,29 @@ sc_MOSim <- function(omics, cellTypes, numberCells = NULL, mean = NULL, sd = NUL
 }
 
 
+#' sc_omicSim
+#'
+#' Defines regulatory functions of features for regulatory omics
+#'
 #' @param sim named list containing the omic simulated as names ("scRNA-seq" and "scATAC-seq") , and seurat objects as values.
 #' @param cellTypes list where the i-th element of the list contains the column indices for i-th experimental conditions. List must be a named list.
-#' @param totalFeatures OPTIONAL. Numeric value. Total number of features for the regulatory omic.
-#' @param regulatorEffect OPTIONAL. Named list of length 3 where the user can pass the percentage of activators, repressors and NE he wants as output.
+#' @param totalFeatures OPTIONAL. Numeric value. Total number of features for the regulatory omic.If not provided it uses the same amount of features used for the simulation.
+#' @param regulatorEffect OPTIONAL. Named list of length 3 where the user can pass the percentage of activators, repressors and NE he wants as output. If not provided the function outputs the dataframe without sub-setting it according to percentages.
+#' @param associationList OPTIONAL. A 2 columns dataframe reporting peak ids and gene names. If not provided the code uses our own associationlist derived from hg19.
 #' @return named list containing a 3 columns dataframe (peak_id, activity, cell_type), one per each couple of \code{cellTypes}.
+
+#' @export
+#'
+#' @examples
+#'
+#'
+#' omic_list <- sc_omicData(c("scRNA-seq","scATAC-seq"))
+#' cell_types <- list(cellA = c(1:20), cellB = c(161:191))
+#' sim <-sc_MOSim(omic_list, cell_types, numberCells = c(10,20), mean = c(2*10^6, 2*10^3), sd = c(10^3, 10^2))
+#' cell_types <- list(cellA= c(1:10), cellB = c(11:30))
+#' regulatorEffect = list('activator' = 0.8,'repressor' = 0.1,'NE' = 0.1)
+#' sc_omicSim(sim, cell_types, totalFeatures = 500, regulatoreEffect = regulatorEffect)
+#'
 
 sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL, regulatoreEffect = NULL ){
 
