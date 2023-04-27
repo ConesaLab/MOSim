@@ -57,22 +57,26 @@ sc_omicData <- function(omic, data = NULL){
   }
 }
 
-prova1 <- sc_omicData("scR-seq", rna_orig_counts)
-prova2 <- sc_omicData("scATAC-seq")
-prova3 <- sc_omicData("scATAC-seq", c)
-ca <- 2
-pa <- 4
-!is.matrix(c)
-rna_orig_counts <- as.matrix(dgCmatrix_counts)
 
-omic <- "scRNA-seq"
-provona <- tibble::lst(omic, rna_orig_counts)
+#' @param omics named list containing the omic to simulate as names, which can be "scRNA-seq" or "scATAC-seq, and the input count matrix as
+#' @param cellTypes list where the i-th element of the list contains the column indices for i-th experimental conditions. List must be a named list.
 
+param_estimation <- function(omic, numberCells){
+  omic_norm <- scran_normalization(omic)
+  param_est <- SPARSim_estimate_parameter_from_data(raw_data = omic,
+                                                    norm_data = omic_norm,
+                                                    conditions = numberCells)
+  return(param_est)
+}
 
-#@param omics character vector containing the names of the omics to simulate,
-#       which can be "scRNA-seq" or "scATAC-seq
+sc_MOSim <- function(omics, cellTypes, numberCells = NULL, mean = NULL, sd = NULL, sim_parameter = NULL ){
 
+  lapply(omics, param_estimation)
 
+  sim_parameter_matrix <- NULL
+  if(!is.null(sim_parameter)){
+    cat("Generating simulation parameters matrices...", "\n")
 
-sc_MOSim <- function(omics, numberCellTypes, numberCells = FALSE, mean = FALSE, sd = FALSE, sim_parameter = FALSE ){
+    return(SPARSim_sim_param)
+  }
 }
