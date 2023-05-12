@@ -52,3 +52,4 @@ vignettes/figure/
 
 *.Rproj
 .Rproj.user
+inst/doc
