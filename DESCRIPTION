@@ -50,6 +50,7 @@ Collate:
     'simulate_WGBS_functions.R'
     'methyl-seq.R'
     'miRNA-seq.R'
+    'sc_MOSim.R'
     'zzz.R'
 RoxygenNote: 7.2.3
 VignetteBuilder: knitr
