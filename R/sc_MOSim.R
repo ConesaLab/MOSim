@@ -28,8 +28,9 @@ if(getRversion() >= "2.15.1")  utils::globalVariables(c(".", "n", "sc_sampleData
 #'
 sc_omicData <- function(omics_types, data = NULL){
   # Check for mandatory parameters
-  if (missing(omics_types))
+  if (missing(omics_types)){
     stop("You must provide the vector of omics to simulate.")
+  }
   
   use_default_data <- function(){
     if (omics == "scRNA-seq"){
@@ -56,7 +57,6 @@ sc_omicData <- function(omics_types, data = NULL){
     
     for (i in 1:N_data){
       
-    }
       if (! is.matrix(data[[i]]) && class(data[[i]]) != "Seurat"){
         print("Each element of data must be either matrix or a Seurat object")
         return(NA)
@@ -167,7 +167,7 @@ sc_param_estimation <- function(omics, cellTypes, numberCells = NULL, mean = NUL
       for(j in 1:N_cellTypes){
         
         cond_param <- SPARSim::SPARSim_create_simulation_parameter(
-                          intensity = param_est_list[[i]][[j]][["intensity"]]param_est_list[[i]][[j]][["intensity"]],
+                          intensity = param_est_list[[i]][[j]][["intensity"]],
                           variability = param_est_list[[i]][[j]][["variability"]],
                           library_size = param_est_list[[i]][[j]][["lib_size"]],
                           condition_name = param_est_list[[i]][[j]][["name"]],
