@@ -35,4 +35,4 @@ or by running the following line in the R console:
 
 If you used MOSim for your research, please cite:
 
-- Martínez C, Monzó C, Conesa A, Tarazona S (2022). MOSim: Multi-Omics Simulation (MOSim). R package version 1.2.0, https://github.com/ConesaLab/MOSim.
+- Martínez C, Monzó C, Conesa A, Tarazona S (2022). MOSim: Multi-Omics Simulation (MOSim). R package version 1.14.0, https://github.com/ConesaLab/MOSim.
