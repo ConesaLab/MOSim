@@ -4,33 +4,40 @@
 #' @import Signac
 #' @import stringr
 NULL
-#'
-#'
+
+# Avoid harmless note with R CMD check
+if(getRversion() >= "2.15.1")  utils::globalVariables(c(".", "n", "sc_sampleData"))
+
+
 #' sc_omicData
 #'
-#' Checks if the user defined data is in the correct format, or loads
-#' the pbmc dataset from https://satijalab.org/seurat/articles/pbmc3k_tutorial.html
+#' Checks if the user defined data is in the correct format, or loads the default
+#' pbmc dataset from https://satijalab.org/seurat/articles/pbmc3k_tutorial.html
 #'
 #' @param omics_types A list of strings which can be either "scRNA-seq" or "scATAC-seq"
-#' @param data A user input matrix with genes (peaks in case of scATAC-seq) as rows and cells as columns. Alternatively sc_MOSim allows you to use a default dataset (PBMC) by not specifying the argument.
+#' @param data A user input matrix with genes (peaks in case of scATAC-seq) as 
+#'    rows and cells as columns. Alternatively scMOSim allows you to use a default 
+#'    dataset (PBMC) by not specifying the argument.
 #' @return a named list with omics type as name and the count matrix as value
 #' @export
 #'
 #' @examples
 #'
-#' scRNAseq <- sc_omicData("scRNA-seq")
-#' scATACseq <- sc_omicData("scATAC-seq")
-#' scRNAseq_user <- sc_omicData("scRNA-seq", count_matrix)
+#' scOmics <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
+#' scRNAseq_user <- sc_omicData(omics_type = list("scRNA-seq"), data = list(count_matrix)) 
 #'
 sc_omicData <- function(omics_types, data = NULL){
+  # Check for mandatory parameters
+  if (missing(omics_types))
+    stop("You must provide the vector of omics to simulate.")
   
   use_default_data <- function(){
     if (omics == "scRNA-seq"){
-      rna_orig_counts <- readRDS("../data/rna_orig_counts.rds")
+      rna_orig_counts <- sc_sampleData$rna_orig_counts
       return(list("scRNA-seq" = rna_orig_counts))
       
     } else if (omics =="scATAC-seq"){
-      atac_orig_counts <- readRDS("../data/atac_orig_counts.rds")
+      atac_orig_counts <- sc_sampleData$atac_orig_counts
       return(list("scATAC-seq" = atac_orig_counts))
       
     }
@@ -83,21 +90,33 @@ sc_omicData <- function(omics_types, data = NULL){
   }
   return(count_matrix_list)
 }
-#'
-#'
-#' param_estimation
+
+
+#' sc_param_estimation
 #'
 #' Evaluate the users parameters for single cell simulation and use SPARSim
 #' to simulate the main dataset
 #'
-#' @param omics named list containing the omics to simulate as names, which can be "scRNA-seq" or "scATAC-seq".
-#' @param cellTypes list where the i-th element of the list contains the column indices for i-th cell type. List must be a named list.
-#' @param numberCells vector of numbers. The numbers correspond to the number of cells the user wants to simulate per each cell type. The length of the vector must be the same as length of \code{cellTypes}.
-#' @param mean vector of numbers of mean per each cell type. Must be specified just if \code{numberCells} is specified.
-#' @param sd vector of numbers of standard deviation per each cell type. Must be specified just if \code{numberCells} is specified.
+#' @param omics named list containing the omics to simulate as names, which can 
+#'    be "scRNA-seq" or "scATAC-seq".
+#' @param cellTypes list where the i-th element of the list contains the column 
+#'    indices for i-th cell type. List must be a named list.
+#' @param numberCells vector of numbers. The numbers correspond to the number 
+#'    of cells the user wants to simulate per each cell type. The length of the 
+#'       vector must be the same as length of \code{cellTypes}.
+#' @param mean vector of numbers of mean per each cell type. Must be specified 
+#'    just if \code{numberCells} is specified.
+#' @param sd vector of numbers of standard deviation per each cell type. Must be 
+#'    specified just if \code{numberCells} is specified.
 #' @return a named list with simulation parameters for each omics as values.
 #'
-param_estimation <- function(omics, cellTypes, numberCells = NULL, mean = NULL, sd = NULL){
+sc_param_estimation <- function(omics, cellTypes, numberCells = NULL, mean = NULL, sd = NULL){
+  # Check for mandatory parameters
+  if (missing(omics))
+    stop("You must provide the vector of omics to simulate.")
+  
+  if (missing(cellTypes))
+    stop("You must provide the correspondence of cells and celltypes")
   
   all_missing <- is.null(numberCells) && is.null(mean) && is.null(sd)
   all_specified <- !is.null(numberCells) && !is.null(mean) && !is.null(sd)
@@ -115,7 +134,7 @@ param_estimation <- function(omics, cellTypes, numberCells = NULL, mean = NULL, 
   
   for(i in 1:N_omics){
 
-    param_est <- SPARSim_estimate_parameter_from_data(raw_data = omics[[i]],
+    param_est <- SPARSim::SPARSim_estimate_parameter_from_data(raw_data = omics[[i]],
                                                     norm_data = norm_list[[i]],
                                                     conditions = cellTypes)
     param_est_list[[paste0("param_est_", names(omics)[i])]] <- param_est
@@ -137,11 +156,13 @@ param_estimation <- function(omics, cellTypes, numberCells = NULL, mean = NULL, 
         
         for(j in 1:N_cellTypes){
         
-        cond_param <- SPARSim_create_simulation_parameter(intensity = param_est_list[[i]][[j]][["intensity"]],
-                                                          variability = param_est_list[[i]][[j]][["variability"]],
-                                                          library_size = round(rnorm(n = numberCells[j], mean = mean[j], sd = sd[j])),
-                                                          condition_name = param_est_list[[i]][[j]][["name"]],
-                                                          feature_names = names(param_est_list[[i]][[j]][["intensity"]]))
+        cond_param <- SPARSim::SPARSim_create_simulation_parameter(
+                            intensity = param_est_list[[i]][[j]][["intensity"]],
+                            variability = param_est_list[[i]][[j]][["variability"]],
+                            library_size = round(rnorm(n = numberCells[j], mean = mean[j], sd = sd[j])),
+                            condition_name = param_est_list[[i]][[j]][["name"]],
+                            feature_names = names(param_est_list[[i]][[j]][["intensity"]]))
+        
         cell_type_list[[names(cellTypes)[j]]] <- cond_param
         
         }
@@ -152,17 +173,25 @@ param_estimation <- function(omics, cellTypes, numberCells = NULL, mean = NULL, 
   }
   
 }
-#'
-#'
-#' sc_MOSim
+
+
+#' scMOSim
 #'
 #' Performs multiomic simulation of single cell datasets
 #'
-#' @param omics named list containing the omic to simulate as names, which can be "scRNA-seq" or "scATAC-seq".
-#' @param cellTypes list where the i-th element of the list contains the column indices for i-th experimental conditions. List must be a named list.
-#' @param numberCells vector of numbers. The numbers correspond to the number of cells the user wants to simulate per each cell type. The length of the vector must be the same as length of \code{cellTypes}.
-#' @param mean vector of numbers of mean per each cell type. Must be specified just if \code{numberCells} is specified.The length of the vector must be the same as length of \code{cellTypes}.
-#' @param sd vector of numbers of standard deviation per each cell type. Must be specified just if \code{numberCells} is specified.The length of the vector must be the same as length of \code{cellTypes}.
+#' @param omics named list containing the omic to simulate as names, which can 
+#'     be "scRNA-seq" or "scATAC-seq".
+#' @param cellTypes list where the i-th element of the list contains the column 
+#'     indices for i-th experimental conditions. List must be a named list.
+#' @param numberCells vector of numbers. The numbers correspond to the number of 
+#'     cells the user wants to simulate per each cell type. The length of the 
+#'         vector must be the same as length of \code{cellTypes}.
+#' @param mean vector of numbers of mean per each cell type. Must be specified 
+#'     just if \code{numberCells} is specified.The length of the vector must be 
+#'         the same as length of \code{cellTypes}.
+#' @param sd vector of numbers of standard deviation per each cell type. Must be 
+#'     specified just if \code{numberCells} is specified.The length of the vector 
+#'         must be the same as length of \code{cellTypes}.
 #' @return a list of Seurat object, one per each omic.
 #' @export
 #'
@@ -174,16 +203,22 @@ param_estimation <- function(omics, cellTypes, numberCells = NULL, mean = NULL, 
 #' sim_with_arg <- scMOSim(omicsList, cellTypes, numberCells = c(10,20),
 #'       mean = c(2000000, 100000), sd = c(10^3, 10^3))
 #'
-sc_MOSim <- function(omics, cellTypes, numberCells = NULL, mean = NULL, sd = NULL){
+scMOSim <- function(omics, cellTypes, numberCells = NULL, mean = NULL, sd = NULL){
+    # Check for mandatory parameters
+    if (missing(omics))
+      stop("You must provide the vector of omics to simulate.")
+  
+    if (missing(cellTypes))
+      stop("You must provide the correspondence of cells and celltypes")
     
-    param_list <- param_estimation(omics, cellTypes, numberCells, mean, sd)
+    param_list <- sc_param_estimation(omics, cellTypes, numberCells, mean, sd)
     
     N_param <- length(param_list)
     sim_list <- list()
     
     for(i in 1:N_param){
       
-      sim <- SPARSim_simulation(dataset_parameter = param_list[[i]])
+      sim <- SPARSim::SPARSim_simulation(dataset_parameter = param_list[[i]])
       sim <- sim[["count_matrix"]]
       sim_list[[paste0("sim_", names(omics)[i])]] <- sim
       
@@ -196,7 +231,7 @@ sc_MOSim <- function(omics, cellTypes, numberCells = NULL, mean = NULL, sd = NUL
       
     assay_name <- str_split(names(sim_list)[i], "-")[[1]][1]
     assay_name <- sub("sim_sc","",assay_name)
-    seu <- CreateSeuratObject(counts = sim_list[[i]],
+    seu <- Seurat::CreateSeuratObject(counts = sim_list[[i]],
                               assay = assay_name,
                               rownames = rownames(sim_list[[i]]), #explicitly specifying rownames
                               colnames = colnames(sim_list[[i]])) #and colnames for Seurat obj
@@ -207,18 +242,28 @@ sc_MOSim <- function(omics, cellTypes, numberCells = NULL, mean = NULL, sd = NUL
     return(seu_obj)
     
 }
-#'
-#'
+
+
 #' sc_omicSim
 #'
 #' Defines regulatory functions of features for regulatory omics
 #'
-#' @param sim named list containing the omic simulated as names ("scRNA-seq" and "scATAC-seq") , and seurat objects as values.
-#' @param cellTypes list where the i-th element of the list contains the column indices for i-th experimental conditions. List must be a named list.
-#' @param totalFeatures OPTIONAL. Numeric value. Total number of features for the regulatory omic.If not provided it uses the same amount of features used for the simulation.
-#' @param regulatorEffect OPTIONAL. Named list of length 3 where the user can pass the percentage of activators, repressors and NE he wants as output. If not provided the function outputs the dataframe without sub-setting it according to percentages.
-#' @param associationList OPTIONAL. A 2 columns dataframe reporting peak ids and gene names. If not provided the code uses our own associationlist derived from hg19.
-#' @return named list containing a 3 columns dataframe (peak_id, activity, cell_type), one per each couple of \code{cellTypes}.
+#' @param sim named list containing the omic simulated as names ("scRNA-seq" and 
+#'     "scATAC-seq") , and seurat objects as values.
+#' @param cellTypes list where the i-th element of the list contains the column 
+#'     indices for i-th experimental conditions. List must be a named list.
+#' @param totalFeatures OPTIONAL. Numeric value. Total number of features for 
+#'     the regulatory omic.If not provided it uses the same amount of features 
+#'         used for the simulation.
+#' @param regulatorEffect OPTIONAL. Named list of length 3 where the user can 
+#'     pass the percentage of activators, repressors and NE he wants as output. 
+#'         If not provided the function outputs the dataframe without sub-setting 
+#'             it according to percentages.
+#' @param associationList OPTIONAL. A 2 columns dataframe reporting peak ids and 
+#'     gene names. If not provided the code uses our own associationlist derived 
+#'         from hg19.
+#' @return named list containing a 3 columns dataframe (peak_id, activity, 
+#'     cell_type), one per each couple of \code{cellTypes}.
 #' @export
 #'
 #' @examples
@@ -226,12 +271,18 @@ sc_MOSim <- function(omics, cellTypes, numberCells = NULL, mean = NULL, sd = NUL
 #'
 #' omic_list <- sc_omicData(c("scRNA-seq","scATAC-seq"))
 #' cell_types <- list(cellA = c(1:20), cellB = c(161:191))
-#' sim <-sc_MOSim(omic_list, cell_types, numberCells = c(10,20), mean = c(2*10^6, 2*10^3), sd = c(10^3, 10^2))
+#' sim <-scMOSim(omic_list, cell_types, numberCells = c(10,20), mean = c(2*10^6, 2*10^3), sd = c(10^3, 10^2))
 #' cell_types <- list(cellA= c(1:10), cellB = c(11:30))
 #' regulatorEffect = list('activator' = 0.8,'repressor' = 0.1,'NE' = 0.1)
 #' sc_omicSim(sim, cell_types, totalFeatures = 500, regulatoreEffect = regulatorEffect)
 #'
-sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL, regulatoreEffect = NULL, associationList = NULL ){
+sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL, 
+                       regulatoreEffect = NULL, associationList = NULL ){
+  # Check for mandatory parameters
+  if (missing(sim))
+    stop("You must provide the named list of simulated omics.")
+  if (missing(cellTypes))
+    stop("You must provide the correspondence of cells and celltypes")
   
   if(is.null(totalFeatures)){
     
@@ -253,7 +304,10 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL, regulatoreEffect = 
       
     } else if (totalFeatures > nrow(sim[["scRNA-seq"]]@assays[["RNA"]]@counts)){
       
-      print(paste("the number of totalFeatures you have inserted is higher than what's possible to be generated, ", nrow(sim[["scATAC-seq"]]@assays[["ATAC"]]@counts), " peaks were generated instead." ))
+      print(paste("the number of totalFeatures you have inserted is higher than 
+                  what's possible to be generated, ", 
+                  nrow(sim[["scATAC-seq"]]@assays[["ATAC"]]@counts), 
+                  " peaks were generated instead." ))
       atac_counts <- sim[["scATAC-seq"]]@assays[["ATAC"]]@counts
       
     }
@@ -279,17 +333,22 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL, regulatoreEffect = 
       j <- i %% length(cellTypes) + 1
       ident1 <- names(cellTypes)[i]
       ident2 <- names(cellTypes)[j]
-      FindMarkers(object = sim[["scATAC-seq"]], ident.1 = ident1, ident.2 = ident2, min.pct = 0.05)
+      FindMarkers(object = sim[["scATAC-seq"]], ident.1 = ident1, ident.2 = ident2, 
+                  min.pct = 0.05)
       
     })
     
-    names(da_peaks_atac_list) <- paste0(names(cellTypes), "markers_", c(names(cellTypes)[-1], names(cellTypes)[1]))
+    names(da_peaks_atac_list) <- paste0(names(cellTypes), "markers_", 
+                                c(names(cellTypes)[-1], names(cellTypes)[1]))
     
   } else if(length(cellTypes) ==2 ){
     
     da_peaks_atac_list <- list()
-    da_peaks_atac <- FindMarkers(object = sim[["scATAC-seq"]], ident.1 = names(cellTypes[1]), ident.2 = names(cellTypes[2]) , min.pct = 0.05)
-    da_peaks_atac_list[[paste0("markers_", names(cellTypes[1]), "_", names(cellTypes[2]) )]] <- da_peaks_atac
+    da_peaks_atac <- FindMarkers(object = sim[["scATAC-seq"]], 
+                                 ident.1 = names(cellTypes[1]), 
+                                 ident.2 = names(cellTypes[2]) , min.pct = 0.05)
+    da_peaks_atac_list[[paste0("markers_", names(cellTypes[1]), 
+                               "_", names(cellTypes[2]) )]] <- da_peaks_atac
     
   }
   
@@ -318,7 +377,7 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL, regulatoreEffect = 
   #loading human association list
   if (is.null(associationList)){
     
-  association_list <- read.csv("../data/seurat_association_list.csv",sep = ";")
+  association_list <- sc_sampleData$seurat_association_list
   
   } else if (is.list(associationList)){
     
@@ -328,7 +387,8 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL, regulatoreEffect = 
       
     } else {
       
-      print("the associationList must be a dataframe having two columns reporting peak ids and gene names")
+      print("the associationList must be a dataframe having two columns reporting 
+            peak ids and gene names")
       return(NA)
       
     }
@@ -349,41 +409,54 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL, regulatoreEffect = 
       # Check if the gene is in the rownames of the rna_counts matrix
       if(gene %in% rownames(rna_counts)) {
         
-        # Check if the peak is upregulated in cell type A and the gene expression of gene i for cell type A is >0
+        # Check if the peak is upregulated in cell type A and the gene expression 
+        #of gene i for cell type A is >0
         if(peak %in% subset_list[[j]][[1]] && gene_expression_list[[j]][gene] > 0) {
           
           activity <- "activator"
-          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, cell_type = strsplit(names(subset_list[[j]]),"_")[[1]][3], stringsAsFactors = FALSE))
+          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, 
+                            cell_type = strsplit(names(subset_list[[j]]),"_")[[1]][3], 
+                            stringsAsFactors = FALSE))
           
-          #check if the peak is upregulated in cell type A and the gene expression of gene i for cell type A is ==0
-          #or
-          # if the peak is downregulated in cell type A (up in B) and the gene expression of gene i for cell type A is >0
+          #check if the peak is upregulated in cell type A and the gene expression 
+          #of gene i for cell type A is ==0 or
+          # if the peak is downregulated in cell type A (up in B) and the gene 
+          #expression of gene i for cell type A is >0
         } else if((peak %in% subset_list[[j]][[1]] && gene_expression_list[[j]][gene] == 0) ||
                   (peak %in% subset_list[[j]][[2]] && gene_expression_list[[j]][gene] > 0)) {
           
           activity <- "repressor"
-          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, cell_type = strsplit(names(subset_list[[j]]),"_")[[1]][3], stringsAsFactors = FALSE))
+          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, 
+                            cell_type = strsplit(names(subset_list[[j]]),"_")[[1]][3], 
+                            stringsAsFactors = FALSE))
           
-          #check if the peak is upregulated in cell type B and the gene expression of gene i for cell type B is >0
+          #check if the peak is upregulated in cell type B and the gene expression 
+          #of gene i for cell type B is >0
         } else if(peak %in% subset_list[[j]][[2]] && gene_expression_list[[j+1]][gene] > 0) {
           
           activity <- "activator"
-          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, cell_type = strsplit(names(subset_list[[j]]),"_")[[2]][3], stringsAsFactors = FALSE))
+          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, 
+                            cell_type = strsplit(names(subset_list[[j]]),"_")[[2]][3], 
+                            stringsAsFactors = FALSE))
           
-          #check if the peak is upregulated in cell type B and the gene expression of gene i for cell type B is ==0
-          #or
-          #check if the peak is downregulated in cell type B (up in A) and the gene expression of gene i for cell type B is >0
+          #check if the peak is upregulated in cell type B and the gene expression 
+          #of gene i for cell type B is ==0 or
+          #check if the peak is downregulated in cell type B (up in A) and the 
+          #gene expression of gene i for cell type B is >0
         } else if((peak %in% subset_list[[j]][[2]] && gene_expression_list[[j+1]][gene] == 0) ||
                   (peak %in% subset_list[[j]][[1]] && gene_expression_list[[j+1]][gene] > 0)) {
           
           activity <- "repressor"
-          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, cell_type = strsplit(names(subset_list[[j]]),"_")[[2]][3], stringsAsFactors = FALSE))
+          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, 
+                            cell_type = strsplit(names(subset_list[[j]]),"_")[[2]][3], 
+                            stringsAsFactors = FALSE))
           
           #otherwise the regulator has a No effect Activity "NE"
         } else {
           
           activity <- "NE"
-          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, cell_type = "NA", stringsAsFactors = FALSE))
+          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, 
+                            cell_type = "NA", stringsAsFactors = FALSE))
           
         }
         
@@ -409,7 +482,8 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL, regulatoreEffect = 
     return(result_list)
     
     
-  } # if regulatorEffect is not null then it return the sub-setted dataframe according to percentages passed
+  } # if regulatorEffect is not null then it returns the sub-setted dataframe 
+  #according to percentages passed
   
   else if(typeof(regulatorEffect) =="list"){
     
@@ -442,14 +516,16 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL, regulatoreEffect = 
         return(subset_df)
       }
       
-      # Apply the function to each dataframe in result_list and store the results in a new named list
+      # Apply the function to each dataframe in result_list and store the results 
+      #in a new named list
       sub_result_list <- lapply(result_list, subset_df)
       names(sub_result_list) <- paste0(names(result_list), "_subset")
       return(sub_result_list)
       
     } else {
       
-      print("regulatorEffect must be a named list with percentages as values of length 3. The names must be 'activator', 'repressor', 'NE' ")
+      print("regulatorEffect must be a named list with percentages as values of 
+            length 3. The names must be 'activator', 'repressor', 'NE' ")
       return(NA)
       
     }
