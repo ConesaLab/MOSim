@@ -45,33 +45,45 @@ sc_omicData <- function(omics_types, data = NULL){
   }
   
   use_provided_data <- function(){
-    if (! is.matrix(data) && class(data) != "Seurat"){
-      print("data must be either matrix or a Seurat object")
+    if (!is.list(data) || length(data) != 1 && length(data) != 2){
+      print(paste0("the length of data is", length(data)))
+      print("data must be a list of 1 or 2 elements")
       return(NA)
+    } 
+    
+    omics_list <- list()
+    N_data <- length(data)
+    
+    for (i in 1:N_data){
       
-    } else if (is.matrix(data)){
-      
-      omics_list <- list()
-      omics_list[[omics]] <- data
-      return(omics_list)
-      
-    } else if (class(data) == "Seurat" && omics == "scRNA-seq"){
-      
-      omics_list <- list()
-      counts <- data@assays[["RNA"]]@counts
-      counts_matrix <- as.matrix(counts)
-      omics_list[[omics]] <- counts_matrix
-      return(omics_list)
-      
-    } else if (class(data) == "Seurat" && omics == "scATAC-seq"){
-      
-      omics_list <- list()
-      counts <- data@assays[["ATAC"]]@counts
-      counts_matrix <- as.matrix(counts)
-      omics_list[[omics]] <- counts_matrix
-      return(omics_list)
     }
-    return(NA)
+      if (! is.matrix(data[[i]]) && class(data[[i]]) != "Seurat"){
+        print("Each element of data must be either matrix or a Seurat object")
+        return(NA)
+        
+      } else if (is.matrix(data[[i]])){
+        
+        omics_list[[i]] <- data[[i]]
+        
+      } else if (class(data[[i]]) == "Seurat" && omics == "scRNA-seq"){
+        
+        counts <- data[[i]]@assays[["RNA"]]@counts
+        counts_matrix <- as.matrix(counts)
+        omics_list[[i]] <- counts_matrix
+        
+      } else if (class(data[[i]]) == "Seurat" && omics == "scATAC-seq"){
+        
+        counts <- data[[i]]@assays[["ATAC"]]@counts
+        counts_matrix <- as.matrix(counts)
+        omics_list[[i]] <- counts_matrix
+
+      } else {
+        print(paste0("Invalid class for data element ", i))
+        return(NA)
+      }
+    }
+    names(omics_list) <- omics_types[1:length(omics_list)]
+    return(omics_list)
   }
   
   count_matrix_list<-list()
@@ -82,10 +94,10 @@ sc_omicData <- function(omics_types, data = NULL){
       return(NA)
     }
     if (is.null(data)){
-      count_matrix_list<-c(count_matrix_list, use_default_data())
+      count_matrix_list <- c(count_matrix_list, use_default_data())
     }
     else {
-      count_matrix_list<-c(count_matrix_list, use_provided_data())
+      count_matrix_list <- use_provided_data()
     }
   }
   return(count_matrix_list)
@@ -112,11 +124,13 @@ sc_omicData <- function(omics_types, data = NULL){
 #'
 sc_param_estimation <- function(omics, cellTypes, numberCells = NULL, mean = NULL, sd = NULL){
   # Check for mandatory parameters
-  if (missing(omics))
+  if (missing(omics)){
     stop("You must provide the vector of omics to simulate.")
+  }
   
-  if (missing(cellTypes))
+  if (missing(cellTypes)) {
     stop("You must provide the correspondence of cells and celltypes")
+  }
   
   all_missing <- is.null(numberCells) && is.null(mean) && is.null(sd)
   all_specified <- !is.null(numberCells) && !is.null(mean) && !is.null(sd)
@@ -141,37 +155,51 @@ sc_param_estimation <- function(omics, cellTypes, numberCells = NULL, mean = NUL
     
   }
   
+  N_param_est_list<- length(param_est_list)
+  N_cellTypes <- length(cellTypes)
+  param_est_list_mod <- list()
+  
   if(all_missing){
     
-    return(param_est_list)
+    for (i in 1:N_param_est_list){
+      cell_type_list <- list()
+      
+      for(j in 1:N_cellTypes){
+        
+        cond_param <- SPARSim::SPARSim_create_simulation_parameter(
+                          intensity = param_est_list[[i]][[j]][["intensity"]]param_est_list[[i]][[j]][["intensity"]],
+                          variability = param_est_list[[i]][[j]][["variability"]],
+                          library_size = param_est_list[[i]][[j]][["lib_size"]],
+                          condition_name = param_est_list[[i]][[j]][["name"]],
+                          feature_names = names(param_est_list[[i]][[j]][["intensity"]]))
+        cell_type_list[[names(cellTypes)[j]]] <- cond_param
+        
+      }
+      param_est_list_mod[[paste0("param_est_", names(omics)[i])]] <- cell_type_list 
+    }
     
   } else if (all_specified){
-    
-      N_param_est_list<- length(param_est_list)
-      N_cellTypes <- length(cellTypes)
-      param_est_list_mod <- list()
     
       for(i in 1:N_param_est_list){
         cell_type_list <- list()
         
         for(j in 1:N_cellTypes){
         
-        cond_param <- SPARSim::SPARSim_create_simulation_parameter(
+          cond_param <- SPARSim::SPARSim_create_simulation_parameter(
                             intensity = param_est_list[[i]][[j]][["intensity"]],
                             variability = param_est_list[[i]][[j]][["variability"]],
                             library_size = round(rnorm(n = numberCells[j], mean = mean[j], sd = sd[j])),
                             condition_name = param_est_list[[i]][[j]][["name"]],
                             feature_names = names(param_est_list[[i]][[j]][["intensity"]]))
         
-        cell_type_list[[names(cellTypes)[j]]] <- cond_param
+          cell_type_list[[names(cellTypes)[j]]] <- cond_param
         
         }
         param_est_list_mod[[paste0("param_est_", names(omics)[i])]] <- cell_type_list
       }
       
-      return(param_est_list_mod)
   }
-  
+  return(param_est_list_mod)
 }
 
 
@@ -205,11 +233,13 @@ sc_param_estimation <- function(omics, cellTypes, numberCells = NULL, mean = NUL
 #'
 scMOSim <- function(omics, cellTypes, numberCells = NULL, mean = NULL, sd = NULL){
     # Check for mandatory parameters
-    if (missing(omics))
+    if (missing(omics)){
       stop("You must provide the vector of omics to simulate.")
+    }
   
-    if (missing(cellTypes))
+    if (missing(cellTypes)){
       stop("You must provide the correspondence of cells and celltypes")
+    }
     
     param_list <- sc_param_estimation(omics, cellTypes, numberCells, mean, sd)
     
@@ -235,7 +265,7 @@ scMOSim <- function(omics, cellTypes, numberCells = NULL, mean = NULL, sd = NULL
                               assay = assay_name,
                               rownames = rownames(sim_list[[i]]), #explicitly specifying rownames
                               colnames = colnames(sim_list[[i]])) #and colnames for Seurat obj
-    seu_obj[[names(omics)[i]]] <- seu
+    seu_obj[[names(sim_list)[i]]] <- seu
     
     }
     
@@ -279,10 +309,13 @@ scMOSim <- function(omics, cellTypes, numberCells = NULL, mean = NULL, sd = NULL
 sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL, 
                        regulatoreEffect = NULL, associationList = NULL ){
   # Check for mandatory parameters
-  if (missing(sim))
+  if (missing(sim)){
     stop("You must provide the named list of simulated omics.")
-  if (missing(cellTypes))
+  }
+    
+  if (missing(cellTypes)){
     stop("You must provide the correspondence of cells and celltypes")
+  }
   
   if(is.null(totalFeatures)){
     
@@ -327,6 +360,7 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL,
   names(gene_expression_list) <- paste0("gene_expr_", names(cellTypes))
   
   if(length(cellTypes) > 2){
+    print(paste0("the length of cellTypes is ", length(cellTypes)))
     
     da_peaks_atac_list <- lapply(seq_along(cellTypes), function(i) {
       
@@ -408,6 +442,7 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL,
       
       # Check if the gene is in the rownames of the rna_counts matrix
       if(gene %in% rownames(rna_counts)) {
+        activity <- "NE"
         
         # Check if the peak is upregulated in cell type A and the gene expression 
         #of gene i for cell type A is >0
@@ -430,9 +465,12 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL,
                             cell_type = strsplit(names(subset_list[[j]]),"_")[[1]][3], 
                             stringsAsFactors = FALSE))
           
-          #check if the peak is upregulated in cell type B and the gene expression 
-          #of gene i for cell type B is >0
-        } else if(peak %in% subset_list[[j]][[2]] && gene_expression_list[[j+1]][gene] > 0) {
+          
+        } 
+        next_j <- (j %% length(subset_list)) +1
+        #check if the peak is upregulated in cell type B and the gene expression 
+        #of gene i for cell type B is >0
+        if(peak %in% subset_list[[j]][[2]] && gene_expression_list[[next_j]][gene] > 0) {
           
           activity <- "activator"
           peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, 
@@ -443,8 +481,8 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL,
           #of gene i for cell type B is ==0 or
           #check if the peak is downregulated in cell type B (up in A) and the 
           #gene expression of gene i for cell type B is >0
-        } else if((peak %in% subset_list[[j]][[2]] && gene_expression_list[[j+1]][gene] == 0) ||
-                  (peak %in% subset_list[[j]][[1]] && gene_expression_list[[j+1]][gene] > 0)) {
+        } else if((peak %in% subset_list[[j]][[2]] && gene_expression_list[[next_j]][gene] == 0) ||
+                  (peak %in% subset_list[[j]][[1]] && gene_expression_list[[next_j]][gene] > 0)) {
           
           activity <- "repressor"
           peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, 
@@ -452,7 +490,9 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL,
                             stringsAsFactors = FALSE))
           
           #otherwise the regulator has a No effect Activity "NE"
-        } else {
+        } 
+        
+        if (activity == "NE") {
           
           activity <- "NE"
           peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, 
@@ -460,11 +500,7 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL,
           
         }
         
-      } else {
-        
-        print(paste(gene,"is not in the association list "))
-        
-      }
+      } 
       
     }
     
