@@ -278,8 +278,8 @@ scMOSim <- function(omics, cellTypes, numberCells = NULL, mean = NULL, sd = NULL
 #'
 #' Defines regulatory functions of features for regulatory omics
 #'
-#' @param sim named list containing the omic simulated as names ("scRNA-seq" and 
-#'     "scATAC-seq") , and seurat objects as values.
+#' @param sim named list containing the omic simulated as names ("sim_scRNA-seq" and 
+#'     "sim_scATAC-seq") , and seurat objects as values.
 #' @param cellTypes list where the i-th element of the list contains the column 
 #'     indices for i-th experimental conditions. List must be a named list.
 #' @param totalFeatures OPTIONAL. Numeric value. Total number of features for 
@@ -293,7 +293,7 @@ scMOSim <- function(omics, cellTypes, numberCells = NULL, mean = NULL, sd = NULL
 #'     gene names. If not provided the code uses our own associationlist derived 
 #'         from hg19.
 #' @return named list containing a 3 columns dataframe (peak_id, activity, 
-#'     cell_type), one per each couple of \code{cellTypes}.
+#'     cell_types), one per each couple of \code{cellTypes}.
 #' @export
 #'
 #' @examples
@@ -307,46 +307,43 @@ scMOSim <- function(omics, cellTypes, numberCells = NULL, mean = NULL, sd = NULL
 #' sc_omicSim(sim, cell_types, totalFeatures = 500, regulatoreEffect = regulatorEffect)
 #'
 sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL, 
-                       regulatoreEffect = NULL, associationList = NULL ){
+                       regulatorEffect = NULL, associationList = NULL ){
   # Check for mandatory parameters
   if (missing(sim)){
     stop("You must provide the named list of simulated omics.")
   }
-    
+  
   if (missing(cellTypes)){
     stop("You must provide the correspondence of cells and celltypes")
   }
   
   if(is.null(totalFeatures)){
     
-    atac_counts <- sim[["scATAC-seq"]]@assays[["ATAC"]]@counts
+    atac_counts <- sim[["sim_scATAC-seq"]]@assays[["ATAC"]]@counts
     
   } else if (is.numeric(totalFeatures)){
     
-    if(totalFeatures <= nrow(sim[["scATAC-seq"]]@assays[["ATAC"]]@counts)){
+    if(totalFeatures <= nrow(sim[["sim_scATAC-seq"]]@assays[["ATAC"]]@counts)){
       
       # Set the number of features you want to select
       num_features <- totalFeatures
       # Get the data from the ATAC assay of the scATAC-seq object
-      atac_data <- sim[["scATAC-seq"]]@assays[["ATAC"]]@counts
+      atac_data <- sim[["sim_scATAC-seq"]]@assays[["ATAC"]]@counts
       # Subset the ATAC data to retain only the selected number of features
       atac_data <- atac_data[sample(nrow(atac_data), num_features, replace = FALSE), ]
       # Update the ATAC assay with the subsetted data
-      sim[["scATAC-seq"]]@assays[["ATAC"]]@counts<- atac_data
-      atac_counts <- sim[["scATAC-seq"]]@assays[["ATAC"]]@counts
+      sim[["sim_scATAC-seq"]]@assays[["ATAC"]]@counts<- atac_data
+      atac_counts <- sim[["sim_scATAC-seq"]]@assays[["ATAC"]]@counts
       
-    } else if (totalFeatures > nrow(sim[["scRNA-seq"]]@assays[["RNA"]]@counts)){
+    } else if (totalFeatures > nrow(sim[["sim_scRNA-seq"]]@assays[["RNA"]]@counts)){
       
-      print(paste("the number of totalFeatures you have inserted is higher than 
-                  what's possible to be generated, ", 
-                  nrow(sim[["scATAC-seq"]]@assays[["ATAC"]]@counts), 
-                  " peaks were generated instead." ))
-      atac_counts <- sim[["scATAC-seq"]]@assays[["ATAC"]]@counts
+      print(paste("the number of totalFeatures you have inserted is higher than what's possible to be generated,", nrow(sim[["scATAC-seq"]]@assays[["ATAC"]]@counts), "peaks were generated instead." ))
+      atac_counts <- sim[["sim_scATAC-seq"]]@assays[["ATAC"]]@counts
       
     }
   }
   
-  rna_counts <- sim[["scRNA-seq"]]@assays[["RNA"]]@counts
+  rna_counts <- sim[["sim_scRNA-seq"]]@assays[["RNA"]]@counts
   
   #calculate gene expression for each cellTypes
   gene_expression_list <- lapply(names(cellTypes), function(cell_type) {
@@ -360,6 +357,7 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL,
   names(gene_expression_list) <- paste0("gene_expr_", names(cellTypes))
   
   if(length(cellTypes) > 2){
+    
     print(paste0("the length of cellTypes is ", length(cellTypes)))
     
     da_peaks_atac_list <- lapply(seq_along(cellTypes), function(i) {
@@ -367,22 +365,17 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL,
       j <- i %% length(cellTypes) + 1
       ident1 <- names(cellTypes)[i]
       ident2 <- names(cellTypes)[j]
-      FindMarkers(object = sim[["scATAC-seq"]], ident.1 = ident1, ident.2 = ident2, 
-                  min.pct = 0.05)
+      Seurat::FindMarkers(object = sim[["sim_scATAC-seq"]], ident.1 = ident1, ident.2 = ident2, min.pct = 0.05)
       
     })
     
-    names(da_peaks_atac_list) <- paste0(names(cellTypes), "markers_", 
-                                c(names(cellTypes)[-1], names(cellTypes)[1]))
+    names(da_peaks_atac_list) <- paste0("markers_", names(cellTypes), "_", c(names(cellTypes)[-1], names(cellTypes)[1]))
     
   } else if(length(cellTypes) ==2 ){
     
     da_peaks_atac_list <- list()
-    da_peaks_atac <- FindMarkers(object = sim[["scATAC-seq"]], 
-                                 ident.1 = names(cellTypes[1]), 
-                                 ident.2 = names(cellTypes[2]) , min.pct = 0.05)
-    da_peaks_atac_list[[paste0("markers_", names(cellTypes[1]), 
-                               "_", names(cellTypes[2]) )]] <- da_peaks_atac
+    da_peaks_atac <- FindMarkers(object = sim[["sim_scATAC-seq"]], ident.1 = names(cellTypes[1]), ident.2 = names(cellTypes[2]) , min.pct = 0.05)
+    da_peaks_atac_list[[paste0("markers_", names(cellTypes[1]), "_", names(cellTypes[2]) )]] <- da_peaks_atac
     
   }
   
@@ -411,8 +404,8 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL,
   #loading human association list
   if (is.null(associationList)){
     
-  association_list <- sc_sampleData$seurat_association_list
-  
+    association_list <- as.data.frame(sc_sampleData$seurat_association_list)
+    
   } else if (is.list(associationList)){
     
     if (length(associationList) == 2){
@@ -421,8 +414,7 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL,
       
     } else {
       
-      print("the associationList must be a dataframe having two columns reporting 
-            peak ids and gene names")
+      print("the associationList must be a dataframe having two columns reporting peak ids and gene names")
       return(NA)
       
     }
@@ -430,9 +422,9 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL,
   
   result_list <- lapply(seq_along(subset_list), function(j) {
     #open empty dataframe
-    peak_df <- data.frame(peak_id = character(),
-                          activity = character(),
-                          cell_type = character(),
+    peak_df <- data.frame(peak_id = character(), 
+                          activity = character(), 
+                          cell_type = character(), 
                           stringsAsFactors = FALSE)
     
     for(i in 1:nrow(association_list)) {
@@ -444,62 +436,45 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL,
       if(gene %in% rownames(rna_counts)) {
         activity <- "NE"
         
-        # Check if the peak is upregulated in cell type A and the gene expression 
-        #of gene i for cell type A is >0
+        # Check if the peak is upregulated in cell type 1 and the gene expression of gene i for cell type 1 is >0
         if(peak %in% subset_list[[j]][[1]] && gene_expression_list[[j]][gene] > 0) {
           
           activity <- "activator"
-          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, 
-                            cell_type = strsplit(names(subset_list[[j]]),"_")[[1]][3], 
-                            stringsAsFactors = FALSE))
+          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, cell_type = strsplit(names(subset_list[[j]]),"_")[[1]][3], stringsAsFactors = FALSE))
           
-          #check if the peak is upregulated in cell type A and the gene expression 
-          #of gene i for cell type A is ==0 or
-          # if the peak is downregulated in cell type A (up in B) and the gene 
-          #expression of gene i for cell type A is >0
-        } else if((peak %in% subset_list[[j]][[1]] && gene_expression_list[[j]][gene] == 0) ||
+          #check if the peak is upregulated in cell type 1 and the gene expression of gene i for cell type 1 is ==0
+          #or
+          # if the peak is downregulated in cell type 1 (up in 2) and the gene expression of gene i for cell type 1 is >0
+        } else if((peak %in% subset_list[[j]][[1]] && gene_expression_list[[j]][gene] == 0) || 
                   (peak %in% subset_list[[j]][[2]] && gene_expression_list[[j]][gene] > 0)) {
           
           activity <- "repressor"
-          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, 
-                            cell_type = strsplit(names(subset_list[[j]]),"_")[[1]][3], 
-                            stringsAsFactors = FALSE))
+          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, cell_type = strsplit(names(subset_list[[j]]),"_")[[1]][3], stringsAsFactors = FALSE))
           
-          
-        } 
-        next_j <- (j %% length(subset_list)) +1
-        #check if the peak is upregulated in cell type B and the gene expression 
-        #of gene i for cell type B is >0
+        }
+        
+        next_j<- (j %% length(subset_list))+1
+        
+        #check if the peak is upregulated in cell type 2 and the gene expression of gene i for cell type 2 is >0
         if(peak %in% subset_list[[j]][[2]] && gene_expression_list[[next_j]][gene] > 0) {
           
           activity <- "activator"
-          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, 
-                            cell_type = strsplit(names(subset_list[[j]]),"_")[[2]][3], 
-                            stringsAsFactors = FALSE))
+          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, cell_type = strsplit(names(subset_list[[j]]),"_")[[2]][3], stringsAsFactors = FALSE))
           
-          #check if the peak is upregulated in cell type B and the gene expression 
-          #of gene i for cell type B is ==0 or
-          #check if the peak is downregulated in cell type B (up in A) and the 
-          #gene expression of gene i for cell type B is >0
+          #check if the peak is upregulated in cell type 2 and the gene expression of gene i for cell type 2 is ==0
+          #or
+          #check if the peak is downregulated in cell type 2 (up in 1) and the gene expression of gene i for cell type 2 is >0
         } else if((peak %in% subset_list[[j]][[2]] && gene_expression_list[[next_j]][gene] == 0) ||
                   (peak %in% subset_list[[j]][[1]] && gene_expression_list[[next_j]][gene] > 0)) {
           
           activity <- "repressor"
-          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, 
-                            cell_type = strsplit(names(subset_list[[j]]),"_")[[2]][3], 
-                            stringsAsFactors = FALSE))
-          
-          #otherwise the regulator has a No effect Activity "NE"
-        } 
-        
-        if (activity == "NE") {
-          
-          activity <- "NE"
-          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, 
-                            cell_type = "NA", stringsAsFactors = FALSE))
+          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, cell_type = strsplit(names(subset_list[[j]]),"_")[[2]][3], stringsAsFactors = FALSE))
           
         }
         
+        if (activity == "NE") {
+          peak_df <- rbind(peak_df, data.frame(peak_id = peak, activity = activity, cell_type = "NA", stringsAsFactors = FALSE))
+        } 
       } 
       
     }
@@ -518,8 +493,7 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL,
     return(result_list)
     
     
-  } # if regulatorEffect is not null then it returns the sub-setted dataframe 
-  #according to percentages passed
+  } # if regulatorEffect is not null then it return the sub-setted dataframe according to percentages passed
   
   else if(typeof(regulatorEffect) =="list"){
     
@@ -552,16 +526,14 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL,
         return(subset_df)
       }
       
-      # Apply the function to each dataframe in result_list and store the results 
-      #in a new named list
+      # Apply the function to each dataframe in result_list and store the results in a new named list
       sub_result_list <- lapply(result_list, subset_df)
       names(sub_result_list) <- paste0(names(result_list), "_subset")
       return(sub_result_list)
       
     } else {
       
-      print("regulatorEffect must be a named list with percentages as values of 
-            length 3. The names must be 'activator', 'repressor', 'NE' ")
+      print("regulatorEffect must be a named list with percentages as values of length 3. The names must be 'activator', 'repressor', 'NE' ")
       return(NA)
       
     }
