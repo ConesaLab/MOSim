@@ -76,7 +76,7 @@ sc_omicData <- function(omics_types, data = NULL){
         counts <- data[[i]]@assays[["ATAC"]]@counts
         counts_matrix <- as.matrix(counts)
         omics_list[[i]] <- counts_matrix
-
+        
       } else {
         print(paste0("Invalid class for data element ", i))
         return(NA)
@@ -113,6 +113,7 @@ sc_omicData <- function(omics_types, data = NULL){
 #'    be "scRNA-seq" or "scATAC-seq".
 #' @param cellTypes list where the i-th element of the list contains the column 
 #'    indices for i-th cell type. List must be a named list.
+#' @param group number of group where parameters are being simulated
 #' @param numberCells vector of numbers. The numbers correspond to the number 
 #'    of cells the user wants to simulate per each cell type. The length of the 
 #'       vector must be the same as length of \code{cellTypes}.
@@ -134,23 +135,23 @@ sc_param_estimation <- function(omics, cellTypes, numberCells = NULL, mean = NUL
   
   all_missing <- is.null(numberCells) && is.null(mean) && is.null(sd)
   all_specified <- !is.null(numberCells) && !is.null(mean) && !is.null(sd)
- 
-  if( !(all_missing || all_specified )){
   
+  if( !(all_missing || all_specified )){
+    
     print("the user must either not provide the optional arguments or provide them all")
     return(NA)
     
   }
   
   N_omics <- length(omics)
-  norm_list <- lapply(omics, scran_normalization)
+  norm_list <- lapply(omics, SPARSim::scran_normalization)
   param_est_list <- list()
   
   for(i in 1:N_omics){
-
+    
     param_est <- SPARSim::SPARSim_estimate_parameter_from_data(raw_data = omics[[i]],
-                                                    norm_data = norm_list[[i]],
-                                                    conditions = cellTypes)
+                                                               norm_data = norm_list[[i]],
+                                                               conditions = cellTypes)
     param_est_list[[paste0("param_est_", names(omics)[i])]] <- param_est
     
   }
@@ -167,11 +168,11 @@ sc_param_estimation <- function(omics, cellTypes, numberCells = NULL, mean = NUL
       for(j in 1:N_cellTypes){
         
         cond_param <- SPARSim::SPARSim_create_simulation_parameter(
-                          intensity = param_est_list[[i]][[j]][["intensity"]],
-                          variability = param_est_list[[i]][[j]][["variability"]],
-                          library_size = param_est_list[[i]][[j]][["lib_size"]],
-                          condition_name = param_est_list[[i]][[j]][["name"]],
-                          feature_names = names(param_est_list[[i]][[j]][["intensity"]]))
+          intensity = param_est_list[[i]][[j]][["intensity"]],
+          variability = param_est_list[[i]][[j]][["variability"]],
+          library_size = param_est_list[[i]][[j]][["lib_size"]],
+          condition_name = param_est_list[[i]][[j]][["name"]],
+          feature_names = names(param_est_list[[i]][[j]][["intensity"]]))
         cell_type_list[[names(cellTypes)[j]]] <- cond_param
         
       }
@@ -180,24 +181,101 @@ sc_param_estimation <- function(omics, cellTypes, numberCells = NULL, mean = NUL
     
   } else if (all_specified){
     
-      for(i in 1:N_param_est_list){
-        cell_type_list <- list()
-        
-        for(j in 1:N_cellTypes){
-        
-          cond_param <- SPARSim::SPARSim_create_simulation_parameter(
-                            intensity = param_est_list[[i]][[j]][["intensity"]],
-                            variability = param_est_list[[i]][[j]][["variability"]],
-                            library_size = round(rnorm(n = numberCells[j], mean = mean[j], sd = sd[j])),
-                            condition_name = param_est_list[[i]][[j]][["name"]],
-                            feature_names = names(param_est_list[[i]][[j]][["intensity"]]))
-        
-          cell_type_list[[names(cellTypes)[j]]] <- cond_param
-        
-        }
-        param_est_list_mod[[paste0("param_est_", names(omics)[i])]] <- cell_type_list
-      }
+    for(i in 1:N_param_est_list){
+      cell_type_list <- list()
       
+      for(j in 1:N_cellTypes){
+        
+        cond_param <- SPARSim::SPARSim_create_simulation_parameter(
+          intensity = param_est_list[[i]][[j]][["intensity"]],
+          variability = param_est_list[[i]][[j]][["variability"]],
+          library_size = round(rnorm(n = numberCells[j], mean = mean[j], sd = sd[j])),
+          condition_name = param_est_list[[i]][[j]][["name"]],
+          feature_names = names(param_est_list[[i]][[j]][["intensity"]]))
+        
+        cell_type_list[[names(cellTypes)[j]]] <- cond_param
+        
+      }
+      param_est_list_mod[[paste0("param_est_", names(omics)[i])]] <- cell_type_list
+    }
+    
+  }
+  return(param_est_list_mod)
+}
+
+
+#' sc_param_groups
+#' 
+#' Simulate parameters for simulation of diferentially expressed groups. Get
+#' parameters from first experimental group, create a vector of percentage
+#' of up and down regulated, create parameters for new DE genes and simulate
+#'
+#' @param omics named list containing the omics to simulate as names, which can 
+#'    be "scRNA-seq" or "scATAC-seq".
+#' @param cellTypes list where the i-th element of the list contains the column 
+#'    indices for i-th cell type. List must be a named list.
+#' @param param_g1 Simulation parameters object from first experimental group
+#' @param diffGenes IF number groups > 1, Percentage DE genes to simulate. 
+#'    Can be a vector with absolute genes for Up and Down ex: c(250, 500) or a 
+#'    percentage for up, down by default: c(0.2, 0.2). The rest will be NE
+#' @param minFC Threshold of FC below which are downregulated, by default 0.25
+#' @param maxFC Threshold of FC abofe which are upregulated, by default 4
+#'
+#' @return a named list with simulation parameters for each omics as values.
+#' @export
+#'
+#' @examples
+#' scOmics <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
+#' param_list2 <- sc_param_groups(scOmics, cellTypes, param_g1, diffGenes)
+sc_param_groups <- function(omics, cellTypes, param_g1, diffGenes, minFC = 0.25, maxFC = 4){
+  
+  N_omics <- length(omics)
+  param_est_list <- param_g1
+  FClist <- list()
+  
+  for(i in 1:N_omics){
+    ## Format diffGenes
+    if (diffGenes[1] < 1) {
+      ## Relative
+      up <- round(diffGenes[1]*length(param_est_list[[i]][[1]][[1]]), digits = 0)
+      down <- round(diffGenes[2]*length(param_est_list[[i]][[1]][[1]]), digits = 0)
+      
+    } else {
+      ## Absolute
+      up <- diffGenes[1]
+      down <- diffGenes[2]
+    }
+    NE <- length(param_est_list[[i]][[1]][[1]]) - up - down
+    
+    # Now we make the FC vector
+    notDE_FCvec <- runif(n = NE, min = minFC + 0.001, max = maxFC - 0.001)
+    DE_FCvec <- c(runif(n = up, min = maxFC, max = 100), runif(n = down, 
+                                                               min = 0.0001, max = minFC))
+    
+    FCvec <- c(DE_FCvec, notDE_FCvec)
+    FClist[[paste0("FC_est_", names(omics)[i])]] <- FCvec
+    
+  }
+  
+  ## Now estimate
+  N_param_est_list <- length(param_est_list)
+  N_cellTypes <- length(cellTypes)
+  param_est_list_mod <- list()
+  
+  for (i in 1:N_param_est_list){
+    cell_type_list <- list()
+    
+    for (j in 1:N_cellTypes){
+      cond_param <- SPARSim::SPARSim_create_simulation_parameter(
+        intensity = param_est_list[[i]][[j]][["intensity"]] * FCvec[[i]],
+        variability = param_est_list[[i]][[j]][["variability"]],
+        library_size = param_est_list[[i]][[j]][["lib_size"]],
+        condition_name = param_est_list[[i]][[j]][["name"]],
+        feature_names = names(param_est_list[[i]][[j]][["intensity"]]))
+      
+      cell_type_list[[names(cellTypes)[j]]] <- cond_param
+    }
+    param_est_list_mod[[paste0("param_est_", names(omics)[i])]] <- cell_type_list
   }
   return(param_est_list_mod)
 }
@@ -211,6 +289,13 @@ sc_param_estimation <- function(omics, cellTypes, numberCells = NULL, mean = NUL
 #'     be "scRNA-seq" or "scATAC-seq".
 #' @param cellTypes list where the i-th element of the list contains the column 
 #'     indices for i-th experimental conditions. List must be a named list.
+#' @param numberReps number of replicates per group
+#' @param numberGroups number of different groups
+#' @param diffGenes IF number groups > 1, Percentage DE genes to simulate. 
+#'    Can be a vector with absolute genes for Up and Down ex: c(250, 500) or a 
+#'    percentage for up, down by default: c(0.2, 0.2). The rest will be NE
+#' @param minFC Threshold of FC below which are downregulated, by default 0.25
+#' @param maxFC Threshold of FC abofe which are upregulated, by default 4
 #' @param numberCells vector of numbers. The numbers correspond to the number of 
 #'     cells the user wants to simulate per each cell type. The length of the 
 #'         vector must be the same as length of \code{cellTypes}.
@@ -226,52 +311,85 @@ sc_param_estimation <- function(omics, cellTypes, numberCells = NULL, mean = NUL
 #' @examples
 #'
 #' cellTypes <- list(cellA = c(1:20), cellB = c(161:191))
-#' sim <- scMOSim(omicsList, cellTypes)
+#' omicsList <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
+#' sim <- scMOSim(omicsList, cellTypes, numberReps = 2, numberGroups = 2)
 #' # or
 #' sim_with_arg <- scMOSim(omicsList, cellTypes, numberCells = c(10,20),
 #'       mean = c(2000000, 100000), sd = c(10^3, 10^3))
 #'
-scMOSim <- function(omics, cellTypes, numberCells = NULL, mean = NULL, sd = NULL){
-    # Check for mandatory parameters
-    if (missing(omics)){
-      stop("You must provide the vector of omics to simulate.")
-    }
+scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1, 
+                    diffGenes = c(0.2, 0.2), minFC = 0.25, maxFC = 4,
+                    numberCells = NULL, mean = NULL, sd = NULL){
+  # Check for mandatory parameters
+  if (missing(omics)){
+    stop("You must provide the vector of omics to simulate.")
+  }
   
-    if (missing(cellTypes)){
-      stop("You must provide the correspondence of cells and celltypes")
+  if (missing(cellTypes)){
+    stop("You must provide the correspondence of cells and celltypes")
+  }
+  
+  seu_groups <- list()
+  
+  # Get the parameters for the first sample/group/replicate
+  param_listG1 <- sc_param_estimation(omics, cellTypes, numberCells, mean, sd)
+  
+  for (g in 1:numberGroups){
+    if (numberGroups > 1){
+      print(paste0("Estimating parameters for experimental group ", g))
+    }
+    seu_replicates <- list()
+    
+    for (r in 1:numberReps){
+      if (numberReps > 1){
+        print(paste0("Estimating parameters for replicate ", r))
+      }
+      
+      if (g == 1){
+        param_list <- sc_param_estimation(omics, cellTypes, numberCells, mean, sd)
+      } else if ( g > 1){
+        param_list <- sc_param_groups(omics, cellTypes, param_listG1, diffGenes, 
+                                      minFC, maxFC)
+      }
+      
+      
+      N_param <- length(param_list)
+      sim_list <- list()
+      
+      for(i in 1:N_param){
+        
+        sim <- SPARSim::SPARSim_simulation(dataset_parameter = param_list[[i]])
+        sim <- sim[["count_matrix"]]
+        sim_list[[paste0("sim_", names(omics)[i])]] <- sim
+        
+      }
+      
+      seu_obj <- list()
+      N_sim <- length(sim_list)
+      
+      for(i in 1:N_sim){
+        
+        assay_name <- str_split(names(sim_list)[i], "-")[[1]][1]
+        assay_name <- sub("sim_sc","",assay_name)
+        seu <- Seurat::CreateSeuratObject(counts = sim_list[[i]],
+                                          assay = assay_name,
+                                          rownames = rownames(sim_list[[i]]), #explicitly specifying rownames
+                                          colnames = colnames(sim_list[[i]])) #and colnames for Seurat obj
+        seu_obj[[names(sim_list)[i]]] <- seu
+        
+      }
+      seu_replicates[[paste0("Rep_", r)]] <- seu_obj
     }
     
-    param_list <- sc_param_estimation(omics, cellTypes, numberCells, mean, sd)
+    seu_groups[[paste0("Group_", g)]] <- seu_replicates
     
-    N_param <- length(param_list)
-    sim_list <- list()
-    
-    for(i in 1:N_param){
-      
-      sim <- SPARSim::SPARSim_simulation(dataset_parameter = param_list[[i]])
-      sim <- sim[["count_matrix"]]
-      sim_list[[paste0("sim_", names(omics)[i])]] <- sim
-      
-    }
-    
-    seu_obj <- list()
-    N_sim <- length(sim_list)
-
-    for(i in 1:N_sim){
-      
-    assay_name <- str_split(names(sim_list)[i], "-")[[1]][1]
-    assay_name <- sub("sim_sc","",assay_name)
-    seu <- Seurat::CreateSeuratObject(counts = sim_list[[i]],
-                              assay = assay_name,
-                              rownames = rownames(sim_list[[i]]), #explicitly specifying rownames
-                              colnames = colnames(sim_list[[i]])) #and colnames for Seurat obj
-    seu_obj[[names(sim_list)[i]]] <- seu
-    
-    }
-    
-    return(seu_obj)
-    
+  } 
+  
+  return(seu_groups)
+  
 }
+
+
 
 
 #' sc_omicSim
@@ -374,7 +492,7 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL,
   } else if(length(cellTypes) ==2 ){
     
     da_peaks_atac_list <- list()
-    da_peaks_atac <- FindMarkers(object = sim[["sim_scATAC-seq"]], ident.1 = names(cellTypes[1]), ident.2 = names(cellTypes[2]) , min.pct = 0.05)
+    da_peaks_atac <- Seurat::FindMarkers(object = sim[["sim_scATAC-seq"]], ident.1 = names(cellTypes[1]), ident.2 = names(cellTypes[2]) , min.pct = 0.05)
     da_peaks_atac_list[[paste0("markers_", names(cellTypes[1]), "_", names(cellTypes[2]) )]] <- da_peaks_atac
     
   }
