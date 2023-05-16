@@ -21,8 +21,9 @@ Checks if the user defined data is in the correct format, or loads the default
 pbmc dataset from https://satijalab.org/seurat/articles/pbmc3k_tutorial.html
 }
 \examples{
-
-scOmics <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
-scRNAseq_user <- sc_omicData(omics_type = list("scRNA-seq"), data = list(count_matrix)) 
+# Simulate from PBMC
+omicsList <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
+# Simulate using data from the user
+omicsList_user <- sc_omicData(omics_type = list("scRNA-seq"), data = list(count_matrix)) 
 
 }

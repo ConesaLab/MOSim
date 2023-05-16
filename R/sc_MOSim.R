@@ -22,9 +22,10 @@ if(getRversion() >= "2.15.1")  utils::globalVariables(c(".", "n", "sc_sampleData
 #' @export
 #'
 #' @examples
-#'
-#' scOmics <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
-#' scRNAseq_user <- sc_omicData(omics_type = list("scRNA-seq"), data = list(count_matrix)) 
+#' # Simulate from PBMC
+#' omicsList <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
+#' # Simulate using data from the user
+#' omicsList_user <- sc_omicData(omics_type = list("scRNA-seq"), data = list(count_matrix)) 
 #'
 sc_omicData <- function(omics_types, data = NULL){
   # Check for mandatory parameters
@@ -113,7 +114,6 @@ sc_omicData <- function(omics_types, data = NULL){
 #'    be "scRNA-seq" or "scATAC-seq".
 #' @param cellTypes list where the i-th element of the list contains the column 
 #'    indices for i-th cell type. List must be a named list.
-#' @param group number of group where parameters are being simulated
 #' @param numberCells vector of numbers. The numbers correspond to the number 
 #'    of cells the user wants to simulate per each cell type. The length of the 
 #'       vector must be the same as length of \code{cellTypes}.
@@ -123,6 +123,11 @@ sc_omicData <- function(omics_types, data = NULL){
 #'    specified just if \code{numberCells} is specified.
 #' @return a named list with simulation parameters for each omics as values.
 #'
+#' @examples
+#' omicsList <- sc_omicData(list("scRNA-seq"))
+#' cell_types <- list(cellA = c(1:20), cellB = c(161:191))
+#' estimated_params <- sc_param_estimation(omicsList, cell_types)
+#' 
 sc_param_estimation <- function(omics, cellTypes, numberCells = NULL, mean = NULL, sd = NULL){
   # Check for mandatory parameters
   if (missing(omics)){
@@ -214,23 +219,27 @@ sc_param_estimation <- function(omics, cellTypes, numberCells = NULL, mean = NUL
 #'    be "scRNA-seq" or "scATAC-seq".
 #' @param cellTypes list where the i-th element of the list contains the column 
 #'    indices for i-th cell type. List must be a named list.
-#' @param param_g1 Simulation parameters object from first experimental group
-#' @param diffGenes IF number groups > 1, Percentage DE genes to simulate. 
+#' @param param_est_list Simulation parameters object from first experimental group
+#' @param diffGenes If number groups > 1, Percentage DE genes to simulate. 
 #'    Can be a vector with absolute genes for Up and Down ex: c(250, 500) or a 
 #'    percentage for up, down by default: c(0.2, 0.2). The rest will be NE
 #' @param minFC Threshold of FC below which are downregulated, by default 0.25
-#' @param maxFC Threshold of FC abofe which are upregulated, by default 4
+#' @param maxFC Threshold of FC above which are upregulated, by default 4
 #'
 #' @return a named list with simulation parameters for each omics as values.
 #' @export
 #'
 #' @examples
-#' scOmics <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
-#' param_list2 <- sc_param_groups(scOmics, cellTypes, param_g1, diffGenes)
-sc_param_groups <- function(omics, cellTypes, param_g1, diffGenes, minFC = 0.25, maxFC = 4){
+#' omicsList <- sc_omicData(list("scRNA-seq"))
+#' cell_types <- list(cellA = c(1:20), cellB = c(161:191))
+#' estimated_params <- sc_param_estimation(omicsList, cell_types)
+#' estimated_groups <- sc_param_groups(omics_list, cell_types, estimated_params,
+#'                         diffGenes = c(0.2, 0.2), minFC = 0.25, maxFC = 4)
+#' 
+sc_param_groups <- function(omics, cellTypes, param_est_list, diffGenes = 
+                              c(0.2, 0.2), minFC = 0.25, maxFC = 4){
   
   N_omics <- length(omics)
-  param_est_list <- param_g1
   FClist <- list()
   
   for(i in 1:N_omics){
@@ -289,20 +298,21 @@ sc_param_groups <- function(omics, cellTypes, param_g1, diffGenes, minFC = 0.25,
 #'     be "scRNA-seq" or "scATAC-seq".
 #' @param cellTypes list where the i-th element of the list contains the column 
 #'     indices for i-th experimental conditions. List must be a named list.
-#' @param numberReps number of replicates per group
-#' @param numberGroups number of different groups
-#' @param diffGenes IF number groups > 1, Percentage DE genes to simulate. 
+#' @param numberReps OPTIONAL. Number of replicates per group
+#' @param numberGroups OPTIONAL. number of different groups
+#' @param diffGenes OPTIONAL. If number groups > 1, Percentage DE genes to simulate. 
 #'    Can be a vector with absolute genes for Up and Down ex: c(250, 500) or a 
 #'    percentage for up, down by default: c(0.2, 0.2). The rest will be NE
-#' @param minFC Threshold of FC below which are downregulated, by default 0.25
-#' @param maxFC Threshold of FC abofe which are upregulated, by default 4
-#' @param numberCells vector of numbers. The numbers correspond to the number of 
+#' @param minFC OPTIONAL. Threshold of FC below which are downregulated, by 
+#'    default 0.25
+#' @param maxFC OPTIONAL. Threshold of FC abofe which are upregulated, by default 4
+#' @param numberCells OPTIONAL. Vector of numbers. The numbers correspond to the number of 
 #'     cells the user wants to simulate per each cell type. The length of the 
 #'         vector must be the same as length of \code{cellTypes}.
-#' @param mean vector of numbers of mean per each cell type. Must be specified 
+#' @param mean OPTIONAL. Vector of numbers of mean per each cell type. Must be specified 
 #'     just if \code{numberCells} is specified.The length of the vector must be 
 #'         the same as length of \code{cellTypes}.
-#' @param sd vector of numbers of standard deviation per each cell type. Must be 
+#' @param sd OPTIONAL. Vector of numbers of standard deviation per each cell type. Must be 
 #'     specified just if \code{numberCells} is specified.The length of the vector 
 #'         must be the same as length of \code{cellTypes}.
 #' @return a list of Seurat object, one per each omic.
@@ -310,12 +320,14 @@ sc_param_groups <- function(omics, cellTypes, param_g1, diffGenes, minFC = 0.25,
 #'
 #' @examples
 #'
-#' cellTypes <- list(cellA = c(1:20), cellB = c(161:191))
+#' cell_types <- list(cellA = c(1:20), cellB = c(161:191))
 #' omicsList <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
-#' sim <- scMOSim(omicsList, cellTypes, numberReps = 2, numberGroups = 2)
+#' sim <- scMOSim(omicsList, cell_types)
 #' # or
-#' sim_with_arg <- scMOSim(omicsList, cellTypes, numberCells = c(10,20),
-#'       mean = c(2000000, 100000), sd = c(10^3, 10^3))
+#' sim_with_arg <- scMOSim(omicsList, cell_types, numberReps = 2, 
+#'                     numberGroups = 2, diffGenes = c(0.2, 0.2), 
+#'                     minFC = 0.25, maxFC = 4, numberCells = c(10,20),
+#'                     mean = c(2000000, 100000), sd = c(10^3, 10^3))
 #'
 scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1, 
                     diffGenes = c(0.2, 0.2), minFC = 0.25, maxFC = 4,
@@ -417,9 +429,10 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
 #' @examples
 #'
 #'
-#' omic_list <- sc_omicData(c("scRNA-seq","scATAC-seq"))
+#' omicsList <- sc_omicData(c("scRNA-seq","scATAC-seq"))
 #' cell_types <- list(cellA = c(1:20), cellB = c(161:191))
-#' sim <-scMOSim(omic_list, cell_types, numberCells = c(10,20), mean = c(2*10^6, 2*10^3), sd = c(10^3, 10^2))
+#' sim <-scMOSim(omicsList, cell_types, numberCells = c(10,20), 
+#'             mean = c(2*10^6, 2*10^3), sd = c(10^3, 10^2))
 #' cell_types <- list(cellA= c(1:10), cellB = c(11:30))
 #' regulatorEffect = list('activator' = 0.8,'repressor' = 0.1,'NE' = 0.1)
 #' sc_omicSim(sim, cell_types, totalFeatures = 500, regulatoreEffect = regulatorEffect)

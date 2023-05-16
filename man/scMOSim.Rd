@@ -4,7 +4,18 @@
 \alias{scMOSim}
 \title{scMOSim}
 \usage{
-scMOSim(omics, cellTypes, numberCells = NULL, mean = NULL, sd = NULL)
+scMOSim(
+  omics,
+  cellTypes,
+  numberReps = 1,
+  numberGroups = 1,
+  diffGenes = c(0.2, 0.2),
+  minFC = 0.25,
+  maxFC = 4,
+  numberCells = NULL,
+  mean = NULL,
+  sd = NULL
+)
 }
 \arguments{
 \item{omics}{named list containing the omic to simulate as names, which can 
@@ -13,15 +24,28 @@ be "scRNA-seq" or "scATAC-seq".}
 \item{cellTypes}{list where the i-th element of the list contains the column 
 indices for i-th experimental conditions. List must be a named list.}
 
-\item{numberCells}{vector of numbers. The numbers correspond to the number of 
+\item{numberReps}{OPTIONAL. Number of replicates per group}
+
+\item{numberGroups}{OPTIONAL. number of different groups}
+
+\item{diffGenes}{OPTIONAL. If number groups > 1, Percentage DE genes to simulate. 
+Can be a vector with absolute genes for Up and Down ex: c(250, 500) or a 
+percentage for up, down by default: c(0.2, 0.2). The rest will be NE}
+
+\item{minFC}{OPTIONAL. Threshold of FC below which are downregulated, by 
+default 0.25}
+
+\item{maxFC}{OPTIONAL. Threshold of FC abofe which are upregulated, by default 4}
+
+\item{numberCells}{OPTIONAL. Vector of numbers. The numbers correspond to the number of 
 cells the user wants to simulate per each cell type. The length of the 
     vector must be the same as length of \code{cellTypes}.}
 
-\item{mean}{vector of numbers of mean per each cell type. Must be specified 
+\item{mean}{OPTIONAL. Vector of numbers of mean per each cell type. Must be specified 
 just if \code{numberCells} is specified.The length of the vector must be 
     the same as length of \code{cellTypes}.}
 
-\item{sd}{vector of numbers of standard deviation per each cell type. Must be 
+\item{sd}{OPTIONAL. Vector of numbers of standard deviation per each cell type. Must be 
 specified just if \code{numberCells} is specified.The length of the vector 
     must be the same as length of \code{cellTypes}.}
 }
@@ -33,10 +57,13 @@ Performs multiomic simulation of single cell datasets
 }
 \examples{
 
-cellTypes <- list(cellA = c(1:20), cellB = c(161:191))
-sim <- scMOSim(omicsList, cellTypes)
+cell_types <- list(cellA = c(1:20), cellB = c(161:191))
+omicsList <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
+sim <- scMOSim(omicsList, cell_types)
 # or
-sim_with_arg <- scMOSim(omicsList, cellTypes, numberCells = c(10,20),
-      mean = c(2000000, 100000), sd = c(10^3, 10^3))
+sim_with_arg <- scMOSim(omicsList, cell_types, numberReps = 2, 
+                    numberGroups = 2, diffGenes = c(0.2, 0.2), 
+                    minFC = 0.25, maxFC = 4, numberCells = c(10,20),
+                    mean = c(2000000, 100000), sd = c(10^3, 10^3))
 
 }

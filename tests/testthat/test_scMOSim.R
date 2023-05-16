@@ -116,9 +116,9 @@ test_that("checking that passing the argument regulatorEffect to sc_omicSim subs
 })
 
 test_that("checking that scMOSim is able to simulate groups and replicates", {
-  scOmicData <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
+  omicsList <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
   cell_types <- list(cellA = c(1:20), cellB = c(161:191))
-  testing_groupsreps <- scMOSim(scOmicData, cell_types, numberReps = 2, numberGroups = 2, 
+  testing_groupsreps <- scMOSim(omicsList, cell_types, numberReps = 2, numberGroups = 2, 
                                 diffGenes = c(0.2, 0.2), minFC = 0.25, maxFC = 4,
                                 numberCells = NULL, mean = NULL, sd = NULL)
   expect_type(testing_groupsreps, "list")

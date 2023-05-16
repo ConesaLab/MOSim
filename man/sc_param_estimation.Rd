@@ -36,3 +36,9 @@ a named list with simulation parameters for each omics as values.
 Evaluate the users parameters for single cell simulation and use SPARSim
 to simulate the main dataset
 }
+\examples{
+omicsList <- sc_omicData(list("scRNA-seq"))
+cell_types <- list(cellA = c(1:20), cellB = c(161:191))
+estimated_params <- sc_param_estimation(omicsList, cell_types)
+
+}
