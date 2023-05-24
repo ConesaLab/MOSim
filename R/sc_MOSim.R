@@ -204,6 +204,7 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2), minFC
         down <- diffGenes[2]
       }
       NE <- length(param_est_list[[i]][[1]][[1]]) - up - down
+      print(paste0("Up: ", up, " Down: ", down, " NE: ", NE))
       
       # Now we make the FC vector
       notDE_FCvec <- runif(n = NE, min = minFC + 0.001, max = maxFC - 0.001)
