@@ -12,12 +12,13 @@ if(getRversion() >= "2.15.1")  utils::globalVariables(c(".", "n", "sc_sampleData
 #' sc_omicData
 #'
 #' Checks if the user defined data is in the correct format, or loads the default
-#' pbmc dataset from https://satijalab.org/seurat/articles/pbmc3k_tutorial.html
+#' multiomics pbmc dataset from SeuratData package
 #'
 #' @param omics_types A list of strings which can be either "scRNA-seq" or "scATAC-seq"
 #' @param data A user input matrix with genes (peaks in case of scATAC-seq) as 
-#'    rows and cells as columns. Alternatively scMOSim allows you to use a default 
-#'    dataset (PBMC) by not specifying the argument.
+#'    rows and cells as columns. If a user input matrix is included, cell columns 
+#'    must be sorted by cell type. Alternatively scMOSim allows you to use a default 
+#'    dataset (PBMC) by not specifying the argument. 
 #' @return a named list with omics type as name and the count matrix as value
 #' @export
 #'
@@ -33,77 +34,68 @@ sc_omicData <- function(omics_types, data = NULL){
     stop("You must provide the vector of omics to simulate.")
   }
   
-  use_default_data <- function(){
-    if (omics == "scRNA-seq"){
-      rna_orig_counts <- sc_sampleData$rna_orig_counts
-      return(list("scRNA-seq" = rna_orig_counts))
-      
-    } else if (omics =="scATAC-seq"){
-      atac_orig_counts <- sc_sampleData$atac_orig_counts
-      return(list("scATAC-seq" = atac_orig_counts))
-      
+  for (omics in omics_types){
+    if (omics != "scRNA-seq" && omics != "scATAC-seq"){
+      stop("Omics must be a either 'scRNA-seq' or 'scATAC-seq'")
     }
-    return(NA)
   }
   
-  use_provided_data <- function(){
-    if (!is.list(data) || length(data) != 1 && length(data) != 2){
-      print(paste0("the length of data is", length(data)))
-      print("data must be a list of 1 or 2 elements")
-      return(NA)
-    } 
+  omics_list <- list()
+  # If default data
+  if (is.null(data)) {
+    ## Check we have the dataset installed
+    if (SeuratData::AvailableData()["pbmcMultiome.SeuratData","Installed"] != TRUE){
+      SeuratData::InstallData("pbmcMultiome.SeuratData")
+    } else {
+      library("SeuratData")
+    }
     
-    omics_list <- list()
-    N_data <- length(data)
-    
-    for (i in 1:N_data){
+    for (omics in omics_types){
+      # Load data from seurat
+      if(omics == "scRNA-seq"){
+        counts <- as.matrix(pbmcMultiome.SeuratData::pbmc.rna@assays[['RNA']]@counts[1:10000,1:307])
+      } else if (omics == "scATAC-seq"){
+        counts <- as.matrix(pbmcMultiome.SeuratData::pbmc.atac@assays[['ATAC']]@counts[1:10000,1:307])
+      }
       
-      if (! is.matrix(data[[i]]) && class(data[[i]]) != "Seurat"){
-        print("Each element of data must be either matrix or a Seurat object")
-        return(NA)
-        
+      meta <- pbmcMultiome.SeuratData::pbmc.rna@meta.data$seurat_annotations[1:307]
+      metadf <- data.frame("meta" = meta, "cell" = colnames(counts))
+      # Sort the metadata according to cell_type
+      metadf <- metadf[order(metadf$meta),]
+      # Sort by celltype
+      counts <- counts[, metadf$cell]
+      omics_list[[omics]] <- counts
+    }
+    print(paste0("Celltypes in Seurat's PBMC dataset: CD14 Mono (1:65), CD16 Mono (66:85),",
+                 " CD4 Naive (86:123), CD4 TCM (124:157), CD8 Naive (158:202),",
+                 " CD8 TEM (203:215), Memory B (275:284), Naive B (285:290)"))
+  # If data inputted by user
+  } else {
+    # If data was inputted by the user, first check
+    if (!is.list(data) || length(data) != 1 && length(data) != 2){
+      print(paste0("The length of data is ", length(data)))
+      stop("Data must be NULL (default) or a list of 1 or 2 elements")
+    }
+    
+    N_data <- length(data)
+    for (i in 1:N_data){
+      # Then save in a named list
+      if (!is.matrix(data[[i]]) && class(data[[i]]) != "Seurat"){
+        stop("Each element of data must be either a matrix or a Seurat object")
       } else if (is.matrix(data[[i]])){
-        
-        omics_list[[i]] <- data[[i]]
-        
-      } else if (class(data[[i]]) == "Seurat" && omics == "scRNA-seq"){
-        
-        counts <- data[[i]]@assays[["RNA"]]@counts
-        counts_matrix <- as.matrix(counts)
-        omics_list[[i]] <- counts_matrix
-        
-      } else if (class(data[[i]]) == "Seurat" && omics == "scATAC-seq"){
-        
-        counts <- data[[i]]@assays[["ATAC"]]@counts
-        counts_matrix <- as.matrix(counts)
-        omics_list[[i]] <- counts_matrix
-        
-      } else {
-        print(paste0("Invalid class for data element ", i))
-        return(NA)
+        omics_list[[omics_types[[i]]]] <- data[[i]]
+      } else if (class(data[[i]]) == "Seurat" && omics_types[[i]] == "scRNA-seq"){
+        counts <- as.matrix(data[[i]]@assays[["RNA"]]@counts)
+        omics_list[[omics_types[[i]]]] <- counts
+      } else if (class(data[[i]]) == "Seurat" && omics_types[[i]] == "scATAC-seq"){
+        counts <- as.matrix(data[[i]]@assays[["ATAC"]]@counts)
+        omics_list[[omics_types[[i]]]] <- counts
       }
     }
-    names(omics_list) <- omics_types[1:length(omics_list)]
-    return(omics_list)
   }
-  
-  count_matrix_list<-list()
-  
-  for(omics in omics_types) {
-    if (omics != "scRNA-seq" && omics != "scATAC-seq"){
-      print("omics must be a either 'scRNA-seq' or 'scATAC-seq'")
-      return(NA)
-    }
-    if (is.null(data)){
-      count_matrix_list <- c(count_matrix_list, use_default_data())
-    }
-    else {
-      count_matrix_list <- use_provided_data()
-    }
-  }
-  return(count_matrix_list)
+  return(omics_list)
 }
-
+  
 
 #' sc_param_estimation
 #'
@@ -160,23 +152,37 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2), minFC
   
   N_omics <- length(omics)
   
-  for (e in 1:N_omics){
-    # Add variability to groups in comparison to group 1
-    var_group <- stats::rnorm(nrow(as.data.frame(omics[[e]])), 0, noiseGroup)
-    # Add variability to each omic compared to group 1
-    # transform the matrix into TRUE when > 0 false when 0
-    sim_trueFalse <- (omics[[e]] > 0)
-    # Multiply the variability vector by a 1/0 to keep the zeros.
-    for (c in 1:length(colnames(omics[[e]]))){
-      sim_trueFalse[, c] <- as.integer(as.logical(sim_trueFalse[,c]))
-      omics[[e]][,c] <- omics[[e]][,c] + (sim_trueFalse[, c] * var_group)
-    }
-    omics[[e]] <- abs(omics[[e]])
+  # for (e in 1:N_omics){
+  #   # Add variability to groups in comparison to group 1
+  #   var_group <- stats::rnorm(nrow(as.data.frame(omics[[e]])), 0, noiseGroup)
+  #   # Add variability to each omic compared to group 1
+  #   # transform the matrix into TRUE when > 0 false when 0
+  #   sim_trueFalse <- (omics[[e]] > 0)
+  #   # Multiply the variability vector by a 1/0 to keep the zeros.
+  #   for (c in 1:length(colnames(omics[[e]]))){
+  #     sim_trueFalse[, c] <- as.integer(as.logical(sim_trueFalse[,c]))
+  #     omics[[e]][,c] <- omics[[e]][,c] + (sim_trueFalse[, c] * var_group)
+  #   }
+  #   omics[[e]] <- abs(omics[[e]])
+  # }
+  
+  # Normalize using scran method, we had to suppress warnings because
+  # ATAC has too many zeroes for the normalization to be super comfortable
+  norm <- function(om) {
+    o <- SingleCellExperiment::SingleCellExperiment(assays=list(counts=as.matrix(om)))
+    o <- suppressWarnings(scran::computeSumFactors(o, sizes = seq(5, 100, 5),
+                                                     positive = FALSE))
+    # Apply normalization factors
+    o <- scater::normalizeCounts(o, log = FALSE)
+    o[is.na(o)] <- 0
+    o[!is.finite(o)] <- 0
+    o <- abs(o)
+
+    return(o)
   }
   
-  
+  norm_list <- lapply(omics, norm)
 
-  norm_list <- lapply(omics, SPARSim::scran_normalization)
   param_est_list <- list()
   
   for(i in 1:N_omics){

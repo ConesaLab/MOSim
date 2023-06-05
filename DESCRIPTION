@@ -30,7 +30,10 @@ Imports:
     ggplot2,
     Biobase,
     IRanges,
-    S4Vectors
+    S4Vectors,
+    Seurat,
+    Signac,
+    SeuratData
 Suggests:
     testthat,
     knitr,
