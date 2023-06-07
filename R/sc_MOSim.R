@@ -53,12 +53,19 @@ sc_omicData <- function(omics_types, data = NULL){
     for (omics in omics_types){
       # Load data from seurat
       if(omics == "scRNA-seq"){
-        counts <- as.matrix(pbmcMultiome.SeuratData::pbmc.rna@assays[['RNA']]@counts[1:10000,1:307])
+        dat <- pbmcMultiome.SeuratData::pbmc.rna
+        dat <- subset(x = dat, subset = seurat_annotations %in% c("CD4 TEM", 
+                                              "cDC", "Memory B", "Treg"))
+        counts <- as.matrix(dat@assays[["RNA"]]@counts)
       } else if (omics == "scATAC-seq"){
-        counts <- as.matrix(pbmcMultiome.SeuratData::pbmc.atac@assays[['ATAC']]@counts[1:10000,1:307])
+        dat <- pbmcMultiome.SeuratData::pbmc.atac
+        dat <- subset(x = dat, subset = seurat_annotations %in% c("CD4 TEM", 
+                                              "cDC", "Memory B", "Treg"))
+        counts <- as.matrix(dat@assays[["ATAC"]]@counts)
       }
+
+      meta <- dat@meta.data$seurat_annotations
       
-      meta <- pbmcMultiome.SeuratData::pbmc.rna@meta.data$seurat_annotations[1:307]
       metadf <- data.frame("meta" = meta, "cell" = colnames(counts))
       # Sort the metadata according to cell_type
       metadf <- metadf[order(metadf$meta),]
@@ -66,9 +73,10 @@ sc_omicData <- function(omics_types, data = NULL){
       counts <- counts[, metadf$cell]
       omics_list[[omics]] <- counts
     }
-    print(paste0("Celltypes in Seurat's PBMC dataset: CD14 Mono (1:65), CD16 Mono (66:85),",
-                 " CD4 Naive (86:123), CD4 TCM (124:157), CD8 Naive (158:202),",
-                 " CD8 TEM (203:215), Memory B (275:284), Naive B (285:290)"))
+    # Tell the user which celltypes are present in the dataset
+    print(paste0("Celltypes in Seurat's PBMC dataset: list('CD4_TEM' = c(1:298),",
+    " 'cDC' = c(299:496), 'Memory_B' = c(497:867), 'Treg' = c(868:1029)"))
+    
   # If data inputted by user
   } else {
     # If data was inputted by the user, first check
@@ -125,7 +133,7 @@ sc_omicData <- function(omics_types, data = NULL){
 #'
 #' @examples
 #' omicsList <- sc_omicData(list("scRNA-seq"))
-#' cell_types <- list(cellA = c(1:20), cellB = c(161:191))
+#' cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 'Memory_B' = c(497:510), 'Treg' = c(868:900))
 #' estimated_params <- sc_param_estimation(omicsList, cell_types)
 #' 
 sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2), minFC = 0.25, 
@@ -142,11 +150,12 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2), minFC
   
   all_missing <- is.null(numberCells) && is.null(mean) && is.null(sd)
   all_specified <- !is.null(numberCells) && !is.null(mean) && !is.null(sd)
+  only_cellnum <- !is.null(numberCells) && is.null(mean) && is.null(sd)
   
-  if( !(all_missing || all_specified )){
+  if( !(all_missing || all_specified || only_cellnum)){
     
-    print("the user must either not provide the optional arguments or provide them all")
-    return(NA)
+    stop("The user must either not provide the optional arguments, provide them 
+         all or only provide cell numbers")
     
   }
   
@@ -170,7 +179,7 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2), minFC
   # ATAC has too many zeroes for the normalization to be super comfortable
   norm <- function(om) {
     o <- SingleCellExperiment::SingleCellExperiment(assays=list(counts=as.matrix(om)))
-    o <- suppressWarnings(scran::computeSumFactors(o, sizes = seq(5, 100, 5),
+    o <- suppressWarnings(scran::computeSumFactors(o, sizes = seq(10, 100, 5),
                                                      positive = FALSE))
     # Apply normalization factors
     o <- scater::normalizeCounts(o, log = FALSE)
@@ -245,7 +254,10 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2), minFC
       if(all_missing){
         libs_param <- param_est_list[[i]][[j]][["lib_size"]]
       } else if (all_specified){
-        libs_param <- round(rnorm(n = numberCells[j], mean = mean[j], sd = sd[j]))
+        libs_param <- round(stats::rnorm(n = numberCells[j], mean = mean[j], sd = sd[j]))
+      } else if (only_cellnum){
+        libs_param <- sample(param_est_list[[i]][[j]][["lib_size"]], 
+                             size = numberCells[j], replace = TRUE)
       }
         
       cond_param <- SPARSim::SPARSim_create_simulation_parameter(
@@ -387,7 +399,146 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
   
 }
 
+#' simulate coexpression
+#' 
+#' Adapted from ACORDE (https://github.com/ConesaLab/acorde) to adapt to our
+#' data input type
+#'
+#' @param sim_data 
+#' @param feature_no 
+#' @param patterns 
+#' @param cluster_size 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+simulate_coexpression <- function(sim_data,
+                                  feature_no,
+                                  patterns,
+                                  cluster_size){
+  
+  ## DATA PREPARATION: CELL TYPE SPECIFIC MATRICES AND FEATURES ##
+  
+  # extract counts from SCE
+  normcounts <- SingleCellExperiment::counts(sim_data) %>% as.data.frame
+  # get cell ids in each cell type
+  group.list <- sim_data$Cell %>% split(sim_data$Group)
+  # extract cell type (group) expr matrices
+  normcounts.list <- purrr::map(group.list,
+                                ~(normcounts[, as.character(.)] %>%
+                                    tibble::rownames_to_column("feature")))
+  
+  # rank features by mean expression in each cell type
+  normcounts.list <- purrr::map(normcounts.list,
+                         ~dplyr::mutate(., mean = rowMeans(.[,-1])) %>%
+                           dplyr::arrange(dplyr::desc(mean))
+                         %>% dplyr::select(-mean))
+  
+  # select top and bottom feature IDs for each cell type
+  
+  # top
+  top_features.list <- purrr::map(normcounts.list,
+                                  ~dplyr::select(., feature) %>%
+                                    dplyr::rename(top = "feature") %>%
+                                    dplyr::slice(., 1:feature_no) %>%
+                                    tibble::as_tibble())
+  
+  # modify bottom feature no. to create range correctly
+  feature_no.c <- nrow(normcounts) - (feature_no - 1)
+  # bottom
+  bottom_features.list <- purrr::map(normcounts.list,
+                                     ~dplyr::select(., feature) %>%
+                                       dplyr::rename(bottom = "feature") %>%
+                                       dplyr::slice(., feature_no.c:nrow(normcounts)) %>%
+                                       tibble::as_tibble())
+  
+  # create a two-col tibble with top/bottom features per group
+  features.list <- purrr::map2(top_features.list, bottom_features.list,
+                               dplyr::bind_cols)
+  
+  
+  ## USE SUPPLIED PATTERS TO SHUFFLE THE CELL TYPE MATRICES ##
+  
+  # match column names for patterns
+  colnames(patterns) <- names(normcounts.list)
+  
+  # shuffle matrix for each cell type following cluster patterns
+  # note that internal function shuffle_group_matrix() is used to perform
+  # each individual shuffling operation
+  
+  # calculate no. of clusters based on size and number of features
+  partitions <- feature_no / cluster_size
+  partitions <- trunc(partitions)
+  print(partitions)
+  
+  # HERE IT WAS PURRR::PMAP
+  expr.list <- purrr::pmap(list(normcounts.list, features.list, patterns),
+                           ~shuffle_group_matrix(sim_data = ..1,
+                                                 feature_ids = ..2,
+                                                 group_pattern = ..3,
+                                                 ngroups = partitions))
+  
+  # join cell type matrices into a single expression matrix
+  expr.list <- purrr::map(expr.list, dplyr::select, -feature)
+  coexpr.df <- dplyr::bind_cols(expr.list) %>% tibble::as_tibble()
+  coexpr.df <- coexpr.df %>%
+    #dplyr::mutate(feature = paste0("Feature", seq(1, nrow(coexpr.df)))) %>%
+    dplyr::relocate(feature)
+  
+  # generate feature ID vectors for co-expression clusters
+  clusters <- split(coexpr.df$feature,
+                    cut(seq(1, nrow(coexpr.df)),
+                        breaks = nrow(patterns), labels = FALSE))
+  
+  # build a list with results
+  coexpr_sim <- list(sim_matrix = coexpr.df,
+                     sim_clusters = clusters)
+  return(coexpr_sim)
+  
+}
 
+#' shuffle_group_matrix
+#'
+#' @param sim_data 
+#' @param feature_ids 
+#' @param group_pattern 
+#' @param ngroups 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+shuffle_group_matrix <- function(sim_data, feature_ids, group_pattern, ngroups){
+  
+  # select top and bottom features in group
+  top <- dplyr::select(feature_ids, top) %>% unlist
+  bottom <- dplyr::select(feature_ids, bottom) %>% unlist
+  
+  # random partitioning of features
+  # top
+  top.shuffle <- sample(length(top))
+  top <- top[top.shuffle]
+  top.list <- split(top, cut(seq(1, length(top)), breaks = ngroups, labels = FALSE))
+  # bottom
+  bottom.shuffle <- sample(length(bottom))
+  bottom <- bottom[bottom.shuffle]
+  bottom.list <- split(bottom, cut(seq(1, length(bottom)), breaks = ngroups, labels = FALSE))
+  
+  # bind features following pattern
+  features_bound <- vector(mode = "list", length = length(group_pattern))
+  features_bound[group_pattern] <- top.list
+  features_bound[!group_pattern] <- bottom.list
+  features_bound <- unlist(features_bound)
+  
+  # build expression matrix for group
+  sim_data.mod <- sim_data %>%
+    dplyr::filter(feature %in% features_bound) %>%
+    tibble::column_to_rownames("feature")
+  sim_data.mod <- sim_data.mod[features_bound,] %>% tibble::rownames_to_column("feature")
+  
+  return(sim_data.mod)
+}
 
 
 #' sc_omicSim
