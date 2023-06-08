@@ -55,6 +55,14 @@ test_that("checking that scMOSim is able to simulate groups and replicates", {
   expect_type(testing_groupsreps, "list")
 })
 
+#make_cluster_patterns function
+test_that("make_cluster_patterns returns a tibble of dimensions 
+          numcells^2xnumcells",{
+            patterns <- make_cluster_patterns(4)
+            expected <- c(16, 4)
+            expect_equal(dim(patterns), expected)
+          })
+
 #sc_omicSim function
 test_that("sc_omicSim returns a list", {
   omic_list <- sc_omicData(c("scRNA-seq","scATAC-seq"))
@@ -131,12 +139,36 @@ sparsim_sce <- SingleCellExperiment::SingleCellExperiment(
       colData = colData
       )
 
+sparsim_sce <- scater::runPCA(sparsim_sce, exprs_values = "counts")
+scater::plotPCA(sparsim_sce, colour_by = "Group")
+
 # Create 2 patterns
-patterns <- tibble(one.a = c(FALSE, TRUE),
-                   two.a = c(TRUE, FALSE)) %>% t %>% as_tibble(.name_repair = "unique")
+patterns <- tibble(one.a = c(TRUE, rep(FALSE, 3)),
+                   one.b = c(FALSE, TRUE, FALSE, FALSE),
+                   one.c = c(FALSE, FALSE, TRUE, FALSE),
+                   one.d = c(rep(FALSE, 3), TRUE),
+                   two.a = c(rep(TRUE, 2), rep(FALSE, 2)),
+                   two.b = c(TRUE, FALSE, TRUE, FALSE),
+                   two.c = c(FALSE, TRUE, TRUE, FALSE),
+                   two.d = c(rep(FALSE, 2), rep(TRUE, 2)),
+                   three.a = c(rep(TRUE, 3), rep(FALSE, 1)),
+                   three.b = c(rep(TRUE, 2), FALSE, TRUE),
+                   three.c = c(TRUE, FALSE, rep(TRUE, 2)),
+                   three.d = c(FALSE, rep(TRUE,3)),
+                   four.a = c(rep(TRUE, 4)),
+                   four.b = c(rep(FALSE, 4))
+                   ) %>% t %>% as_tibble(.name_repair = "unique")
 
 # We have generated 2 expression patterns, each for one gene cluster and one with no change
 coexpr_results <- simulate_coexpression(sparsim_sce,
                                         feature_no = round((nrow(sim$Group_1$Rep_1$`sim_scRNA-seq`@assays$RNA@counts)/2)-100), 
                                         patterns, 
                                         cluster_size = round(nrow(sim$Group_1$Rep_1$`sim_scRNA-seq`@assays$RNA@counts)/2))
+
+
+
+
+
+
+
+

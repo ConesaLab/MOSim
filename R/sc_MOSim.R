@@ -399,6 +399,44 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
   
 }
 
+
+
+
+#' make_cluster_patterns
+#' 
+#' Function to make the tibble with cluster combinations for the gene expression
+#' patterns along the cells
+#'
+#' @param numcells Number of different celltypes we are simulating
+#'
+#' @return A tibble with number of columns equal to number of celltypes, rows
+#'  according to the number of TRUE/FALSE combinations corresponding to the
+#'  gene expression patterns along the cells
+#'
+#' @examples
+#' patterns <- make_cluster_patterns(4)
+#' 
+make_cluster_patterns <- function(numcells = 4){
+  
+  patterns <- tibble()
+  col_names <- paste0("Var", 1:numcells)
+  
+  for (i in 0:(2^numcells - 1)) {
+    boolArr <- vector(mode = "logical", length = numcells)
+    
+    # Increasing or decreasing depending on which direction
+    # you want your array to represent the binary number
+    for (j in (numcells - 1):0) {
+      boolArr[j + 1] <- as.logical(bitwAnd(i, 2^j))
+    }
+    
+    patterns <- rbind(patterns, boolArr)
+  }
+  
+  colnames(patterns) <- col_names
+  return(patterns)
+}
+
 #' simulate coexpression
 #' 
 #' Adapted from ACORDE (https://github.com/ConesaLab/acorde) to adapt to our
