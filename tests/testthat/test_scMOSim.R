@@ -49,17 +49,25 @@ test_that("scMOSim returns a list with S4 obj as values", {
 test_that("checking that scMOSim is able to simulate groups and replicates", {
   omicsList <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
   cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 'Memory_B' = c(497:510), 'Treg' = c(868:900))
-  testing_groupsreps <- scMOSim(omicsList, cell_types, numberReps = 2, numberGroups = 2, 
+  testing_groupsreps <- scMOSim(omicsList, cell_types, numberReps = 2, numberGroups = 3, 
                                 diffGenes = c(0.2, 0.2), minFC = 0.25, maxFC = 4,
                                 numberCells = NULL, mean = NULL, sd = NULL)
   expect_type(testing_groupsreps, "list")
 })
 
+test_that("If numberGroups > 1, length(diffGenes) must be == (numberGroups -1)", {
+  omicsList <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
+  cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 'Memory_B' = c(497:510), 'Treg' = c(868:900))
+  expect_error(scMOSim(omicsList, cell_types, numberReps = 2, numberGroups = 2, 
+                       diffGenes = c(0.2, 0.2), minFC = 0.25, maxFC = 4,
+                       numberCells = NULL, mean = NULL, sd = NULL))
+})
+
 #make_cluster_patterns function
 test_that("make_cluster_patterns returns a tibble of dimensions 
           numcells^2xnumcells",{
-            patterns <- make_cluster_patterns(4)
-            expected <- c(16, 4)
+            patterns <- make_cluster_patterns(4, 4)
+            expected <- c(4, 4)
             expect_equal(dim(patterns), expected)
           })
 
@@ -87,7 +95,7 @@ test_that("sc_omicSim returns the expected subarray for the activity column", {
 test_that("sc_omicSim also works for a simulation with 4 cell types",{
   rna_counts <- readRDS("./data/RNA_4CellTypes.rds")
   atac_counts <- readRDS("./data/ATAC_4CellTypes.rds")
-  omicData_4cell <- sc_omicData(omics_types =  list("scRNA-seq","scATAC-seq"), data = list(rna_counts,atac_counts))
+  omicData_4cell <- sc_omicData(omics_types =  list("scRNA-seq","scATAC-seq"))
   cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 'Memory_B' = c(497:510), 'Treg' = c(868:900))
   sim_4cell <- scMOSim(omicData_4cell, cell_types, numberCells = c(10,20,10,20), mean = c(2*10^6, 2*10^3, 2*10^5, 2*10^6), sd = c(10^3, 10^2, 10^2, 10^3))
   cell_types_integration <- list(cellA = c(1:10), cellB = c(11:30), cellC =c(31:40), cellD=c(41:60))
@@ -123,52 +131,3 @@ test_that("checking that passing the argument regulatorEffect to sc_omicSim subs
   NE_subset <- sum(omicSim_subset[["markers_cellA_cellB_subset"]][["activity"]] =="NE")
   expect_true(NE_rounded == NE_subset)
 })
-
-## Test simulate coexpression
-### Coming from 
-omic_list <- sc_omicData(c("scRNA-seq"))
-cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 'Memory_B' = c(497:520), 'Treg' = c(868:900))
-sim <-scMOSim(omic_list, cell_types, numberCells = c(100, 100, 100, 100))
-
-colData <- tibble(Cell = colnames(sim$Group_1$Rep_1$`sim_scRNA-seq`@assays$RNA@counts),
-                  Group = paste0("Group", c(rep(1,100), rep(2,100), rep(3,100), rep(4,100))))
-
-sparsim_sce <- SingleCellExperiment::SingleCellExperiment(
-      assays = list(counts = sim$Group_1$Rep_1$`sim_scRNA-seq`@assays$RNA@counts,
-      logcounts = log2(sim$Group_1$Rep_1$`sim_scRNA-seq`@assays$RNA@counts + 1)),
-      colData = colData
-      )
-
-sparsim_sce <- scater::runPCA(sparsim_sce, exprs_values = "counts")
-scater::plotPCA(sparsim_sce, colour_by = "Group")
-
-# Create 2 patterns
-patterns <- tibble(one.a = c(TRUE, rep(FALSE, 3)),
-                   one.b = c(FALSE, TRUE, FALSE, FALSE),
-                   one.c = c(FALSE, FALSE, TRUE, FALSE),
-                   one.d = c(rep(FALSE, 3), TRUE),
-                   two.a = c(rep(TRUE, 2), rep(FALSE, 2)),
-                   two.b = c(TRUE, FALSE, TRUE, FALSE),
-                   two.c = c(FALSE, TRUE, TRUE, FALSE),
-                   two.d = c(rep(FALSE, 2), rep(TRUE, 2)),
-                   three.a = c(rep(TRUE, 3), rep(FALSE, 1)),
-                   three.b = c(rep(TRUE, 2), FALSE, TRUE),
-                   three.c = c(TRUE, FALSE, rep(TRUE, 2)),
-                   three.d = c(FALSE, rep(TRUE,3)),
-                   four.a = c(rep(TRUE, 4)),
-                   four.b = c(rep(FALSE, 4))
-                   ) %>% t %>% as_tibble(.name_repair = "unique")
-
-# We have generated 2 expression patterns, each for one gene cluster and one with no change
-coexpr_results <- simulate_coexpression(sparsim_sce,
-                                        feature_no = round((nrow(sim$Group_1$Rep_1$`sim_scRNA-seq`@assays$RNA@counts)/2)-100), 
-                                        patterns, 
-                                        cluster_size = round(nrow(sim$Group_1$Rep_1$`sim_scRNA-seq`@assays$RNA@counts)/2))
-
-
-
-
-
-
-
-

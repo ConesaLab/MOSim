@@ -74,14 +74,14 @@ sc_omicData <- function(omics_types, data = NULL){
       omics_list[[omics]] <- counts
     }
     # Tell the user which celltypes are present in the dataset
-    print(paste0("Celltypes in Seurat's PBMC dataset: list('CD4_TEM' = c(1:298),",
-    " 'cDC' = c(299:496), 'Memory_B' = c(497:867), 'Treg' = c(868:1029)"))
+    message(paste0("Celltypes in loaded Seurat's PBMC dataset: list('CD4_TEM' = ",
+    "c(1:298), 'cDC' = c(299:496), 'Memory_B' = c(497:867), 'Treg' = c(868:1029)"))
     
   # If data inputted by user
   } else {
     # If data was inputted by the user, first check
     if (!is.list(data) || length(data) != 1 && length(data) != 2){
-      print(paste0("The length of data is ", length(data)))
+      message(paste0("The length of data is ", length(data)))
       stop("Data must be NULL (default) or a list of 1 or 2 elements")
     }
     
@@ -125,8 +125,8 @@ sc_omicData <- function(omics_types, data = NULL){
 #' @param mean vector of numbers of mean per each cell type. Must be specified 
 #'    just if \code{numberCells} is specified.
 #' @param sd vector of numbers of standard deviation per each cell type. Must be 
-#'    specified just if \code{numberCells} is specified.\
-#' @noiseGroup OPTIONAL. Number indicating the desired standard deviation
+#'    specified just if \code{numberCells} is specified.
+#' @param noiseGroup OPTIONAL. Number indicating the desired standard deviation
 #'      between treatment groups
 #' @param group Group for which to estimate parameters
 #' @return a named list with simulation parameters for each omics as values.
@@ -195,7 +195,7 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2), minFC
   param_est_list <- list()
   
   for(i in 1:N_omics){
-    print(paste0("Estimating distribution from original data type: ", i))
+    message(paste0("Estimating distribution from original data type: ", i))
     param_est <- SPARSim::SPARSim_estimate_parameter_from_data(raw_data = omics[[i]],
                                                                norm_data = norm_list[[i]],
                                                                conditions = cellTypes)
@@ -219,7 +219,7 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2), minFC
         down <- diffGenes[2]
       }
       NE <- length(param_est_list[[i]][[1]][[1]]) - up - down
-      print(paste0("Up: ", up, " Down: ", down, " NE: ", NE))
+      message(paste0("Up: ", up, " Down: ", down, " NE: ", NE))
       
       # Now we make the FC vector
       notDE_FCvec <- runif(n = NE, min = minFC + 0.001, max = maxFC - 0.001)
@@ -246,10 +246,10 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2), minFC
     
   for(i in 1:N_param_est_list){
     cell_type_list <- list()
-    print(paste0("Creating parameters for omic: ", i))
+    message(paste0("Creating parameters for omic: ", i))
       
     for(j in 1:N_cellTypes){
-      print(paste0("Creating parameters for cell type: ", j))
+      message(paste0("Creating parameters for cell type: ", j))
         
       if(all_missing){
         libs_param <- param_est_list[[i]][[j]][["lib_size"]]
@@ -322,7 +322,7 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2), minFC
 #'                     noiseRep = 0.1, noiseGroup = 0.5)
 #'
 scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1, 
-                    diffGenes = c(0.2, 0.2), minFC = 0.25, maxFC = 4,
+                    diffGenes = NULL, minFC = 0.25, maxFC = 4,
                     numberCells = NULL, mean = NULL, sd = NULL, noiseRep = 0.1 , 
                     noiseGroup = 0.5){
   # Check for mandatory parameters
@@ -333,13 +333,22 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
   if (missing(cellTypes)){
     stop("You must provide the correspondence of cells and celltypes")
   }
+  
+  ## Check that number of groups and number of differentially expressed
+  # probabilities makes sense
+  if (numberGroups > 1){
+    if (is.null(diffGenes) || length(diffGenes) != (numberGroups - 1)){
+      stop(paste0("Number of elements in diffGenes must have a length equal to", 
+                  " numberGroups -1"))
+    }
+  }
 
   seu_groups <- list()
   
   for (g in 1:numberGroups){
     seu_replicates <- list()
 
-    print(paste0("Estimating parameters for experimental group ", g))
+    message(paste0("Estimating parameters for experimental group ", g))
     
 
     param_list <- sc_param_estimation(omics, cellTypes, diffGenes, minFC, maxFC, 
@@ -347,7 +356,7 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
     
     
     for (r in 1:numberReps){
-      print(paste0("Simulating parameters for replicate ", r))
+      message(paste0("Simulating parameters for replicate ", r))
       
       N_omics <- length(omics)
       sim_list <- list()
@@ -408,15 +417,18 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
 #' patterns along the cells
 #'
 #' @param numcells Number of different celltypes we are simulating
+#' @param clusters Number of clusters the user wants to simulate
 #'
 #' @return A tibble with number of columns equal to number of celltypes, rows
 #'  according to the number of TRUE/FALSE combinations corresponding to the
 #'  gene expression patterns along the cells
 #'
 #' @examples
-#' patterns <- make_cluster_patterns(4)
+#' patterns <- make_cluster_patterns(numcells = 4, clusters = 4)
+#' # patterns <- make_cluster_patterns(numcells = length(cell_types), 
+#' # clusters = 8)
 #' 
-make_cluster_patterns <- function(numcells = 4){
+make_cluster_patterns <- function(numcells = 4, clusters = 4){
   
   patterns <- tibble()
   col_names <- paste0("Var", 1:numcells)
@@ -434,6 +446,8 @@ make_cluster_patterns <- function(numcells = 4){
   }
   
   colnames(patterns) <- col_names
+  # Subset to number of clusters the user wants
+  patterns <- dplyr::slice_sample(patterns, n = clusters)
   return(patterns)
 }
 
@@ -442,111 +456,51 @@ make_cluster_patterns <- function(numcells = 4){
 #' Adapted from ACORDE (https://github.com/ConesaLab/acorde) to adapt to our
 #' data input type
 #'
-#' @param sim_data 
-#' @param feature_no 
-#' @param patterns 
-#' @param cluster_size 
-#'
-#' @return
-#' @export
-#'
-#' @examples
-simulate_coexpression <- function(sim_data,
-                                  feature_no,
-                                  patterns,
-                                  cluster_size){
-  
-  ## DATA PREPARATION: CELL TYPE SPECIFIC MATRICES AND FEATURES ##
-  
-  # extract counts from SCE
-  normcounts <- SingleCellExperiment::counts(sim_data) %>% as.data.frame
-  # get cell ids in each cell type
-  group.list <- sim_data$Cell %>% split(sim_data$Group)
-  # extract cell type (group) expr matrices
-  normcounts.list <- purrr::map(group.list,
-                                ~(normcounts[, as.character(.)] %>%
-                                    tibble::rownames_to_column("feature")))
-  
-  # rank features by mean expression in each cell type
-  normcounts.list <- purrr::map(normcounts.list,
-                         ~dplyr::mutate(., mean = rowMeans(.[,-1])) %>%
-                           dplyr::arrange(dplyr::desc(mean))
-                         %>% dplyr::select(-mean))
-  
-  # select top and bottom feature IDs for each cell type
-  
-  # top
-  top_features.list <- purrr::map(normcounts.list,
-                                  ~dplyr::select(., feature) %>%
-                                    dplyr::rename(top = "feature") %>%
-                                    dplyr::slice(., 1:feature_no) %>%
-                                    tibble::as_tibble())
-  
-  # modify bottom feature no. to create range correctly
-  feature_no.c <- nrow(normcounts) - (feature_no - 1)
-  # bottom
-  bottom_features.list <- purrr::map(normcounts.list,
-                                     ~dplyr::select(., feature) %>%
-                                       dplyr::rename(bottom = "feature") %>%
-                                       dplyr::slice(., feature_no.c:nrow(normcounts)) %>%
-                                       tibble::as_tibble())
-  
-  # create a two-col tibble with top/bottom features per group
-  features.list <- purrr::map2(top_features.list, bottom_features.list,
-                               dplyr::bind_cols)
-  
-  
-  ## USE SUPPLIED PATTERS TO SHUFFLE THE CELL TYPE MATRICES ##
-  
-  # match column names for patterns
-  colnames(patterns) <- names(normcounts.list)
-  
-  # shuffle matrix for each cell type following cluster patterns
-  # note that internal function shuffle_group_matrix() is used to perform
-  # each individual shuffling operation
-  
-  # calculate no. of clusters based on size and number of features
-  partitions <- feature_no / cluster_size
-  partitions <- trunc(partitions)
-  print(partitions)
-  
-  # HERE IT WAS PURRR::PMAP
-  expr.list <- purrr::pmap(list(normcounts.list, features.list, patterns),
-                           ~shuffle_group_matrix(sim_data = ..1,
-                                                 feature_ids = ..2,
-                                                 group_pattern = ..3,
-                                                 ngroups = partitions))
-  
-  # join cell type matrices into a single expression matrix
-  expr.list <- purrr::map(expr.list, dplyr::select, -feature)
-  coexpr.df <- dplyr::bind_cols(expr.list) %>% tibble::as_tibble()
-  coexpr.df <- coexpr.df %>%
-    #dplyr::mutate(feature = paste0("Feature", seq(1, nrow(coexpr.df)))) %>%
-    dplyr::relocate(feature)
-  
-  # generate feature ID vectors for co-expression clusters
-  clusters <- split(coexpr.df$feature,
-                    cut(seq(1, nrow(coexpr.df)),
-                        breaks = nrow(patterns), labels = FALSE))
-  
-  # build a list with results
-  coexpr_sim <- list(sim_matrix = coexpr.df,
-                     sim_clusters = clusters)
-  return(coexpr_sim)
-  
-}
-
-#' shuffle_group_matrix
-#'
-#' @param sim_data 
 #' @param feature_ids 
 #' @param group_pattern 
 #' @param ngroups 
+#' @param sim_data 
 #'
-#' @return
+#' @return the simulated coexpression
 #' @export
 #'
 #' @examples
+#' simulate_coexpression(sparsim_sce, 
+#' feature_no = 3200, 
+#' patterns, cluster_size = 400)
+#' 
+simulate_coexpression <- function(){}
+
+
+
+#' shuffle_group_matrix, Reorder cell type-specific expression matrix during 
+#' co-expression simulation. Copied from ACORDE (https://github.com/ConesaLab/acorde)
+#' to facilitate stability and running within our scripts
+#' 
+#' @description This function is used internally by \code{acorde} to perform
+#' the shuffling of simulated features for an individual cell type, as part of
+#' the co-expression simulation process. The function is called recursively by
+#' \code{\link[MOSim:simulate_coexpression]{simulate_coexpression()}} to
+#' perform the simulation on a full scRNA-seq matrix.
+#'
+#' @param sim_data A count matrix with features as rows and cells as columns.
+#' Feature IDs must be included in an additional column named \code{feature}.
+#' @param feature_ids A two-column \code{tibble} containing \code{top} and \code{bottom}
+#' columns, each including the feature IDs of features to be used as highly or
+#' lowly expressed when shuffling by the indicated expression pattern.
+#' @param group_pattern A logical vector, containing \code{TRUE} to indicate that
+#' high expression in that cell type is desired and \code{FALSE} if the opposite.
+#' The vector must be ordered as the cell types in \code{sim_data}.
+#' @param ngroups An integer indicating the number of groups that top and bottom
+#' features should be divided into. It is computed by dividing the number
+#' of features selected as highly/lowly expressed by the size of the clusters
+#' that are to be generated.
+#'
+#' @return An expression matrix, with the same characteristics as \code{sim_data},
+#' and a number of features defined as the total amount of top/bottom features
+#' selected divided by the number of clusters for which co-expression patterns
+#' where supplied.
+
 shuffle_group_matrix <- function(sim_data, feature_ids, group_pattern, ngroups){
   
   # select top and bottom features in group
@@ -565,8 +519,9 @@ shuffle_group_matrix <- function(sim_data, feature_ids, group_pattern, ngroups){
   
   # bind features following pattern
   features_bound <- vector(mode = "list", length = length(group_pattern))
-  features_bound[group_pattern] <- top.list
-  features_bound[!group_pattern] <- bottom.list
+  # Remove harmless warning
+  suppressWarnings(features_bound[group_pattern] <- top.list)
+  suppressWarnings(features_bound[!group_pattern] <- bottom.list)
   features_bound <- unlist(features_bound)
   
   # build expression matrix for group
@@ -643,7 +598,7 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL,
       
     } else if (totalFeatures > nrow(sim[["sim_scRNA-seq"]]@assays[["RNA"]]@counts)){
       
-      print(paste("the number of totalFeatures you have inserted is higher than what's possible to be generated,", nrow(sim[["scATAC-seq"]]@assays[["ATAC"]]@counts), "peaks were generated instead." ))
+      message(paste("the number of totalFeatures you have inserted is higher than what's possible to be generated,", nrow(sim[["scATAC-seq"]]@assays[["ATAC"]]@counts), "peaks were generated instead." ))
       atac_counts <- sim[["sim_scATAC-seq"]]@assays[["ATAC"]]@counts
       
     }
@@ -664,7 +619,7 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL,
   
   if(length(cellTypes) > 2){
     
-    print(paste0("the length of cellTypes is ", length(cellTypes)))
+    message(paste0("the length of cellTypes is ", length(cellTypes)))
     
     da_peaks_atac_list <- lapply(seq_along(cellTypes), function(i) {
       
@@ -720,7 +675,7 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL,
       
     } else {
       
-      print("the associationList must be a dataframe having two columns reporting peak ids and gene names")
+      message("the associationList must be a dataframe having two columns reporting peak ids and gene names")
       return(NA)
       
     }
@@ -839,7 +794,7 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL,
       
     } else {
       
-      print("regulatorEffect must be a named list with percentages as values of length 3. The names must be 'activator', 'repressor', 'NE' ")
+      message("regulatorEffect must be a named list with percentages as values of length 3. The names must be 'activator', 'repressor', 'NE' ")
       return(NA)
       
     }

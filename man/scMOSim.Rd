@@ -9,12 +9,14 @@ scMOSim(
   cellTypes,
   numberReps = 1,
   numberGroups = 1,
-  diffGenes = c(0.2, 0.2),
+  diffGenes = NULL,
   minFC = 0.25,
   maxFC = 4,
   numberCells = NULL,
   mean = NULL,
-  sd = NULL
+  sd = NULL,
+  noiseRep = 0.1,
+  noiseGroup = 0.5
 )
 }
 \arguments{
@@ -48,6 +50,12 @@ just if \code{numberCells} is specified.The length of the vector must be
 \item{sd}{OPTIONAL. Vector of numbers of standard deviation per each cell type. Must be 
 specified just if \code{numberCells} is specified.The length of the vector 
     must be the same as length of \code{cellTypes}.}
+
+\item{noiseRep}{OPTIONAL. Number indicating the desired standard deviation 
+between biological replicates.}
+
+\item{noiseGroup}{OPTIONAL. Number indicating the desired standard deviation
+between treatment groups}
 }
 \value{
 a list of Seurat object, one per each omic.
@@ -64,6 +72,7 @@ sim <- scMOSim(omicsList, cell_types)
 sim_with_arg <- scMOSim(omicsList, cell_types, numberReps = 2, 
                     numberGroups = 2, diffGenes = c(0.2, 0.2), 
                     minFC = 0.25, maxFC = 4, numberCells = c(10,20),
-                    mean = c(2000000, 100000), sd = c(10^3, 10^3))
+                    mean = c(2000000, 100000), sd = c(10^3, 10^3), 
+                    noiseRep = 0.1, noiseGroup = 0.5)
 
 }

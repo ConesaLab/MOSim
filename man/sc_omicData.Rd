@@ -10,7 +10,8 @@ sc_omicData(omics_types, data = NULL)
 \item{omics_types}{A list of strings which can be either "scRNA-seq" or "scATAC-seq"}
 
 \item{data}{A user input matrix with genes (peaks in case of scATAC-seq) as 
-rows and cells as columns. Alternatively scMOSim allows you to use a default 
+rows and cells as columns. If a user input matrix is included, cell columns 
+must be sorted by cell type. Alternatively scMOSim allows you to use a default 
 dataset (PBMC) by not specifying the argument.}
 }
 \value{
@@ -18,7 +19,7 @@ a named list with omics type as name and the count matrix as value
 }
 \description{
 Checks if the user defined data is in the correct format, or loads the default
-pbmc dataset from https://satijalab.org/seurat/articles/pbmc3k_tutorial.html
+multiomics pbmc dataset from SeuratData package
 }
 \examples{
 # Simulate from PBMC

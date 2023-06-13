@@ -7,9 +7,14 @@
 sc_param_estimation(
   omics,
   cellTypes,
+  diffGenes = c(0.2, 0.2),
+  minFC = 0.25,
+  maxFC = 4,
   numberCells = NULL,
   mean = NULL,
-  sd = NULL
+  sd = NULL,
+  noiseGroup = 0.5,
+  group = 1
 )
 }
 \arguments{
@@ -18,6 +23,14 @@ be "scRNA-seq" or "scATAC-seq".}
 
 \item{cellTypes}{list where the i-th element of the list contains the column 
 indices for i-th cell type. List must be a named list.}
+
+\item{diffGenes}{If number groups > 1, Percentage DE genes to simulate. 
+Can be a vector with absolute genes for Up and Down ex: c(250, 500) or a 
+percentage for up, down by default: c(0.2, 0.2). The rest will be NE}
+
+\item{minFC}{Threshold of FC below which are downregulated, by default 0.25}
+
+\item{maxFC}{Threshold of FC above which are upregulated, by default 4}
 
 \item{numberCells}{vector of numbers. The numbers correspond to the number 
 of cells the user wants to simulate per each cell type. The length of the 
@@ -28,6 +41,11 @@ just if \code{numberCells} is specified.}
 
 \item{sd}{vector of numbers of standard deviation per each cell type. Must be 
 specified just if \code{numberCells} is specified.}
+
+\item{noiseGroup}{OPTIONAL. Number indicating the desired standard deviation
+between treatment groups}
+
+\item{group}{Group for which to estimate parameters}
 }
 \value{
 a named list with simulation parameters for each omics as values.
@@ -38,7 +56,7 @@ to simulate the main dataset
 }
 \examples{
 omicsList <- sc_omicData(list("scRNA-seq"))
-cell_types <- list(cellA = c(1:20), cellB = c(161:191))
+cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 'Memory_B' = c(497:510), 'Treg' = c(868:900))
 estimated_params <- sc_param_estimation(omicsList, cell_types)
 
 }

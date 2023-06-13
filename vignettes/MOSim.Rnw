@@ -14,7 +14,7 @@ options(tidy.opts=list(blank=FALSE, width.cutoff=60))
 
 
 \bioctitle[MOSim]{MOSim}
-\author{Sonia Tarazona, Carolina Monz\'o, Carlos Mart\'inez}
+\author{Carlos Mart\'inez, Carolina Monz\'o, Sonia Tarazona}
 \begin{document}
 
 \maketitle
