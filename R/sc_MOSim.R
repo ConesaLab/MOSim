@@ -57,6 +57,10 @@ sc_omicData <- function(omics_types, data = NULL){
         dat <- subset(x = dat, subset = seurat_annotations %in% c("CD4 TEM", 
                                               "cDC", "Memory B", "Treg"))
         counts <- as.matrix(dat@assays[["RNA"]]@counts)
+        # Tell the user which celltypes are present in the dataset
+        message(paste0("Celltypes in loaded Seurat's PBMC dataset: list('CD4_TEM' = ",
+                       "c(1:298), 'cDC' = c(299:496), 'Memory_B' = c(497:867),", 
+                       " 'Treg' = c(868:1029)"))
       } else if (omics == "scATAC-seq"){
         dat <- pbmcMultiome.SeuratData::pbmc.atac
         dat <- subset(x = dat, subset = seurat_annotations %in% c("CD4 TEM", 
@@ -73,9 +77,6 @@ sc_omicData <- function(omics_types, data = NULL){
       counts <- counts[, metadf$cell]
       omics_list[[omics]] <- counts
     }
-    # Tell the user which celltypes are present in the dataset
-    message(paste0("Celltypes in loaded Seurat's PBMC dataset: list('CD4_TEM' = ",
-    "c(1:298), 'cDC' = c(299:496), 'Memory_B' = c(497:867), 'Treg' = c(868:1029)"))
     
   # If data inputted by user
   } else {
@@ -108,7 +109,7 @@ sc_omicData <- function(omics_types, data = NULL){
 #' sc_param_estimation
 #'
 #' Evaluate the users parameters for single cell simulation and use SPARSim
-#' to simulate the main dataset
+#' to simulate the main dataset. Internal function
 #'
 #' @param omics named list containing the omics to simulate as names, which can 
 #'    be "scRNA-seq" or "scATAC-seq".
@@ -204,6 +205,8 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2), minFC
   }
   
   if (group > 1){
+    # if its from group 2 upwards, we make the differences by multiplying
+    # Times a fold change vector, thus we generate it
     FClist <- list()
     
     for(i in 1:N_omics){
@@ -224,18 +227,31 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2), minFC
       # Now we make the FC vector
       notDE_FCvec <- runif(n = NE, min = minFC + 0.001, max = maxFC - 0.001)
       DE_FCvec <- c(runif(n = up, min = maxFC, max = 100), runif(n = down, 
-                                                                 min = 0.0001, max = minFC))
+                                                min = 0.0001, max = minFC))
       
+      # The genes affected by FC will be at the begining (also these were
+      # The ones most probably included into co-expression patterns)
       FCvec <- c(DE_FCvec, notDE_FCvec)
       FClist[[paste0("FC_est_", names(omics)[i])]] <- FCvec
       
+      
+      ## Now calculate also the variability of the group compared to the first 
+      ## group according to a gamma distribution
+      
     } 
   } else if (group == 1){
+    # If its the first group, we dont need to add FC, so we multiply by one
+    # Instead of a fold change vector
     FClist <- list()
+    #VARlist <- list()
     
     for(i in 1:N_omics){
       FCvec <- rep(1, length(param_est_list[[i]][[1]][[1]]))
       FClist[[paste0("FC_est_", names(omics)[i])]] <- FCvec
+      
+      # Same for variability
+      #VARvec <- rep(1, length(param_est_list[[i]][[1]][["variability"]]))
+      #VARlist[[paste0("GroupVar_est_", names(omics)[i])]] <- VARvec
     }
   }
 
@@ -250,7 +266,7 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2), minFC
       
     for(j in 1:N_cellTypes){
       message(paste0("Creating parameters for cell type: ", j))
-        
+      # Estimate library size  
       if(all_missing){
         libs_param <- param_est_list[[i]][[j]][["lib_size"]]
       } else if (all_specified){
@@ -259,7 +275,9 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2), minFC
         libs_param <- sample(param_est_list[[i]][[j]][["lib_size"]], 
                              size = numberCells[j], replace = TRUE)
       }
-        
+      
+      # Since we add the foldchange as a scalar, it's multiplied on top of all
+      # celltypes, not only one.
       cond_param <- SPARSim::SPARSim_create_simulation_parameter(
         intensity = param_est_list[[i]][[j]][["intensity"]] * FClist[[i]],
         variability = param_est_list[[i]][[j]][["variability"]],
@@ -306,6 +324,12 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2), minFC
 #'      between biological replicates.
 #' @param noiseGroup OPTIONAL. Number indicating the desired standard deviation
 #'      between treatment groups
+#' @param feature_no OPTIONAL. Total number of features to be distributed between the 
+#'      coexpression clusters
+#' @param clusters OPTIONAL. Number of co-expression patterns the user wants
+#'      to simulate
+#' @param cluster_size OPTIONAL. It may be inputted by the user. By default, 
+#'    its the number of features divided by the number of patterns to generate.
 #' @return a list of Seurat object, one per each omic.
 #' @export
 #'
@@ -324,14 +348,22 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2), minFC
 scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1, 
                     diffGenes = NULL, minFC = 0.25, maxFC = 4,
                     numberCells = NULL, mean = NULL, sd = NULL, noiseRep = 0.1 , 
-                    noiseGroup = 0.5){
+                    noiseGroup = 0.5, feature_no = 8000, clusters = 8, 
+                    cluster_size = NULL){
+  
   # Check for mandatory parameters
   if (missing(omics)){
     stop("You must provide the vector of omics to simulate.")
   }
   
-  if (missing(cellTypes)){
+  if (missing(cellTypes)) {
     stop("You must provide the correspondence of cells and celltypes")
+  }
+  
+  # If numberCells missing, calculate it according to the reference sample
+  # So we can use this number for simulate coexpression
+  if (is.null(numberCells)){
+    numberCells <- lengths(cellTypes)
   }
   
   ## Check that number of groups and number of differentially expressed
@@ -342,6 +374,29 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
                   " numberGroups -1"))
     }
   }
+  
+  N_omics <- length(omics)
+  
+  ## Subset only columns of interest (our celltypes)
+  for (om in 1:N_omics){
+    omics[[om]] <- omics[[om]][, unname(unlist(cellTypes))]
+  }
+  # Reorganize our cellTypes variable according to the subset
+  createRangeList <- function(vector, nam) {
+    rangeList <- list()
+    totalValues <- sum(vector)
+    start <- 1
+    
+    for (i in 1:length(vector)) {
+      end <- start + vector[i] - 1
+      rangeList[[i]] <- seq(start, end)
+      start <- end + 1
+    }
+    names(rangeList) <- nam
+    return(rangeList)
+  }
+  
+  cellTypes <- createRangeList(numberCells, names(cellTypes))
 
   seu_groups <- list()
   
@@ -351,14 +406,13 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
     message(paste0("Estimating parameters for experimental group ", g))
     
 
-    param_list <- sc_param_estimation(omics, cellTypes, diffGenes, minFC, maxFC, 
+    param_list <- MOSim::sc_param_estimation(omics, cellTypes, diffGenes, minFC, maxFC, 
                                       numberCells, mean, sd, noiseGroup, g)
     
     
     for (r in 1:numberReps){
       message(paste0("Simulating parameters for replicate ", r))
       
-      N_omics <- length(omics)
       sim_list <- list()
       
       
@@ -404,6 +458,11 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
     
   } 
   
+  #patterns <- make_cluster_patterns(length(cellTypes), clusters = 8)
+  #coexpr_results <- simulate_coexpression(seu_groups$Group_1$Rep_1$`sim_scRNA-seq`@assays$RNA@counts, numberCells,
+  #                                        feature_no = 8000, cellTypes,
+  #                                        patterns)
+  
   return(seu_groups)
   
 }
@@ -417,18 +476,19 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
 #' patterns along the cells
 #'
 #' @param numcells Number of different celltypes we are simulating
-#' @param clusters Number of clusters the user wants to simulate
+#' @param clusters OPTIONAL. Number of co-expression patterns the user wants
+#'      to simulate
 #'
 #' @return A tibble with number of columns equal to number of celltypes, rows
 #'  according to the number of TRUE/FALSE combinations corresponding to the
 #'  gene expression patterns along the cells
 #'
 #' @examples
-#' patterns <- make_cluster_patterns(numcells = 4, clusters = 4)
+#' patterns <- make_cluster_patterns(numcells = 4, clusters = 8)
 #' patterns <- make_cluster_patterns(numcells = length(cell_types), 
 #'     clusters = 8)
 #' 
-make_cluster_patterns <- function(numcells = 4, clusters = 4){
+make_cluster_patterns <- function(numcells = 4, clusters = 8){
   
   patterns <- tibble()
   col_names <- paste0("Var", 1:numcells)
@@ -454,19 +514,21 @@ make_cluster_patterns <- function(numcells = 4, clusters = 4){
 #' simulate coexpression
 #' 
 #' Adapted from ACORDE (https://github.com/ConesaLab/acorde) to adapt to our
-#' data input type
+#' data input type. Simulates coexpression of genes along celltypes
 #'
-#' @param sim_matrix Simulated mosim using SPARsim
+#' @param sim_matrix Matrix with rows as features and columns as cells
 #' @param numberCells Same parameter as used for \code{scMOSim}. Vector of 
 #'    numbers. The numbers correspond to the number of cells the user wants to 
 #'    simulate per each cell type. The length of the vector must be the same as 
 #'    length of \code{cellTypes}.
-#' @param feature_no Number of features to be distributed between the 
+#' @param feature_no Total number of features to be distributed between the 
 #'    coexpression clusters
+#' @param cellTypes list where the i-th element of the list contains the column 
+#'    indices for i-th experimental conditions. List must be a named list.
 #' @param patterns Tibble with TRUE FALSE depicting the cluster patterns to
 #'    simulate. Generated by the user or by \code{make_cluster_patterns}.
-#' @param cluster_size It may be inputted by the user. By default, its the 
-#'    number of features divided by the number of patterns to generate.
+#' @param cluster_size OPTIONAL. It may be inputted by the user. By default, 
+#'    its the number of features divided by the number of patterns to generate.
 #'
 #' @return the simulated coexpression
 #'
@@ -481,17 +543,22 @@ make_cluster_patterns <- function(numcells = 4, clusters = 4){
 #' patterns)
 #' 
 simulate_coexpression <- function(sim_matrix, numberCells,
-                                  feature_no,
+                                  feature_no, cellTypes,
                                   patterns,
-                                  cluster_size = (feature_no/dim(patterns)[1])){
+                                  cluster_size = NULL){
+    
+  ## If no cluster size specified, make it by default
+  if (is.null(cluster_size)){
+    cluster_size <- feature_no/dim(patterns)[1]
+  }
   
-  ## DATA PREPARATION: CELL TYPE SPECIFIC MATRICES AND FEATURES ##
+  # Define notin to filter later on
   `%notin%` <- Negate(`%in%`)
   
   # extract counts 
   normcounts <- as.data.frame(sim_matrix)
   # get cell ids in each cell type
-  colData <- tibble(Cell = colnames(normcounts),
+  colData <- tibble::tibble(Cell = colnames(normcounts),
                     Group = rep(names(cellTypes), times = numberCells))
   
   group.list <- colData$Cell %>% split(colData$Group)
@@ -501,7 +568,7 @@ simulate_coexpression <- function(sim_matrix, numberCells,
                                     tibble::rownames_to_column("feature")))
   
   # rank features by mean expression in each cell type
-  normcounts.list <- map(normcounts.list,
+  normcounts.list <- purrr::map(normcounts.list,
                          ~dplyr::mutate(., mean = rowMeans(.[,-1])) %>%
                            dplyr::arrange(dplyr::desc(mean))
                          %>% dplyr::select(-mean))
@@ -569,9 +636,9 @@ simulate_coexpression <- function(sim_matrix, numberCells,
   # Get the genes that we havent used into the table
   # Format the simulated dataframe as tibble with feature column and get the 
   # missing rows into the coexpression DF
-  normcounts <- mutate_all(normcounts, function(x) as.double(x))
+  normcounts <- dplyr::mutate_all(normcounts, function(x) as.double(x))
   normcounts$feature <- rownames(normcounts)
-  normcounts <- as_tibble(normcounts)
+  normcounts <- tibble::as_tibble(normcounts)
   # Sort the columnames according to the simulated dataframe
   normcounts <- normcounts[, colnames(coexpr.df)]
   
@@ -588,8 +655,6 @@ simulate_coexpression <- function(sim_matrix, numberCells,
   return(coexpr_sim)
   
 }
-
-
 
 
 #' shuffle_group_matrix, Reorder cell type-specific expression matrix during 
@@ -717,7 +782,10 @@ sc_omicSim <- function(sim, cellTypes, totalFeatures = NULL,
       
     } else if (totalFeatures > nrow(sim[["sim_scRNA-seq"]]@assays[["RNA"]]@counts)){
       
-      message(paste("the number of totalFeatures you have inserted is higher than what's possible to be generated,", nrow(sim[["scATAC-seq"]]@assays[["ATAC"]]@counts), "peaks were generated instead." ))
+      message(paste("the number of totalFeatures you have inserted is higher ", 
+                    "than what's possible to be generated,", 
+                    nrow(sim[["scATAC-seq"]]@assays[["ATAC"]]@counts), 
+                    " peaks were generated instead." ))
       atac_counts <- sim[["sim_scATAC-seq"]]@assays[["ATAC"]]@counts
       
     }

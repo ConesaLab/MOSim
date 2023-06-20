@@ -3,7 +3,7 @@ citHeader("To cite MOSim in publications use:")
 citEntry(
   entry    = "Article",
   title    = "MOSim: Multi-Omics Simulation in R",
-  author   = "Martinez-Mira C., Monzo C., Conesa A., Tarazona S.",
+  author   = "Monzó, C., Martinez-Mira, C., Febbo, A., Arzalluz-Luque, A., Conesa, A., Tarazona, S.",
   journal  = "Biorxiv",
   year     = "2018",
   volume   = "",
