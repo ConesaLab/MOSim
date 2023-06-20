@@ -130,6 +130,7 @@ sc_omicData <- function(omics_types, data = NULL){
 #' @param noiseGroup OPTIONAL. Number indicating the desired standard deviation
 #'      between treatment groups
 #' @param group Group for which to estimate parameters
+#' @return a list of Seurat object, one per each omic.
 #' @return a named list with simulation parameters for each omics as values.
 #'
 #' @examples
@@ -137,9 +138,10 @@ sc_omicData <- function(omics_types, data = NULL){
 #' cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 'Memory_B' = c(497:510), 'Treg' = c(868:900))
 #' estimated_params <- sc_param_estimation(omicsList, cell_types)
 #' 
-sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2), minFC = 0.25, 
-                                maxFC = 4, numberCells = NULL, mean = NULL, 
-                                sd = NULL, noiseGroup = 0.5, group = 1){
+sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2), 
+                                minFC = 0.25, maxFC = 4, numberCells = NULL, 
+                                mean = NULL, sd = NULL, noiseGroup = 0.5, 
+                                group = 1){
   # Check for mandatory parameters
   if (missing(omics)){
     stop("You must provide the vector of omics to simulate.")
@@ -180,7 +182,7 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2), minFC
   # ATAC has too many zeroes for the normalization to be super comfortable
   norm <- function(om) {
     o <- SingleCellExperiment::SingleCellExperiment(assays=list(counts=as.matrix(om)))
-    o <- suppressWarnings(scran::computeSumFactors(o, sizes = seq(10, 100, 5),
+    o <- suppressWarnings(scran::computeSumFactors(o, sizes = seq(20, 100, 5),
                                                      positive = FALSE))
     # Apply normalization factors
     o <- scater::normalizeCounts(o, log = FALSE)
@@ -194,6 +196,7 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2), minFC
   norm_list <- lapply(omics, norm)
 
   param_est_list <- list()
+  FC_used_list <- list()
   
   for(i in 1:N_omics){
     message(paste0("Estimating distribution from original data type: ", i))
@@ -291,7 +294,8 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2), minFC
     param_est_list_mod[[paste0("param_est_", names(omics)[i])]] <- cell_type_list
   }
     
-  return(param_est_list_mod)
+  return(list(param_list = param_est_list_mod,
+              FClist = FClist))
 }
 
 
@@ -397,8 +401,31 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
   }
   
   cellTypes <- createRangeList(numberCells, names(cellTypes))
+  
+  
+  clusters_list <- list()
+  # Make the patterns to simulate coexpression
+  patterns <- make_cluster_patterns(length(cellTypes), clusters = clusters)
+  
+  # Simulate coexpression
+  for (i in 1:N_omics){
+    coexpr_results <- simulate_coexpression(omics[[i]], 
+                                            numberCells = numberCells,
+                                            feature_no = feature_no, cellTypes = cellTypes,
+                                            patterns = patterns, cluster_size = cluster_size)
+    
+    # Get the coexpressed matrix out
+    omics[[i]] <- as.data.frame(coexpr_results$sim_matrix)
+    rownames(omics[[i]]) <- omics[[i]]$feature
+    omics[[i]]$feature <- NULL
+    # Get the clusters out
+    clusters_list[[paste0("Clusters_", names(omics)[[i]])]] <- coexpr_results$sim_clusters
+  }
 
+  # Start the lists we will need to include in the output
   seu_groups <- list()
+  FC_used_list <- list()
+  param_list <- list()
   
   for (g in 1:numberGroups){
     seu_replicates <- list()
@@ -406,9 +433,12 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
     message(paste0("Estimating parameters for experimental group ", g))
     
 
-    param_list <- MOSim::sc_param_estimation(omics, cellTypes, diffGenes, minFC, maxFC, 
+    param_l <- MOSim::sc_param_estimation(omics, cellTypes, diffGenes, minFC, maxFC, 
                                       numberCells, mean, sd, noiseGroup, g)
     
+    
+    FC_used_list[[paste0("FC_Group", g)]] <- param_l$FClist
+    param_list <- param_l$param_list
     
     for (r in 1:numberReps){
       message(paste0("Simulating parameters for replicate ", r))
@@ -456,12 +486,15 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
     
     seu_groups[[paste0("Group_", g)]] <- seu_replicates
     
+    # Bring back FC vector
+    seu_groups[[paste0("FC_Group_", g)]] <- FC_used_list
+    
   } 
   
-  #patterns <- make_cluster_patterns(length(cellTypes), clusters = 8)
-  #coexpr_results <- simulate_coexpression(seu_groups$Group_1$Rep_1$`sim_scRNA-seq`@assays$RNA@counts, numberCells,
-  #                                        feature_no = 8000, cellTypes,
-  #                                        patterns)
+  # Bring back final celltypes
+  seu_groups[["cellTypes"]] <- cellTypes
+  seu_groups[["Clusters_list"]] <- clusters_list
+  seu_groups[["patterns"]] <- patterns
   
   return(seu_groups)
   
