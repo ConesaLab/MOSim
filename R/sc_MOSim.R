@@ -593,7 +593,7 @@ shuffle_group_matrix <- function(sim_data, feature_ids, group_pattern, ngroups){
 #' sim <- scMOSim(omicsList, cell_types)
 #' # or
 #' sim_with_arg <- scMOSim(omicsList, cell_types, numberReps = 2, 
-#'                     numberGroups = 2, diffGenes = c(0.2, 0.2), 
+#'                     numberGroups = 2, diffGenes = c(0.2), 
 #'                     minFC = 0.25, maxFC = 4, numberCells = c(10,20),
 #'                     mean = c(2000000, 100000), sd = c(10^3, 10^3), 
 #'                     noiseRep = 0.1, noiseGroup = 0.5)
@@ -613,6 +613,7 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
     stop("You must provide the correspondence of cells and celltypes")
   }
   
+  numberCellsCoex <- lengths(cellTypes)
   # If numberCells missing, calculate it according to the reference sample
   # So we can use this number for simulate coexpression
   if (is.null(numberCells)){
@@ -654,12 +655,12 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
   
   clusters_list <- list()
   # Make the patterns to simulate coexpression
-  patterns <- MOSim::make_cluster_patterns(length(cellTypes), clusters = clusters)
+  patterns <- make_cluster_patterns(length(cellTypes), clusters = clusters)
   
   # Simulate coexpression
   for (i in 1:N_omics){
     coexpr_results <- MOSim::simulate_coexpression(omics[[i]], 
-                                            numberCells = numberCells,
+                                            numberCells = numberCellsCoex,
                                             feature_no = feature_no, cellTypes = cellTypes,
                                             patterns = patterns, cluster_size = cluster_size)
     
@@ -683,7 +684,7 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
     
 
     param_l <- MOSim::sc_param_estimation(omics, cellTypes, diffGenes, minFC, maxFC, 
-                                      numberCells, mean, sd, noiseGroup, g)
+                                          numberCells, mean, sd, noiseGroup, g)
     
     
     FC_used_list[[paste0("FC_Group", g)]] <- param_l$FClist
