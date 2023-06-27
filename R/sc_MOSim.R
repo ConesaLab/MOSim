@@ -687,7 +687,7 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
                                           numberCells, mean, sd, noiseGroup, g)
     
     
-    FC_used_list[[paste0("FC_Group", g)]] <- param_l$FClist
+    FC_used_list[[paste0("FC_Group_", g)]] <- param_l$FClist
     param_list <- param_l$param_list
     
     for (r in 1:numberReps){
@@ -736,8 +736,6 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
     
     seu_groups[[paste0("Group_", g)]] <- seu_replicates
     
-    # Bring back FC vector
-    seu_groups[[paste0("FC_Group_", g)]] <- FC_used_list
     
   } 
   
@@ -745,6 +743,8 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
   seu_groups[["cellTypes"]] <- cellTypes
   seu_groups[["Clusters_list"]] <- clusters_list
   seu_groups[["patterns"]] <- patterns
+  # Bring back FC vector
+  seu_groups[["FC"]] <- FC_used_list
   
   return(seu_groups)
   
