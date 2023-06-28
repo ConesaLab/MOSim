@@ -139,7 +139,7 @@ sc_omicData <- function(omics_types, data = NULL){
 #' cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 'Memory_B' = c(497:510), 'Treg' = c(868:900))
 #' estimated_params <- sc_param_estimation(omicsList, cell_types)
 #' 
-sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2), 
+sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)), 
                                 minFC = 0.25, maxFC = 4, numberCells = NULL, 
                                 mean = NULL, sd = NULL, noiseGroup = 0.5, 
                                 group = 1){
@@ -223,15 +223,15 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2),
     
     for(i in 1:N_omics){
       ## Format diffGenes
-      if (diffGenes[i][1] < 1) {
+      if (diffGenes[[group -1]][1] < 1) {
         ## Relative
-        up <- round(diffGenes[i][1]*length(param_est_list[[i]][[1]][[1]]), digits = 0)
-        down <- round(diffGenes[i][2]*length(param_est_list[[i]][[1]][[1]]), digits = 0)
+        up <- round(diffGenes[[group -1]][1]*length(param_est_list[[i]][[1]][[1]]), digits = 0)
+        down <- round(diffGenes[[group -1]][2]*length(param_est_list[[i]][[1]][[1]]), digits = 0)
         
       } else {
         ## Absolute
-        up <- diffGenes[i][1]
-        down <- diffGenes[i][2]
+        up <- diffGenes[[group -1]][1]
+        down <- diffGenes[[group -1]][2]
       }
       NE <- length(param_est_list[[i]][[1]][[1]]) - up - down
       message(paste0("Up: ", up, " Down: ", down, " NE: ", NE))
@@ -629,12 +629,12 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
   
   ## Check that number of groups and number of differentially expressed
   # probabilities makes sense
-  # if (numberGroups > 1){
-  #   if (is.null(diffGenes) || length(diffGenes) != (numberGroups - 1)){
-  #     stop(paste0("Number of elements in diffGenes must have a length equal to", 
-  #                 " numberGroups -1"))
-  #   }
-  # }
+  if (numberGroups > 1){
+    if (is.null(diffGenes) || length(diffGenes) != (numberGroups - 1)){
+      stop(paste0("Number of elements in diffGenes must have a length equal to",
+                  " numberGroups -1"))
+    }
+  }
   
   N_omics <- length(omics)
   

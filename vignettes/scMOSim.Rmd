@@ -33,31 +33,31 @@ options(max.print=10000)
 
 # 1. Introduction
 
-scMOSim is an extension of MOSim for the multi-omic simulation of
+`scMOSim` is an extension of `MOSim` for the multi-omic simulation of
 single-cell RNA-seq and single-cell ATAC-seq data. This vignette
-contains a step by step guide on how to use scMOSim basic functions.
+contains a step by step guide on how to use `scMOSim` basic functions.
 
-scMOSim lets the user simulate scRNA-seq and scATAC-seq count matrices
+`scMOSim` lets the user simulate scRNA-seq and scATAC-seq count matrices
 starting from either:
 
 -   The multiomics pbmc dataset from `SeuratData` library loaded by the
     package.
 -   A real count matrix or Seurat object provided by the user.
 
-scMOSim also allows the user to simulate biological replicates and
+`scMOSim` also allows the user to simulate biological replicates and
 different experimental conditions, starting from the original count
 matrix and simulating variabilities on top as well as differentially
 expressed genes between experimental conditions.
 
 To indicate the relationship between the main omic (scRNA-seq) and the
-regulatory omic (scATAC-seq or transcription factors), scMOSim follows a
-similar approach to the original MOSim approach. It simulates gene
+regulatory omic (scATAC-seq or transcription factors), `scMOSim` follows
+a similar approach to the original `MOSim` approach. It simulates gene
 coexpression in clusters and defines regulatory effects of the regulator
 omic on the scRNA-seq (activator, repressor or no effect).
 
 # 2. Getting started
 
-scMOSim may be loaded by installing the `MOSim` package as:
+`scMOSim` may be loaded by installing the `MOSim` package as:
 
 ```{r install mosim, eval = FALSE}
 if (!require("BiocManager", quietly = TRUE))
@@ -88,7 +88,7 @@ it takes as input:
 
 ## 3.1 Provided PBMC dataset from `SeuratData` package
 
-scMOSim allows the user to simulate scRNA and scATAC count data
+`scMOSim` allows the user to simulate scRNA and scATAC count data
 resembling the characteristics of the multiomics PBMC dataset (from a
 healthy donor) available from `SeuratData`. This dataset was subset for
 computational cost reasons; the count data loaded automatically is
@@ -113,15 +113,15 @@ input for function `scMOSim`.
 
 ## 3.2 Providing custom data: count matrix or `Seurat` object
 
-scMOSim also allows the user to simulate scRNA and scATAC count data
+`scMOSim` also allows the user to simulate scRNA and scATAC count data
 resembling the characteristics of a dataset of their choice. To do so,
-it first requires sc_omicData to format the data provided by the user.
+it first requires `sc_omicData` to format the data provided by the user.
 The supported input formats are:
 
 -   Count matrix
 -   Seurat object
 
-As an example, we load a scRNA-seq count matrix loaded in the MOSim
+As an example, we load a scRNA-seq count matrix loaded in the `MOSim`
 package, containing 2 cell types (CellA, CellB).
 
 The count matrix is composed of:
@@ -142,7 +142,7 @@ name and the example count matrix as values.
 
 ## 4.1 Default `scMOSim` simulation
 
-scMOSim gives the user the opportunity to simulate scRNA and scATAC
+`scMOSim` gives the user the opportunity to simulate scRNA and scATAC
 count matrices which resemble the characteristics of the input data (or
 that loaded by default), without providing further arguments, as
 follows:
@@ -159,15 +159,15 @@ cell_types <- list('CD4_TEM' = c(1:298), 'cDC' = c(299:496), 'Memory_B' = c(497:
 sim <- scMOSim(omic_list, cell_types)
 ```
 
-`sim` is a named list having 'sim_sc + omic name' as names and Seurat
+`sim` is a named list having 'sim_sc + omic name' as names and `Seurat`
 objects as values (where the synthetic count matrices are contained).
 The simulated count matrices are raw (i.e. not normalized) count tables,
 having genes/peaks on rows and cells on columns, containing read/UMI
 count values.
 
 Assuming the data produced in [Section 2.1](#2.1) is being used, running
-the code above, scMOSim simulates scRNAseq and scATACseq count matrices,
-resulting in matrices with the following characteristics:
+the code above, `scMOSim` simulates scRNAseq and scATACseq count
+matrices, resulting in matrices with the following characteristics:
 
 -   36601 genes and 1029 cells;
 -   108377 peaks and 1029 cells;
@@ -270,9 +270,9 @@ The result count matrices will have:
 
 ## 5.1 Default `sc_omicInt` integration
 
-MOSim can also define the regulatory function (activator, repressor, or
-no effect) of features in the regulatory omics data, i.e. the peaks in
-scATAC-seq, without providing the optional arguments. It's mandatory
+`MOSim` can also define the regulatory function (activator, repressor,
+or no effect) of features in the regulatory omics data, i.e. the peaks
+in scATAC-seq, without providing the optional arguments. It's mandatory
 that the simulation would include both the central data type and the
 regulatory one. The single-cell multi-omic integration, goes as follows:
 
@@ -326,7 +326,7 @@ with 'activator' function were reduced to 80%, while those with
 
 # 6. Working with simulation results
 
-## 6.1 The *simulation* object
+## 6.1 The `scMOSim` *simulation* object
 
 ## 6.2 Retrieving the simulation settings: `sc_omicSettings`
 

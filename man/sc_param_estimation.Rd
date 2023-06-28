@@ -7,7 +7,7 @@
 sc_param_estimation(
   omics,
   cellTypes,
-  diffGenes = c(0.2, 0.2),
+  diffGenes = list(c(0.2, 0.2)),
   minFC = 0.25,
   maxFC = 4,
   numberCells = NULL,
