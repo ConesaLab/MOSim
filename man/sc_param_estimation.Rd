@@ -24,9 +24,10 @@ be "scRNA-seq" or "scATAC-seq".}
 \item{cellTypes}{list where the i-th element of the list contains the column 
 indices for i-th cell type. List must be a named list.}
 
-\item{diffGenes}{If number groups > 1, Percentage DE genes to simulate. 
-Can be a vector with absolute genes for Up and Down ex: c(250, 500) or a 
-percentage for up, down by default: c(0.2, 0.2). The rest will be NE}
+\item{diffGenes}{If number groups > 1, Percentage DE genes to simulate.
+List of vectors (one per group to compare to group 1) where the vector
+contains absolute number of genes for Up and Down ex: c(250, 500) or a 
+percentage for up, down ex: c(0.2, 0.2). The rest will be NE}
 
 \item{minFC}{Threshold of FC below which are downregulated, by default 0.25}
 

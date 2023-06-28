@@ -115,9 +115,10 @@ sc_omicData <- function(omics_types, data = NULL){
 #'    be "scRNA-seq" or "scATAC-seq".
 #' @param cellTypes list where the i-th element of the list contains the column 
 #'    indices for i-th cell type. List must be a named list.
-#' @param diffGenes If number groups > 1, Percentage DE genes to simulate. 
-#'    Can be a vector with absolute genes for Up and Down ex: c(250, 500) or a 
-#'    percentage for up, down by default: c(0.2, 0.2). The rest will be NE
+#' @param diffGenes If number groups > 1, Percentage DE genes to simulate.
+#'    List of vectors (one per group to compare to group 1) where the vector
+#'    contains absolute number of genes for Up and Down ex: c(250, 500) or a 
+#'    percentage for up, down ex: c(0.2, 0.2). The rest will be NE
 #' @param minFC Threshold of FC below which are downregulated, by default 0.25
 #' @param maxFC Threshold of FC above which are upregulated, by default 4
 #' @param numberCells vector of numbers. The numbers correspond to the number 
@@ -132,7 +133,7 @@ sc_omicData <- function(omics_types, data = NULL){
 #' @param group Group for which to estimate parameters
 #' @return a list of Seurat object, one per each omic.
 #' @return a named list with simulation parameters for each omics as values.
-#'
+#' @export
 #' @examples
 #' omicsList <- sc_omicData(list("scRNA-seq"))
 #' cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 'Memory_B' = c(497:510), 'Treg' = c(868:900))
@@ -164,19 +165,27 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2),
   
   N_omics <- length(omics)
   
-  # for (e in 1:N_omics){
-  #   # Add variability to groups in comparison to group 1
-  #   var_group <- stats::rnorm(nrow(as.data.frame(omics[[e]])), 0, noiseGroup)
-  #   # Add variability to each omic compared to group 1
-  #   # transform the matrix into TRUE when > 0 false when 0
-  #   sim_trueFalse <- (omics[[e]] > 0)
-  #   # Multiply the variability vector by a 1/0 to keep the zeros.
-  #   for (c in 1:length(colnames(omics[[e]]))){
-  #     sim_trueFalse[, c] <- as.integer(as.logical(sim_trueFalse[,c]))
-  #     omics[[e]][,c] <- omics[[e]][,c] + (sim_trueFalse[, c] * var_group)
-  #   }
-  #   omics[[e]] <- abs(omics[[e]])
-  # }
+  # Add variability to groups in comparison to group 1
+  VARlist <- list()
+  if (group > 1) {
+    for (e in 1:N_omics){
+      VARlist[[paste0("Var_", names(omics)[e])]] <- data.frame(matrix(0, 
+          ncol = length(colnames(omics[[e]])), nrow = length(rownames(omics[[e]]))))
+      var_group <- stats::rnorm(nrow(as.data.frame(omics[[e]])), 0, noiseGroup)
+      # Add variability to each omic compared to group 1
+      # transform the matrix into TRUE when > 0 false when 0
+      sim_trueFalse <- (omics[[e]] > 0)
+      # Multiply the variability vector by a 1/0 to keep the zeros.
+      for (c in 1:length(colnames(omics[[e]]))){
+        sim_trueFalse[, c] <- as.integer(as.logical(sim_trueFalse[,c]))
+        omics[[e]][,c] <- omics[[e]][,c] + (sim_trueFalse[, c] * var_group)
+        VARlist[[paste0("Var_", names(omics)[e])]][, c] <- (sim_trueFalse[, c] * var_group)
+        
+      }
+      omics[[e]] <- abs(omics[[e]])
+    }
+  }
+  
   
   # Normalize using scran method, we had to suppress warnings because
   # ATAC has too many zeroes for the normalization to be super comfortable
@@ -214,15 +223,15 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2),
     
     for(i in 1:N_omics){
       ## Format diffGenes
-      if (diffGenes[1] < 1) {
+      if (diffGenes[i][1] < 1) {
         ## Relative
-        up <- round(diffGenes[1]*length(param_est_list[[i]][[1]][[1]]), digits = 0)
-        down <- round(diffGenes[2]*length(param_est_list[[i]][[1]][[1]]), digits = 0)
+        up <- round(diffGenes[i][1]*length(param_est_list[[i]][[1]][[1]]), digits = 0)
+        down <- round(diffGenes[i][2]*length(param_est_list[[i]][[1]][[1]]), digits = 0)
         
       } else {
         ## Absolute
-        up <- diffGenes[1]
-        down <- diffGenes[2]
+        up <- diffGenes[i][1]
+        down <- diffGenes[i][2]
       }
       NE <- length(param_est_list[[i]][[1]][[1]]) - up - down
       message(paste0("Up: ", up, " Down: ", down, " NE: ", NE))
@@ -237,24 +246,21 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2),
       FCvec <- c(DE_FCvec, notDE_FCvec)
       FClist[[paste0("FC_est_", names(omics)[i])]] <- FCvec
       
-      
-      ## Now calculate also the variability of the group compared to the first 
-      ## group according to a gamma distribution
-      
     } 
   } else if (group == 1){
     # If its the first group, we dont need to add FC, so we multiply by one
     # Instead of a fold change vector
     FClist <- list()
-    #VARlist <- list()
+    VARlist <- list()
     
     for(i in 1:N_omics){
       FCvec <- rep(1, length(param_est_list[[i]][[1]][[1]]))
       FClist[[paste0("FC_est_", names(omics)[i])]] <- FCvec
       
       # Same for variability
-      #VARvec <- rep(1, length(param_est_list[[i]][[1]][["variability"]]))
-      #VARlist[[paste0("GroupVar_est_", names(omics)[i])]] <- VARvec
+      ## TESTING ONGOING
+      VARvec <- rep(1, length(param_est_list[[i]][[1]][["variability"]]))
+      VARlist[[paste0("Var_", names(omics)[i])]] <- VARvec
     }
   }
 
@@ -295,7 +301,7 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2),
   }
     
   return(list(param_list = param_est_list_mod,
-              FClist = FClist))
+              FClist = FClist, VARlist = VARlist))
 }
 
 
@@ -312,7 +318,7 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = c(0.2, 0.2),
 #' @return A tibble with number of columns equal to number of celltypes, rows
 #'  according to the number of TRUE/FALSE combinations corresponding to the
 #'  gene expression patterns along the cells
-#'
+#' @export
 #' @examples
 #' patterns <- make_cluster_patterns(numcells = 4, clusters = 8)
 #' patterns <- make_cluster_patterns(numcells = length(cell_types), 
@@ -361,7 +367,7 @@ make_cluster_patterns <- function(numcells = 4, clusters = 8){
 #'    its the number of features divided by the number of patterns to generate.
 #'
 #' @return the simulated coexpression
-#'
+#' @export
 #' @examples
 #' omic_list <- sc_omicData(c("scRNA-seq", "scATAC-seq"))
 #' cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 
@@ -509,7 +515,7 @@ simulate_coexpression <- function(sim_matrix, numberCells,
 #' features should be divided into. It is computed by dividing the number
 #' of features selected as highly/lowly expressed by the size of the clusters
 #' that are to be generated.
-#'
+#' @export
 #' @return An expression matrix, with the same characteristics as \code{sim_data},
 #' and a number of features defined as the total amount of top/bottom features
 #' selected divided by the number of clusters for which co-expression patterns
@@ -558,9 +564,10 @@ shuffle_group_matrix <- function(sim_data, feature_ids, group_pattern, ngroups){
 #'     indices for i-th experimental conditions. List must be a named list.
 #' @param numberReps OPTIONAL. Number of replicates per group
 #' @param numberGroups OPTIONAL. number of different groups
-#' @param diffGenes OPTIONAL. If number groups > 1, Percentage DE genes to simulate. 
-#'    Can be a vector with absolute genes for Up and Down ex: c(250, 500) or a 
-#'    percentage for up, down by default: c(0.2, 0.2). The rest will be NE
+#' @param diffGenes OPTIONAL. If number groups > 1, Percentage DE genes to simulate.
+#'    List of vectors (one per group to compare to group 1) where the vector
+#'    contains absolute number of genes for Up and Down ex: c(250, 500) or a 
+#'    percentage for up, down ex: c(0.2, 0.2). The rest will be NE
 #' @param minFC OPTIONAL. Threshold of FC below which are downregulated, by 
 #'    default 0.25
 #' @param maxFC OPTIONAL. Threshold of FC abofe which are upregulated, by default 4
@@ -593,7 +600,7 @@ shuffle_group_matrix <- function(sim_data, feature_ids, group_pattern, ngroups){
 #' sim <- scMOSim(omicsList, cell_types)
 #' # or
 #' sim_with_arg <- scMOSim(omicsList, cell_types, numberReps = 2, 
-#'                     numberGroups = 2, diffGenes = c(0.2), 
+#'                     numberGroups = 2, diffGenes = list(c(0.2, 0.3)), 
 #'                     minFC = 0.25, maxFC = 4, numberCells = c(10,20),
 #'                     mean = c(2000000, 100000), sd = c(10^3, 10^3), 
 #'                     noiseRep = 0.1, noiseGroup = 0.5)
@@ -622,12 +629,12 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
   
   ## Check that number of groups and number of differentially expressed
   # probabilities makes sense
-  if (numberGroups > 1){
-    if (is.null(diffGenes) || length(diffGenes) != (numberGroups - 1)){
-      stop(paste0("Number of elements in diffGenes must have a length equal to", 
-                  " numberGroups -1"))
-    }
-  }
+  # if (numberGroups > 1){
+  #   if (is.null(diffGenes) || length(diffGenes) != (numberGroups - 1)){
+  #     stop(paste0("Number of elements in diffGenes must have a length equal to", 
+  #                 " numberGroups -1"))
+  #   }
+  # }
   
   N_omics <- length(omics)
   
@@ -675,6 +682,7 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
   # Start the lists we will need to include in the output
   seu_groups <- list()
   FC_used_list <- list()
+  VAR_used_list <- list()
   param_list <- list()
   
   for (g in 1:numberGroups){
@@ -688,6 +696,7 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
     
     
     FC_used_list[[paste0("FC_Group_", g)]] <- param_l$FClist
+    VAR_used_list[[paste0("VAR_Group_", g)]] <- param_l$VARlist
     param_list <- param_l$param_list
     
     for (r in 1:numberReps){
@@ -745,6 +754,7 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
   seu_groups[["patterns"]] <- patterns
   # Bring back FC vector
   seu_groups[["FC"]] <- FC_used_list
+  seu_groups[["Variability"]] <- VAR_used_list
   
   return(seu_groups)
   

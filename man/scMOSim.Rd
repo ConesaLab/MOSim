@@ -33,9 +33,10 @@ indices for i-th experimental conditions. List must be a named list.}
 
 \item{numberGroups}{OPTIONAL. number of different groups}
 
-\item{diffGenes}{OPTIONAL. If number groups > 1, Percentage DE genes to simulate. 
-Can be a vector with absolute genes for Up and Down ex: c(250, 500) or a 
-percentage for up, down by default: c(0.2, 0.2). The rest will be NE}
+\item{diffGenes}{OPTIONAL. If number groups > 1, Percentage DE genes to simulate.
+List of vectors (one per group to compare to group 1) where the vector
+contains absolute number of genes for Up and Down ex: c(250, 500) or a 
+percentage for up, down ex: c(0.2, 0.2). The rest will be NE}
 
 \item{minFC}{OPTIONAL. Threshold of FC below which are downregulated, by 
 default 0.25}
@@ -82,7 +83,7 @@ omicsList <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
 sim <- scMOSim(omicsList, cell_types)
 # or
 sim_with_arg <- scMOSim(omicsList, cell_types, numberReps = 2, 
-                    numberGroups = 2, diffGenes = c(0.2), 
+                    numberGroups = 2, diffGenes = list(c(0.2, 0.3)), 
                     minFC = 0.25, maxFC = 4, numberCells = c(10,20),
                     mean = c(2000000, 100000), sd = c(10^3, 10^3), 
                     noiseRep = 0.1, noiseGroup = 0.5)
