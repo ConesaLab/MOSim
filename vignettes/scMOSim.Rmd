@@ -15,7 +15,9 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-library(MOSim)
+library(knitr)
+library(rmdformats)
+#library(MOSim)
 ## Global options
 options(max.print="75")
 opts_chunk$set(echo=TRUE,
@@ -53,7 +55,7 @@ similar approach to the original MOSim approach. It simulates gene
 coexpression in clusters and defines regulatory effects of the regulator
 omic on the scRNA-seq (activator, repressor or no effect).
 
-## 1.1 Getting started
+# 2. Getting started
 
 scMOSim may be loaded by installing the `MOSim` package as:
 
@@ -71,7 +73,7 @@ library(devtools)
 devtools::install_github("ConesaLab/MOSim")
 ```
 
-# 2. Data preparation
+# 3. Data preparation
 
 The function `sc_omicData` was designed to help the user to provide its
 own data and set it in a compatible format with the function `scMOSim`,
@@ -84,7 +86,7 @@ it takes as input:
     rows and cells as columns. If data is NULL, the default data from
     the `SeuratData` package will be used.
 
-## 2.1 Real count matrix loaded from SeuratData package
+## 3.1 Provided PBMC dataset from `SeuratData` package
 
 scMOSim allows the user to simulate scRNA and scATAC count data
 resembling the characteristics of the multiomics PBMC dataset (from a
@@ -109,7 +111,7 @@ The resulting `omic_list` is a named list having omics' names as names
 and count matrices as value. It will be one of the arguments used as
 input for function `scMOSim`.
 
-## 2.2 Real count matrix or Seurat object provided by the user
+## 3.2 Providing custom data: count matrix or `Seurat` object
 
 scMOSim also allows the user to simulate scRNA and scATAC count data
 resembling the characteristics of a dataset of their choice. To do so,
@@ -136,9 +138,9 @@ cell_types <- list("CellA" = c(1:20), "CellB" = c(21:46))
 The resulting `omic_list_user` is a named list having "scRNA-seq" as
 name and the example count matrix as values.
 
-# 3. Multi-omic simulation
+# 4. Running the simulation: `scMOSim`
 
-## 3.1 Without providing optional arguments
+## 4.1 Default `scMOSim` simulation
 
 scMOSim gives the user the opportunity to simulate scRNA and scATAC
 count matrices which resemble the characteristics of the input data (or
@@ -175,9 +177,9 @@ resulting in matrices with the following characteristics:
 -   cell type Memory_B has 370 cells;
 -   cell type Treg has 161 cells.
 
-## 3.2 Providing optional arguments
+## 4.2 Optional settings for `scMOSim` simulation
 
-The main arguments accepted by scMOSim function to customize the
+The main arguments accepted by `scMOSim` function to customize the
 simulation are:
 
 -   `omics` named list containing the omic to simulate as names, which
@@ -243,8 +245,11 @@ would be as follows:
 omic_list <- sc_omicData(c("scRNA-seq", "scATAC-seq"))
 cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 'Memory_B' = c(497:520), 'Treg' = 
                      c(868:900))
+#sim <- scMOSim(omic_list, cell_types, numberCells = c(10, 20, 30, 40), numberReps = 2, 
+#               numberGroups = 2, diffGenes = 0.2, feature_no = 8000, clusters = 8, 
+#               mean = c(2*10^6, 1*10^6,2*10^6, 1*10^6), sd = c(5*10^5, 2*10^5, 5*10^5, 2*10^5))
 sim <- scMOSim(omic_list, cell_types, numberCells = c(10, 20, 30, 40), numberReps = 2, 
-               numberGroups = 2, diffGenes = 0.2, feature_no = 8000, clusters = 8, 
+               feature_no = 8000, clusters = 8, 
                mean = c(2*10^6, 1*10^6,2*10^6, 1*10^6), sd = c(5*10^5, 2*10^5, 5*10^5, 2*10^5))
 ```
 
@@ -262,9 +267,9 @@ The result count matrices will have:
 -   cell type Treg has 30 cells, with an average library size of 1M
     reads and sd of 200k.
 
-# 4. Multi-omic integration
+# 5. Multi-omic integration: `sc_omicInt`
 
-## 4.1 Without providing optional arguments
+## 5.1 Default `sc_omicInt` integration
 
 MOSim can also define the regulatory function (activator, repressor, or
 no effect) of features in the regulatory omics data, i.e. the peaks in
@@ -282,7 +287,7 @@ the following characteristics:
 
 ```{r integration with no optional arguments, echo = FALSE}
 # cell_types_integration <- list(cellA = c(1:20), cellB = c(21:40), cellC =c(41:55), cellD=c(56:70))
-# sc_integration <- sc_omicSim(sim = sim, cellTypes = cell_types_integration)
+# sc_integration <- sc_omicInt(sim = sim, cellTypes = cell_types_integration)
 ```
 
 `sc_integration` is a named list reporting the markers and their
@@ -293,18 +298,18 @@ activity and cell type is the data reported in the list.
 # sc_integration[["markers_cellA_cellB"]][1061:1090,] 
 ```
 
-## 4.2 Providing optional arguments
+## 5.2 Optional settings for `sc_omicInt` integration
 
 In case the user wants to have a custom amount of features, obtaining a
 custom amount of features for each type of activity and passing an
-association list of his/her choice, it's possible to use the optional
+association list of their choice, it's possible to use the optional
 arguments. In the following example the association list loaded in the
 package will still be used.
 
 ```{r integration with optional arguments, echo = FALSE}
 # cell_types_integration <- list(cellA = c(1:20), cellB = c(21:40), cellC =c(41:55), cellD=c(56:70))
 # regulator_effect <- list('activator' = 0.8,'repressor' = 0.1,'NE' = 0.1)
-# sc_integration_with_arg <- sc_omicSim(sim = sim, cellTypes = cell_types_integration, totalFeatures = 1000, regulatorEffect = regulator_effect)
+# sc_integration_with_arg <- sc_omicInt(sim = sim, cellTypes = cell_types_integration, totalFeatures = 1000, regulatorEffect = regulator_effect)
 ```
 
 `sc_integration_with_arg` is a named list reporting the markers and
@@ -320,7 +325,17 @@ with 'activator' function were reduced to 80%, while those with
 # sc_integration_with_arg[["markers_cellA_cellB_subset"]][1:20,] 
 ```
 
-# Extra stuff
+# 6. Working with simulation results
+
+## 6.1 The *simulation* object
+
+## 6.2 Retrieving the simulation settings: `sc_omicSettings`
+
+## 6.3 Accessing the count data matrices: `sc_omicResults`
+
+## 6.4 Obtaining the experimental design matrix: `sc_experimentalDesign`
+
+# 7. Example full run
 
 Let's visualize first the elbow plot for scRNA-seq and then use UMAP, a
 non linear dimensional reduction, to place similar cells together in
@@ -372,7 +387,17 @@ Let's do the same thing for the simulated scATAC-seq.
 
 ```
 
-# Session info
+# 8. How to cite scMOSim
+
+The MOSim package is currently on biorxiv:
+
+Monzó C., Martínez-Mira C., Febbo A., Arzalluz-Luque A., Conesa A.,
+Tarazona S. (2023) MOSim: Bulk and single-cell Multi-Omics Simulation in
+R. DOI: 10.1101/421834
+
+<https://www.biorxiv.org/content/10.1101/421834v1>
+
+# 9. Setup
 
 ```{r, session-info, echo=FALSE}
 print(sessionInfo(), nrow=(50))
