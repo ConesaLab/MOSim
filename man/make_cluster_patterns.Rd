@@ -4,12 +4,13 @@
 \alias{make_cluster_patterns}
 \title{make_cluster_patterns}
 \usage{
-make_cluster_patterns(numcells = 4, clusters = 4)
+make_cluster_patterns(numcells = 4, clusters = 8)
 }
 \arguments{
 \item{numcells}{Number of different celltypes we are simulating}
 
-\item{clusters}{Number of clusters the user wants to simulate}
+\item{clusters}{OPTIONAL. Number of co-expression patterns the user wants
+to simulate}
 }
 \value{
 A tibble with number of columns equal to number of celltypes, rows
@@ -21,8 +22,8 @@ Function to make the tibble with cluster combinations for the gene expression
 patterns along the cells
 }
 \examples{
-patterns <- make_cluster_patterns(numcells = 4, clusters = 4)
-# patterns <- make_cluster_patterns(numcells = length(cell_types), 
-# clusters = 8)
+patterns <- make_cluster_patterns(numcells = 4, clusters = 8)
+patterns <- make_cluster_patterns(numcells = length(cell_types), 
+    clusters = 8)
 
 }

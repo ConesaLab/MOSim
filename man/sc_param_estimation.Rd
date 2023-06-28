@@ -48,11 +48,13 @@ between treatment groups}
 \item{group}{Group for which to estimate parameters}
 }
 \value{
+a list of Seurat object, one per each omic.
+
 a named list with simulation parameters for each omics as values.
 }
 \description{
 Evaluate the users parameters for single cell simulation and use SPARSim
-to simulate the main dataset
+to simulate the main dataset. Internal function
 }
 \examples{
 omicsList <- sc_omicData(list("scRNA-seq"))

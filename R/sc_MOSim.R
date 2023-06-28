@@ -365,7 +365,7 @@ make_cluster_patterns <- function(numcells = 4, clusters = 8){
 #' @examples
 #' omic_list <- sc_omicData(c("scRNA-seq", "scATAC-seq"))
 #' cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 
-#'     Memory_B' = c(497:520), 'Treg' = c(868:900))
+#'     'Memory_B' = c(497:520), 'Treg' = c(868:900))
 #' sim <-scMOSim(omic_list, cell_types, numberCells = c(100, 100, 100, 100))
 #' patterns <- make_cluster_patterns(length(cell_types), clusters = 8)
 #' simulate_coexpression(sim$Group_1$Rep_1$sim_scRNA-seq@assays$RNA@counts, 

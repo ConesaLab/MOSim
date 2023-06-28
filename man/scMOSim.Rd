@@ -16,7 +16,10 @@ scMOSim(
   mean = NULL,
   sd = NULL,
   noiseRep = 0.1,
-  noiseGroup = 0.5
+  noiseGroup = 0.5,
+  feature_no = 8000,
+  clusters = 8,
+  cluster_size = NULL
 )
 }
 \arguments{
@@ -56,6 +59,15 @@ between biological replicates.}
 
 \item{noiseGroup}{OPTIONAL. Number indicating the desired standard deviation
 between treatment groups}
+
+\item{feature_no}{OPTIONAL. Total number of features to be distributed between the 
+coexpression clusters}
+
+\item{clusters}{OPTIONAL. Number of co-expression patterns the user wants
+to simulate}
+
+\item{cluster_size}{OPTIONAL. It may be inputted by the user. By default, 
+its the number of features divided by the number of patterns to generate.}
 }
 \value{
 a list of Seurat object, one per each omic.
@@ -70,7 +82,7 @@ omicsList <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
 sim <- scMOSim(omicsList, cell_types)
 # or
 sim_with_arg <- scMOSim(omicsList, cell_types, numberReps = 2, 
-                    numberGroups = 2, diffGenes = c(0.2, 0.2), 
+                    numberGroups = 2, diffGenes = c(0.2), 
                     minFC = 0.25, maxFC = 4, numberCells = c(10,20),
                     mean = c(2000000, 100000), sd = c(10^3, 10^3), 
                     noiseRep = 0.1, noiseGroup = 0.5)
