@@ -55,5 +55,6 @@ Collate:
     'miRNA-seq.R'
     'sc_MOSim.R'
     'zzz.R'
+    'sc_coexpression.R'
 RoxygenNote: 7.2.3
 VignetteBuilder: knitr

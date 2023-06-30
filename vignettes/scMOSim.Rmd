@@ -18,6 +18,7 @@ editor_options:
 library(knitr)
 library(rmdformats)
 #library(MOSim)
+devtools::load_all()
 ## Global options
 options(max.print="75")
 opts_chunk$set(echo=TRUE,
