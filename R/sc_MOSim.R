@@ -60,7 +60,7 @@ sc_omicData <- function(omics_types, data = NULL){
         # Tell the user which celltypes are present in the dataset
         message(paste0("Celltypes in loaded Seurat's PBMC dataset: list('CD4_TEM' = ",
                        "c(1:298), 'cDC' = c(299:496), 'Memory_B' = c(497:867),", 
-                       " 'Treg' = c(868:1029)"))
+                       " 'Treg' = c(868:1029))"))
       } else if (omics == "scATAC-seq"){
         dat <- pbmcMultiome.SeuratData::pbmc.atac
         dat <- subset(x = dat, subset = seurat_annotations %in% c("CD4 TEM", 
@@ -124,7 +124,7 @@ sc_omicData <- function(omics_types, data = NULL){
 #' @param numberCells vector of numbers. The numbers correspond to the number 
 #'    of cells the user wants to simulate per each cell type. The length of the 
 #'       vector must be the same as length of \code{cellTypes}.
-#' @param mean vector of numbers of mean per each cell type. Must be specified 
+#' @param mean vector of numbers of mean depth per each cell type. Must be specified 
 #'    just if \code{numberCells} is specified.
 #' @param sd vector of numbers of standard deviation per each cell type. Must be 
 #'    specified just if \code{numberCells} is specified.
@@ -326,7 +326,7 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
 #' @param numberCells OPTIONAL. Vector of numbers. The numbers correspond to the number of 
 #'     cells the user wants to simulate per each cell type. The length of the 
 #'         vector must be the same as length of \code{cellTypes}.
-#' @param mean OPTIONAL. Vector of numbers of mean per each cell type. Must be specified 
+#' @param mean OPTIONAL. Vector of numbers of mean depth per each cell type. Must be specified 
 #'     just if \code{numberCells} is specified.The length of the vector must be 
 #'         the same as length of \code{cellTypes}.
 #' @param sd OPTIONAL. Vector of numbers of standard deviation per each cell type. Must be 
@@ -336,12 +336,22 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
 #'      between biological replicates.
 #' @param noiseGroup OPTIONAL. Number indicating the desired standard deviation
 #'      between treatment groups
-#' @param feature_no OPTIONAL. Total number of features to be distributed between the 
-#'      coexpression clusters
+#' @param regulatorEffect OPTIONAL. To simulate relationship scRNA-scATAC, list 
+#'      of vectors (one per group) where the vector contains absolute number of
+#'      regulators for Activator and repressor ex: c(150, 200) or a percentage
+#'      for Activator and repressor ex: c(0.2, 0.1). The rest will be NE. If not
+#'      provided, no table of association between scRNA and scATAC is outputted.
+#' @param associationList OPTIONAL. A 2 columns dataframe reporting peak ids 
+#'      related to gene names. If not provided, no table of association between
+#'      scRNA and scATAC is outputted.
+#' @param feature_no OPTIONAL. If only scRNA-seq to simulate or scRNA and scATAC
+#'      but no regulatory constraints, total number of features to be distributed 
+#'      between the coexpression clusters.
 #' @param clusters OPTIONAL. Number of co-expression patterns the user wants
 #'      to simulate
-#' @param cluster_size OPTIONAL. It may be inputted by the user. By default, 
-#'    its the number of features divided by the number of patterns to generate.
+#' @param cluster_size OPTIONAL. It may be inputted by the user. Recommended: 
+#'      by default, its the number of features divided by the number of patterns 
+#'      to generate.
 #' @return a list of Seurat object, one per each omic.
 #' @export
 #'
@@ -360,8 +370,8 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
 scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1, 
                     diffGenes = NULL, minFC = 0.25, maxFC = 4,
                     numberCells = NULL, mean = NULL, sd = NULL, noiseRep = 0.1 , 
-                    noiseGroup = 0.5, feature_no = 8000, clusters = 8, 
-                    cluster_size = NULL){
+                    noiseGroup = 0.5, regulatorEffect = NULL, associationList = NULL, 
+                    feature_no = 8000, clusters = 8, cluster_size = NULL){
   
   # Check for mandatory parameters
   if (missing(omics)){
@@ -372,12 +382,11 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
     stop("You must provide the correspondence of cells and celltypes")
   }
   
-  numberCellsCoex <- lengths(cellTypes)
-  # If numberCells missing, calculate it according to the reference sample
-  # So we can use this number for simulate coexpression
+  cellTypesCoex <- cellTypes
   if (is.null(numberCells)){
     numberCells <- lengths(cellTypes)
   }
+
   
   ## Check that number of groups and number of differentially expressed
   # probabilities makes sense
@@ -418,9 +427,8 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
   
   # Simulate coexpression
   for (i in 1:N_omics){
-    coexpr_results <- MOSim::simulate_coexpression(omics[[i]], 
-                                            numberCells = numberCellsCoex,
-                                            feature_no = feature_no, cellTypes = cellTypes,
+    coexpr_results <- MOSim::simulate_coexpression(omics[[i]],
+                                            feature_no = feature_no, cellTypes = cellTypesCoex,
                                             patterns = patterns, cluster_size = cluster_size)
     
     # Get the coexpressed matrix out

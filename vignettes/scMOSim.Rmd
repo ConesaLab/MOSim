@@ -337,54 +337,203 @@ with 'activator' function were reduced to 80%, while those with
 
 # 7. Example full run
 
-Let's visualize first the elbow plot for scRNA-seq and then use UMAP, a
-non linear dimensional reduction, to place similar cells together in
-low-dimensional space.
+Let's run a full experiment and plot some interesting facts.
 
-```{r elbow plot for scRNA-seq}
-# scRNA_pca <- NormalizeData(object = sim[["sim_scRNA-seq"]],normalization.method = "LogNormalize", scale.factor = 10000)
-#
-# scRNA_pca <- FindVariableFeatures(scRNA_pca, selection.method = "vst", nfeatures = 2000)
-#
-#
-# scRNA_pca <- ScaleData(scRNA_pca, features = rownames(scRNA_pca))
-#
-# scRNA_pca <- RunPCA(scRNA_pca, features = VariableFeatures(object = scRNA_pca))
-# ElbowPlot(scRNA_pca, ndims = 50)  + ggtitle("Elbow Plot for sim_scRNA-seq") +
-#   theme(plot.title = element_text(hjust = 0.5))
-
+```{r sim, eval = FALSE}
+omic_list <- sc_omicData(c("scRNA-seq", "scATAC-seq"))
+cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 'Memory_B' = c(497:520), 'Treg' = 
+                     c(868:900))
+sim <- scMOSim(omic_list, cell_types, numberCells = c(10, 20, 30, 40), numberReps = 2, 
+               numberGroups = 2, diffGenes = list(c(0.2, 0.3)), feature_no = 8000, 
+               clusters = 8, mean = c(2*10^6, 1*10^6,2*10^6, 1*10^6), 
+               sd = c(5*10^5, 2*10^5, 5*10^5, 2*10^5))
 ```
 
-```{r umap for scRNA-seq}
-# scRNA_pca <- RunUMAP(scRNA_pca, dims = 1:10)
-#
-# DimPlot(scRNA_pca, reduction="umap", label=TRUE) + ggtitle("UMAP Plot for sim_scRNA-seq") +
-#   theme(plot.title = element_text(hjust = 0.5))
+Plotting the simulated clusters for scRNAseq data of Replicate sample 1
+of Group 2
 
+```{r plot clusters RNA, eval = TRUE}
+library(cowplot)
+theme_set(theme_cowplot())
+# Scale isoforms to show the clustering patterns
+coexpr.scaled <- acorde::scale_isoforms(sim$Group_2$Rep_1$`sim_scRNA-seq`@assays$RNA@counts, 
+                                isoform_col = NULL)
+# fillna
+coexpr.scaled[is.na(coexpr.scaled)] <- 0
+
+# create cell-to-cell-type ID table
+ct <- tibble::tibble(Cell = colnames(sim$Group_2$Rep_1$`sim_scRNA-seq`@assays$RNA@counts),
+                            cell_type = rep(names(cell_types), times = lengths(cell_types)))
+
+# compute average-by-cell type cluster patterns
+cluster_patterns <- map(sim$Clusters_list$`Clusters_scRNA-seq`,
+                    ~acorde::calculate_cluster_profile(coexpr.scaled,
+                                               isoform_ids = .,
+                                               id_table = ct,
+                                               isoform_col = "transcript"))
+
+pattern_plots <- map(cluster_patterns,
+                     plot_cluster_profile,
+                     ct_labels = c("CD4_TEM", "cDC", "Memory_B", "Treg"))
+
+# Plot the clusters
+plot_grid(plotlist = pattern_plots, 
+          labels = NULL, 
+          ncol = 4)
 ```
 
-Let's do the same thing for the simulated scATAC-seq.
+We can do the same with the ATAC data:
 
-```{r elbow plot for scATAC-seq}
-# scATAC_pca <- NormalizeData(object = sim[["sim_scATAC-seq"]],normalization.method = "LogNormalize", scale.factor = 10000)
-#
-# scATAC_pca <- FindVariableFeatures(scATAC_pca, selection.method = "vst", nfeatures = 2000)
-#
-#
-# scATAC_pca <- ScaleData(scATAC_pca, features = rownames(scATAC_pca))
-#
-# scATAC_pca <- RunPCA(scATAC_pca, features = VariableFeatures(object = scATAC_pca))
-# ElbowPlot(scATAC_pca, ndims = 50)  + ggtitle("Elbow Plot for sim_scATAC-seq") +
-#   theme(plot.title = element_text(hjust = 0.5))
+```{r plot clusters ATAC}
+coexpr.scaledATAC <- acorde::scale_isoforms(sim$Group_2$Rep_1$`sim_scATAC-seq`@assays$ATAC@counts, isoform_col = NULL)
 
+coexpr.scaledATAC[is.na(coexpr.scaledATAC)] <- 0
+
+# create cell-to-cell-type ID table
+ctATAC <- tibble::tibble(Cell = colnames(sim$Group_2$Rep_1$`sim_scATAC-seq`@assays$ATAC@counts),
+                            cell_type = rep(names(cell_types), times = lengths(cell_types)))
+
+# compute average-by-cell type cluster patterns
+cluster_patternsATAC <- map(sim$Clusters_list$`Clusters_scATAC-seq`,
+                    ~acorde::calculate_cluster_profile(coexpr.scaledATAC,
+                                               isoform_ids = .,
+                                               id_table = ctATAC,
+                                               isoform_col = "transcript"))
+
+
+## Select only the clusters that don't have NAs
+
+
+pattern_plotsATAC <- map(cluster_patternsATAC,
+                     acorde::plot_cluster_profile,
+                     ct_labels = c("CD4_TEM", "cDC", "Memory_B", "Treg"))
+
+plot_grid(plotlist = pattern_plotsATAC, 
+          labels = NULL, 
+          ncol = 4)
 ```
 
-```{r umap for scATAC-seq}
-# scATAC_pca <- RunUMAP(scATAC_pca, dims = 1:10)
-#
-# DimPlot(scATAC_pca, reduction="umap", label=TRUE) + ggtitle("UMAP Plot for sim_scATAC-seq") +
-#   theme(plot.title = element_text(hjust = 0.5))
+Back to the simulated scRNA-seq. Plot the number of features in the
+sample, and the counts per feature.
 
+```{r plot violins}
+VlnPlot(sim$Group_2$Rep_1$`sim_scRNA-seq`, features = c("nFeature_RNA", "nCount_RNA"), ncol = 2)
+```
+
+Add metadata to the Seurat objects to be able to plot samples together,
+log transform and plot the variable features:
+
+```{r metadata}
+sim$Group_1$Rep_1$`sim_scRNA-seq` <- Seurat::AddMetaData(sim$Group_1$Rep_1$`sim_scRNA-seq`, list("Group" = rep("Group_1", length(colnames(sim$Group_1$Rep_1$`sim_scRNA-seq`))), "Rep" = rep("Rep_1", length(colnames(sim$Group_1$Rep_1$`sim_scRNA-seq`)))))
+
+sim$Group_1$Rep_2$`sim_scRNA-seq` <- Seurat::AddMetaData(sim$Group_1$Rep_2$`sim_scRNA-seq`, list("Group" = rep("Group_1", length(colnames(sim$Group_1$Rep_2$`sim_scRNA-seq`))), "Rep" = rep("Rep_2", length(colnames(sim$Group_1$Rep_2$`sim_scRNA-seq`)))))
+
+sim$Group_2$Rep_1$`sim_scRNA-seq` <- Seurat::AddMetaData(sim$Group_2$Rep_1$`sim_scRNA-seq`, list("Group" = rep("Group_2", length(colnames(sim$Group_2$Rep_1$`sim_scRNA-seq`))), "Rep" = rep("Rep_1", length(colnames(sim$Group_2$Rep_1$`sim_scRNA-seq`)))))
+
+sim$Group_2$Rep_2$`sim_scRNA-seq` <- Seurat::AddMetaData(sim$Group_2$Rep_2$`sim_scRNA-seq`, list("Group" = rep("Group_2", length(colnames(sim$Group_2$Rep_2$`sim_scRNA-seq`))), "Rep" = rep("Rep_2", length(colnames(sim$Group_2$Rep_2$`sim_scRNA-seq`)))))
+
+group1_1 <- NormalizeData(object = sim$Group_1$Rep_1$`sim_scRNA-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+
+group1_2 <- NormalizeData(object = sim$Group_1$Rep_2$`sim_scRNA-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+
+group2_1 <- NormalizeData(object = sim$Group_2$Rep_1$`sim_scRNA-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+
+group2_2 <- NormalizeData(object = sim$Group_2$Rep_2$`sim_scRNA-seq`, normalization.method = "LogNormalize", scale.factor = 10000)
+
+
+group1_1 <- FindVariableFeatures(group1_1, selection.method = "vst", nfeatures = 2000)
+group1_2 <- FindVariableFeatures(group1_2, selection.method = "vst", nfeatures = 2000)
+group2_1 <- FindVariableFeatures(group2_1, selection.method = "vst", nfeatures = 2000)
+group2_2 <- FindVariableFeatures(group2_2, selection.method = "vst", nfeatures = 2000)
+
+p1_1 <- LabelPoints(plot = VariableFeaturePlot(group1_1), points = head(VariableFeatures(group1_1), 10), repel = TRUE)
+p1_2 <- LabelPoints(plot = VariableFeaturePlot(group1_2), points = head(VariableFeatures(group1_2), 10), repel = TRUE)
+p2_1 <- LabelPoints(plot = VariableFeaturePlot(group2_1), points = head(VariableFeatures(group2_1), 10), repel = TRUE)
+p2_2 <- LabelPoints(plot = VariableFeaturePlot(group2_2), points = head(VariableFeatures(group2_2), 10), repel = TRUE)
+
+## Plot the variability of the first replicate of both groups
+p1_1 + p1_2
+```
+
+Make PCAs and elbowplots
+
+```{r make pcas}
+# PCAS
+genesp1_1 <- rownames(group1_1)
+group1_1 <- ScaleData(group1_1, features = genesp1_1)
+group1_1 <- RunPCA(group1_1, features = VariableFeatures(object = group1_1), npcs = 10)
+DimPlot(group1_1, reduction = "pca")
+
+genesp1_2 <- rownames(group1_2)
+group1_2 <- ScaleData(group1_2, features = genesp1_2)
+group1_2 <- RunPCA(group1_2, features = VariableFeatures(object = group1_2), npcs = 10)
+
+genesp2_1 <- rownames(group2_1)
+group2_1 <- ScaleData(group2_1, features = genesp2_1)
+group2_1 <- RunPCA(group2_1, features = VariableFeatures(object = group2_1), npcs = 10)
+
+genesp2_2 <- rownames(group2_2)
+group2_2 <- ScaleData(group2_2, features = genesp2_2)
+group2_2 <- RunPCA(group2_2, features = VariableFeatures(object = group2_2), npcs = 10)
+
+DimPlot(group1_1, reduction = "pca") 
+DimPlot(group1_2, reduction = "pca")
+DimPlot(group2_1, reduction = "pca")
+DimPlot(group2_2, reduction = "pca")
+
+ElbowPlot(group1_1, ndims = 50)
+ElbowPlot(group1_2, ndims = 50)
+ElbowPlot(group2_1, ndims = 50)
+ElbowPlot(group2_1, ndims = 50)
+```
+
+Plot also UMAP dimensionality reduction
+
+```{r make umaps}
+group1_1 <- RunUMAP(group1_1, dims = 1:10)
+group1_2 <- RunUMAP(group1_2, dims = 1:10)
+group2_1 <- RunUMAP(group2_1, dims = 1:10)
+group2_2 <- RunUMAP(group2_2, dims = 1:10)
+
+DimPlot(group1_1, reduction = "umap") 
+DimPlot(group1_2, reduction = "umap") 
+DimPlot(group2_1, reduction = "umap") 
+DimPlot(group2_2, reduction = "umap")
+```
+
+Integration of data from replicates and groups using Seurat:
+
+```{r seurat integration}
+gtogether <- list(g1_rep1 = group1_1, g1_rep2 = group1_2,
+           g2_rep1 = group2_1, g2_rep2 = group2_2)
+
+# Normalize and identify variable features for each dataset independently
+gtogether <- lapply(X = gtogether, FUN = function(x) {
+    x <- NormalizeData(x)
+    x <- FindVariableFeatures(x, selection.method = "vst", nfeatures = 2000)
+})
+
+# Select features that are repeatedly variable across datasets for integration
+featurestogether <- SelectIntegrationFeatures(object.list = gtogether)
+
+immune.anchorstogether <- FindIntegrationAnchors(object.list = gtogether, anchor.features = featurestogether)
+immune.combinedtogether <- IntegrateData(anchorset = immune.anchorstogether, k.weight = 40)
+
+# specify that we will perform downstream analysis on the corrected data note that the
+# original unmodified data still resides in the 'RNA' assay
+DefaultAssay(immune.combinedtogether) <- "integrated"
+
+# Run the standard workflow for visualization and clustering
+immune.combinedtogether <- ScaleData(immune.combinedtogether, verbose = FALSE)
+immune.combinedtogether <- RunPCA(immune.combinedtogether, npcs = 30, verbose = FALSE)
+immune.combinedtogether <- RunUMAP(immune.combinedtogether, reduction = "pca", dims = 1:30)
+immune.combinedtogether <- FindNeighbors(immune.combinedtogether, reduction = "pca", dims = 1:30)
+immune.combinedtogether <- FindClusters(immune.combinedtogether, resolution = 0.5)
+
+# Visualization, plot the clustering of groups and separation by celltypes
+p1g1 <- DimPlot(immune.combinedtogether, reduction = "umap", group.by = "Group")
+p2g1 <- DimPlot(immune.combinedtogether, reduction = "umap", label = FALSE)
+p1g1 + p2g1
 ```
 
 # 8. How to cite scMOSim
