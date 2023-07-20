@@ -17,6 +17,8 @@ scMOSim(
   sd = NULL,
   noiseRep = 0.1,
   noiseGroup = 0.5,
+  regulatorEffect = NULL,
+  associationList = NULL,
   feature_no = 8000,
   clusters = 8,
   cluster_size = NULL
@@ -41,13 +43,13 @@ percentage for up, down ex: c(0.2, 0.2). The rest will be NE}
 \item{minFC}{OPTIONAL. Threshold of FC below which are downregulated, by 
 default 0.25}
 
-\item{maxFC}{OPTIONAL. Threshold of FC abofe which are upregulated, by default 4}
+\item{maxFC}{OPTIONAL. Threshold of FC above which are upregulated, by default 4}
 
 \item{numberCells}{OPTIONAL. Vector of numbers. The numbers correspond to the number of 
 cells the user wants to simulate per each cell type. The length of the 
     vector must be the same as length of \code{cellTypes}.}
 
-\item{mean}{OPTIONAL. Vector of numbers of mean per each cell type. Must be specified 
+\item{mean}{OPTIONAL. Vector of numbers of mean depth per each cell type. Must be specified 
 just if \code{numberCells} is specified.The length of the vector must be 
     the same as length of \code{cellTypes}.}
 
@@ -61,14 +63,26 @@ between biological replicates.}
 \item{noiseGroup}{OPTIONAL. Number indicating the desired standard deviation
 between treatment groups}
 
-\item{feature_no}{OPTIONAL. Total number of features to be distributed between the 
-coexpression clusters}
+\item{regulatorEffect}{OPTIONAL. To simulate relationship scRNA-scATAC, list 
+of vectors (one per group) where the vector contains absolute number of
+regulators for Activator and repressor ex: c(150, 200) or a percentage
+for Activator and repressor ex: c(0.2, 0.1). The rest will be NE. If not
+provided, no table of association between scRNA and scATAC is outputted.}
+
+\item{associationList}{OPTIONAL. A 2 columns dataframe reporting peak ids 
+related to gene names. If not provided, no table of association between
+scRNA and scATAC is outputted.}
+
+\item{feature_no}{OPTIONAL. If only scRNA-seq to simulate or scRNA and scATAC
+but no regulatory constraints, total number of features to be distributed 
+between the coexpression clusters.}
 
 \item{clusters}{OPTIONAL. Number of co-expression patterns the user wants
 to simulate}
 
-\item{cluster_size}{OPTIONAL. It may be inputted by the user. By default, 
-its the number of features divided by the number of patterns to generate.}
+\item{cluster_size}{OPTIONAL. It may be inputted by the user. Recommended: 
+by default, its the number of features divided by the number of patterns 
+to generate.}
 }
 \value{
 a list of Seurat object, one per each omic.

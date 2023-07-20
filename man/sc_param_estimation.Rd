@@ -14,7 +14,8 @@ sc_param_estimation(
   mean = NULL,
   sd = NULL,
   noiseGroup = 0.5,
-  group = 1
+  group = 1,
+  genereggroup
 )
 }
 \arguments{
@@ -37,7 +38,7 @@ percentage for up, down ex: c(0.2, 0.2). The rest will be NE}
 of cells the user wants to simulate per each cell type. The length of the 
    vector must be the same as length of \code{cellTypes}.}
 
-\item{mean}{vector of numbers of mean per each cell type. Must be specified 
+\item{mean}{vector of numbers of mean depth per each cell type. Must be specified 
 just if \code{numberCells} is specified.}
 
 \item{sd}{vector of numbers of standard deviation per each cell type. Must be 
@@ -47,6 +48,9 @@ specified just if \code{numberCells} is specified.}
 between treatment groups}
 
 \item{group}{Group for which to estimate parameters}
+
+\item{genereggroup}{List with information of genes, clusters and regulators
+that must be related to each other}
 }
 \value{
 a list of Seurat object, one per each omic.
