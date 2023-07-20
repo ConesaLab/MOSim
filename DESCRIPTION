@@ -50,11 +50,12 @@ Collate:
     'Simulation.R'
     'MOSim.R'
     'RNA-seq.R'
+    'data.R'
     'simulate_WGBS_functions.R'
     'methyl-seq.R'
     'miRNA-seq.R'
     'sc_MOSim.R'
-    'zzz.R'
     'sc_coexpression.R'
+    'zzz.R'
 RoxygenNote: 7.2.3
 VignetteBuilder: knitr
