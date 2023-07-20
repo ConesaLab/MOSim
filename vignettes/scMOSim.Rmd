@@ -551,3 +551,14 @@ R. DOI: 10.1101/421834
 ```{r, session-info, echo=FALSE}
 print(sessionInfo(), nrow=(50))
 ```
+
+```{r}
+omicsList <- MOSim::sc_omicData(list("scRNA-seq", "scATAC-seq"))
+
+cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 'Memory_B' = c(497:510), 'Treg' = c(868:900))
+
+association_list <- data.frame("Peak_ID" = head(rownames(omicsList[[2]])), "Gene_ID" = head(rownames(omicsList[[1]])))
+
+
+testing_groupsreps <- MOSim::scMOSim(omicsList, cell_types, numberReps = 2, numberGroups = 3, diffGenes = list(c(0.5, 0.4), c(0.3, 0.3)), minFC = 0.25, maxFC = 4, numberCells = NULL, mean = NULL, sd = NULL, regulatorEffect = list(c(10, 20), c(20, 10)), associationList = association_list)
+```
