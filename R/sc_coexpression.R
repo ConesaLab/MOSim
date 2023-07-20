@@ -1,3 +1,45 @@
+#' check_patterns
+#' 
+#' Function to check if the TRUE FALSE patterns have at least two rows that are
+#' opposite, we need this to be able to generate repressor regulators
+#'
+#' @param patterns_ret tibble of TRUE FALSE values
+#' @export
+#' @return list of indices where the rows are opposite
+#'
+#' @examples
+#' patterns <- tibble(one = c(TRUE, FALSE, TRUE, FALSE), 
+#'               two = c(TRUE, TRUE, TRUE, TRUE), 
+#'               three = c(FALSE, TRUE, FALSE, TRUE), 
+#'               four = c(FALSE, TRUE, TRUE, TRUE))
+#' opposite_indices <- check_patterns(patterns)
+#' 
+check_patterns <- function(patterns_ret){
+  ## Check that there are at least two opposing patterns
+  # Get the number of rows in the tibble
+  num_rows <- nrow(patterns_ret)
+  
+  # Initialize a list to store the indices of opposite rows
+  opposite_indices <- list()
+  
+  # Generate all possible combinations of row indices
+  row_combinations <- expand.grid(1:num_rows, 1:num_rows)
+  
+  # Iterate over each combination of row indices
+  for (i in 1:nrow(row_combinations)) {
+    # Get the row indices for comparison
+    row_index1 <- row_combinations[i, 1]
+    row_index2 <- row_combinations[i, 2]
+    
+    # Check if the rows are opposite
+    if (all(patterns_ret[row_index1, ] != patterns_ret[row_index2, ])) {
+      opposite_indices <- c(opposite_indices, list(c(row_index1, row_index2)))
+    }
+  }
+  return(opposite_indices)
+}
+
+
 #' make_cluster_patterns
 #' 
 #' Function to make the tibble with cluster combinations for the gene expression
@@ -35,8 +77,23 @@ make_cluster_patterns <- function(numcells = 4, clusters = 8){
   
   colnames(patterns) <- col_names
   # Subset to number of clusters the user wants
-  patterns <- dplyr::slice_sample(patterns, n = clusters)
-  return(patterns)
+  patterns_ret <- dplyr::slice_sample(patterns, n = clusters)
+  
+  opposite_indices <- check_patterns(patterns_ret)
+  
+  # Check if opposite rows were found, if not, sample again, we need at least
+  # two rows that are opposite
+  if (length(opposite_indices) < 1){
+    for (e in 1:10){
+      # Try again
+      patterns_ret <- dplyr::slice_sample(patterns, n = clusters)
+      opposite_indices <- check_patterns(patterns_ret)
+      if (length(opposite_indices) >= 1){
+        break
+      }
+    }
+  }
+  return(list("patterns" = patterns_ret, "opposite_indices" = opposite_indices))
 }
 
 #' simulate coexpression
@@ -241,3 +298,30 @@ shuffle_group_matrix <- function(sim_data, feature_ids, group_pattern, ngroups){
   return(sim_data.mod)
 }
 
+
+#' make_association_dataframe
+#'
+#' @param omics 
+#' @param associationList A 2 columns dataframe reporting peak ids 
+#'      related to gene names. If not provided, no table of association between
+#'      scRNA and scATAC is outputted.
+#' @param minFC Threshold of FC below which are downregulated, by 
+#'      default 0.25
+#' @param maxFC Threshold of FC avofe which are upregulated, by default 4
+#' @param group Group from which we are generating the association dataframe
+#' @param genereggroup list of elements to generate the association dataframe
+#'      such as clusters of each omic, indices of opposite clusters, which
+#'      genes are activated, repressed, behavior of the features etc.
+#' @return a dataframe with all the information the user needs about each gene
+#' @export
+#'
+#' @examples
+make_association_dataframe <- function(omics, associationList = NULL, minFC = 0.25, maxFC = 4, 
+                                       group = 1, genereggroup){
+  # Start from the association list, now we have two columns Peak_ID and Gene_ID
+  df <- associationList
+  #columns(df) <- c("Gene_ID", "Peak_ID", "Effect", "Gene_cluster", "Peak_cluster", "Gene_FC", "Peak_FC")
+  
+  
+  
+}

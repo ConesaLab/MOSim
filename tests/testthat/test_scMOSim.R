@@ -87,6 +87,17 @@ testthat::test_that("The number of patterns we want are generated", {
   testthat::expect_type(coexpr_results, "list")
 })
 
+## Test the patterns
+testthat::test_that("when there are two opposite patterns, it gives them back", {
+  patterns <- tibble(one = c(TRUE, FALSE, TRUE, FALSE), 
+                     two = c(TRUE, FALSE, TRUE, TRUE), 
+                     three = c(FALSE, TRUE, FALSE, TRUE), 
+                     four = c(FALSE, TRUE, TRUE, TRUE))
+  opposite_indices <- check_patterns(patterns)
+  testthat::expect_equal(length(opposite_indices), 2)
+})
+
+
 #sc_omicSim function
 test_that("sc_omicSim returns a list", {
   omic_list <- sc_omicData(c("scRNA-seq","scATAC-seq"))

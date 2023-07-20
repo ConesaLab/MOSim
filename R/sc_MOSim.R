@@ -131,6 +131,8 @@ sc_omicData <- function(omics_types, data = NULL){
 #' @param noiseGroup OPTIONAL. Number indicating the desired standard deviation
 #'      between treatment groups
 #' @param group Group for which to estimate parameters
+#' @param genereggroup List with information of genes, clusters and regulators
+#'      that must be related to each other
 #' @return a list of Seurat object, one per each omic.
 #' @return a named list with simulation parameters for each omics as values.
 #' @export
@@ -142,7 +144,7 @@ sc_omicData <- function(omics_types, data = NULL){
 sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)), 
                                 minFC = 0.25, maxFC = 4, numberCells = NULL, 
                                 mean = NULL, sd = NULL, noiseGroup = 0.5, 
-                                group = 1){
+                                group = 1, genereggroup){
   # Check for mandatory parameters
   if (missing(omics)){
     stop("You must provide the vector of omics to simulate.")
@@ -221,31 +223,37 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
     # Times a fold change vector, thus we generate it
     FClist <- list()
     
-    for(i in 1:N_omics){
-      ## Format diffGenes
-      if (diffGenes[[group -1]][1] < 1) {
-        ## Relative
-        up <- round(diffGenes[[group -1]][1]*length(param_est_list[[i]][[1]][[1]]), digits = 0)
-        down <- round(diffGenes[[group -1]][2]*length(param_est_list[[i]][[1]][[1]]), digits = 0)
-        
+    for(i in 1:N_omics){ ## Loop for differentially expressed genes
+      if (N_omics > 1){
+        if (names(omics[[i]]) == "scRNA-seq"){
+          up <- genereggroup[[paste0("GeneExtraUp_G", i)]]
+          up <- up + genereggroup[[paste0("GeneActivated_G", i)]]
+          down <- genereggroup[[paste0("GeneExtraDown_G", i)]]
+          down <- down + genereggroup[[paste0("GeneRepressed_G", i)]]
+        } else {
+          up <- genereggroup[[paste0("FeatExtraUp_G", i)]]
+          up <- up + genereggroup[[paste0("FeatActivator_G", i)]]
+          down <- genereggroup[[paste0("FeatExtraDown_G", i)]]
+          down <- down + genereggroup[[paste0("FeatRepressor_G", i)]]
+        }
       } else {
-        ## Absolute
-        up <- diffGenes[[group -1]][1]
-        down <- diffGenes[[group -1]][2]
+        up <- genereggroup[[paste0("GeneExtraUp_G", i)]]
+        down <- genereggroup[[paste0("GeneExtraDown_G", i)]]
       }
-      NE <- length(param_est_list[[i]][[1]][[1]]) - up - down
+      NE <- length(param_est_list[[i]][[1]][[1]]) - length(up) - length(down)
       message(paste0("Up: ", up, " Down: ", down, " NE: ", NE))
       
       # Now we make the FC vector
       notDE_FCvec <- runif(n = NE, min = minFC + 0.001, max = maxFC - 0.001)
-      DE_FCvec <- c(runif(n = up, min = maxFC, max = 100), runif(n = down, 
-                                                min = 0.0001, max = minFC))
+      Up_FCvec <- runif(n = up, min = maxFC, max = 100)
+      Down_FCvec <- runif(n = down, min = 0.0001, max = minFC)
+      
+      ## Here I have 
       
       # The genes affected by FC will be at the begining (also these were
       # The ones most probably included into co-expression patterns)
-      FCvec <- c(DE_FCvec, notDE_FCvec)
+      FCvec <- c(Up_FCvec, Down_FCvec, notDE_FCvec)
       FClist[[paste0("FC_est_", names(omics)[i])]] <- FCvec
-      
     } 
   } else if (group == 1){
     # If its the first group, we dont need to add FC, so we multiply by one
@@ -322,7 +330,7 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
 #'    percentage for up, down ex: c(0.2, 0.2). The rest will be NE
 #' @param minFC OPTIONAL. Threshold of FC below which are downregulated, by 
 #'    default 0.25
-#' @param maxFC OPTIONAL. Threshold of FC abofe which are upregulated, by default 4
+#' @param maxFC OPTIONAL. Threshold of FC above which are upregulated, by default 4
 #' @param numberCells OPTIONAL. Vector of numbers. The numbers correspond to the number of 
 #'     cells the user wants to simulate per each cell type. The length of the 
 #'         vector must be the same as length of \code{cellTypes}.
@@ -387,7 +395,6 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
     numberCells <- lengths(cellTypes)
   }
 
-  
   ## Check that number of groups and number of differentially expressed
   # probabilities makes sense
   if (numberGroups > 1){
@@ -396,6 +403,115 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
                   " numberGroups -1"))
     }
   }
+  
+  ## Check that columns of association list are c("Peak_ID", "Gene_ID")
+  if (!is.null(associationList) && !identical(colnames(associationList), c("Peak_ID", "Gene_ID"))){
+    stop("Column names of the user-inputted association list should be 'Peak_ID' and 'Gene_ID'")
+  } else {
+    ## Get the association list loaded in the package
+    message("Loading default association list from MOSim package")
+    associationList <- data("seurat_association_list")
+  }
+  
+  ## format number regulators, if its relative, make absolute
+  numfeat <- length(associationList$Peak_ID)
+  genereggroup <- list()
+  
+  if (numberGroups > 1){
+    if (names(omic_list[2]) == "scATAC-seq"){
+      for (i in 2:numberGroups){
+        
+        if (regulatorEffect[[i -1]][1] < 1) {
+          # If relative, make absolute numbers
+          numActivator <- round(regulatorEffect[[i -1]][1]*numfeat, digits = 0)
+          numRepressor <- round(regulatorEffect[[i -1]][2]*numfeat, digits = 0)
+        } else {
+          numActivator <- regulatorEffect[[i -1]][1]
+          numRepressor <- regulatorEffect[[i -1]][2]
+          if (numActivator + numRepressor > numfeat){
+            stop(paste0("Number of requested Activators and Repressors is bigger
+                      than the possible regulators according to the association
+                      dataframe. Activators plus repressors must be below: ",
+                        numfeat))
+          }
+        }
+        # Get names of regulators per group
+        numActivator <- sample(associationList$Peak_ID, numActivator)
+        numRepressor <- sample(setdiff(associationList$Peak_ID, numActivator), numRepressor)
+        genereggroup[[paste0("FeatActivator_G", i)]] <- numActivator
+        genereggroup[[paste0("FeatRepressor_G", i)]] <- numRepressor
+        
+        ## Get activated, repressed and other diffexp for genes
+        if (diffGenes[[i -1]][1] < 1) {
+          numup <- round(diffGenes[[i -1]][1]*nrow(omics[[1]]), digits = 0)
+          numdown <- round(diffGenes[[i -1]][2]*nrow(omics[[1]]), digits = 0)
+        } else {
+          numup <- diffGenes[[i -1]][1]
+          numdown <- diffGenes[[i -1]][2]
+          if (numup + numdown > nrow(omics[[1]])){
+            stop(paste0("Number of requested Upregulated and Downregulated genes
+                      is bigger than the number of total genes: ", nrow(omics[[1]])))
+          }
+        }
+        
+        # Here the up and down, have to be as many as possible from the association
+        # list, so take rows where its activator and make them up, when its repressor
+        # make them down
+        if (numup > length(numActivator) || numdown > length(numRepressor)){
+          stop("You have asked for many regulators, but there aren't enough 
+             differentially expressed genes to be regulated")
+        }
+        # Get the info for the ATAC
+        u <- numup - length(numActivator)
+        d <- numdown - length(numRepressor)
+        availFeat <- setdiff(rownames(omics[[2]]), as.vector(associationList$Peak_ID))
+        regAct <- sample(availFeat, u)
+        availFeat <- setdiff(availFeat, regAct)
+        regRep <- sample(availFeat, d)
+        genereggroup[[paste0("FeatExtraUp_G", i)]] <- regAct
+        genereggroup[[paste0("FeatExtraDown_G", i)]] <- regRep
+        genereggroup[[paste0("FeatRemaining_G", i)]] <- setdiff(availFeat, regRep)
+        
+        # Get the genes corresponding to the activator regulators and repressors
+        genesActivated <- as.vector(associationList[associationList$Peak_ID %in% numActivator, ]$Gene_ID)
+        genesRepressed <- as.vector(associationList[associationList$Peak_ID %in% numRepressor, ]$Gene_ID)
+        # And add other random genes (not in the association list)
+        u <- numup - length(genesActivated)
+        d <- numdown - length(genesRepressed)
+        availGenes <- setdiff(rownames(omics[[1]]), as.vector(associationList$Gene_ID))
+        genesUp <- sample(availGenes, u)
+        availGenes <- setdiff(availGenes, genesUp)
+        genesDown <- sample(availGenes, d)
+        genereggroup[[paste0("GeneActivated_G", i)]] <- genesActivated
+        genereggroup[[paste0("GeneRepressed_G", i)]] <- genesRepressed
+        genereggroup[[paste0("GeneExtraUp_G", i)]] <- genesUp
+        genereggroup[[paste0("GeneExtraDown_G", i)]] <- genesDown
+        genereggroup[[paste0("GeneRemaining_G", i)]] <- setdiff(availGenes, genesDown)
+        
+      }
+    } else {
+      ## Here say what to do if we don't have ATAC-seq
+      if (diffGenes[[i -1]][1] < 1) {
+        numup <- round(diffGenes[[i -1]][1]*nrow(omics[[1]]), digits = 0)
+        numdown <- round(diffGenes[[i -1]][2]*nrow(omics[[1]]), digits = 0)
+      } else {
+        numup <- diffGenes[[i -1]][1]
+        numdown <- diffGenes[[i -1]][2]
+        if (numup + numdown > nrow(omics[[1]])){
+          stop(paste0("Number of requested Upregulated and Downregulated genes
+                      is bigger than the number of total genes: ", nrow(omics[[1]])))
+        }
+      }
+      u <- sample(rownames(omics[[1]]), numup)
+      availGenes <- setdiff(rownames(omics[[1]]), u)
+      d <- sample(availGenes, numdown)
+      genereggroup[[paste0("GeneExtraUp_G", i)]] <- u
+      genereggroup[[paste0("GeneExtraDown_G", i)]] <- d
+      genereggroup[[paste0("GeneRemaining_G", i)]] <- setdiff(availGenes, d)
+    }
+  }
+  
+  ### Start working on the data
   
   N_omics <- length(omics)
   
@@ -421,9 +537,12 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
   cellTypes <- createRangeList(numberCells, names(cellTypes))
   
   
-  clusters_list <- list()
   # Make the patterns to simulate coexpression
-  patterns <- make_cluster_patterns(length(cellTypes), clusters = clusters)
+  lpatterns <- make_cluster_patterns(length(cellTypes), clusters = clusters)
+  # Get also the indices of cluster patterns that are opposite and will be 
+  # important for the regulators
+  genereggroup[["opposite_indices"]] <- lpatterns$opposite_indices
+  patterns <- lpatterns$patterns
   
   # Simulate coexpression
   for (i in 1:N_omics){
@@ -436,7 +555,7 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
     rownames(omics[[i]]) <- omics[[i]]$feature
     omics[[i]]$feature <- NULL
     # Get the clusters out
-    clusters_list[[paste0("Clusters_", names(omics)[[i]])]] <- coexpr_results$sim_clusters
+    genereggroup[[paste0("Clusters_", names(omics)[[i]])]] <- coexpr_results$sim_clusters
   }
 
   # Start the lists we will need to include in the output
@@ -452,7 +571,8 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
     
 
     param_l <- MOSim::sc_param_estimation(omics, cellTypes, diffGenes, minFC, maxFC, 
-                                          numberCells, mean, sd, noiseGroup, g)
+                                          numberCells, mean, sd, noiseGroup, g, 
+                                          genereggroup)
     
     
     FC_used_list[[paste0("FC_Group_", g)]] <- param_l$FClist
@@ -510,7 +630,6 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
   
   # Bring back final celltypes
   seu_groups[["cellTypes"]] <- cellTypes
-  seu_groups[["Clusters_list"]] <- clusters_list
   seu_groups[["patterns"]] <- patterns
   # Bring back FC vector
   seu_groups[["FC"]] <- FC_used_list
