@@ -469,3 +469,68 @@ make_association_dataframe <- function(omics,
   return(list("associationMatrix" = df, "dfPeakNames" = dfPeakNames, "dfGeneNames" = dfGeneNames))
   
 }
+
+#' order_FC_forMatrix
+#' 
+#' Function to sort the FC values according to the genes that must be up or 
+#' downregulated
+#'
+#' @param A Vector of c("Up", "Down", "NE) from the Gene or Peak_DE extracted
+#'          from the association matrix
+#' @param B Calculated vector of Up FC values
+#' @param C Calculated vector of Down FC values
+#' @param D Calculated vector of NE FC values
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' DE <- c("Up", "Up", "Up", "Down", "Down", "NE", "NE", "NE", "NE")
+#' Up_FCvec <- c("b", "c", "d")
+#' Down_FCvec <- c("e", "f")
+#' notDE_FCvec <- c("G", "H", "I", "J")
+#' FC_vec <- order_FC_forMatrix(DE, Up_FCvec, Down_FCvec, notDE_FCvec)
+#' 
+order_FC_forMatrix <- function(A, B, C, D){
+  # Initialize an empty vector to store the result
+  result <- vector("character", length(A))
+  
+  # Create counters for each vector
+  counter_B <- 1
+  counter_C <- 1
+  counter_D <- 1
+  
+  # Loop through vector A
+  for (i in seq_along(A)) {
+    if (A[i] == "Up") {
+      # Assign value from vector B to the result
+      result[i] <- B[counter_B]
+      # Increment the counter for vector B
+      counter_B <- counter_B + 1
+      # If we reached the end of vector B, reset the counter
+      if (counter_B > length(B)) {
+        counter_B <- 1
+      }
+    } else if (A[i] == "Down") {
+      # Assign value from vector C to the result
+      result[i] <- C[counter_C]
+      # Increment the counter for vector C
+      counter_C <- counter_C + 1
+      # If we reached the end of vector C, reset the counter
+      if (counter_C > length(C)) {
+        counter_C <- 1
+      }
+    } else if (A[i] == "NE") {
+      # Assign value from vector D to the result
+      result[i] <- D[counter_D]
+      # Increment the counter for vector D
+      counter_D <- counter_D + 1
+      # If we reached the end of vector D, reset the counter
+      if (counter_D > length(D)) {
+        counter_D <- 1
+      }
+    }
+  }
+  
+  return(result)
+}
