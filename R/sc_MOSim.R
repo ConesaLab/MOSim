@@ -222,26 +222,44 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
     # if its from group 2 upwards, we make the differences by multiplying
     # Times a fold change vector, thus we generate it
     FClist <- list()
+    if (N_omics > 1){
+      prov <- MOSim::make_association_dataframe(group, genereggroup)
+      
+      associationMatrix <- prov$associationMatrix
+      dfPeakNames <- prov$dfPeakNames
+      dfGeneNames <- prov$dfGeneNames
+    } else {
+      
+      # Otherwise define the matrix here with the same format
+      dfGeneNames <- colnames(omics[[1]])
+      dfPeakNames <- NA
+      columns <- c("Gene_ID", "Peak_ID", "Effect", "Gene_cluster", "Peak_cluster", 
+                   "Gene_DE", "Peak_DE")
+      
+      associationMatrix <- data.frame(matrix(nrow = length(dfGeneNames), 
+                                             ncol = length(columns)))
+      associationMatrix["Gene_ID"] <- dfGeneNames
+      associationMatrix["Peak_ID"] <- rep(NA, length(dfGeneNames))
+      associationMatrix["Effect"] <- rep("NE", length(dfGeneNames))
+      clus <- rep(1:length(genereggroup$`Clusters_scRNA-seq`), 
+                  each = length(genereggroup$`Clusters_scRNA-seq`[[1]]))
+      associationMatrix["Gene_cluster"] <- c(clus, rep(0, length(dfGeneNames) - length(clus)))
+      associationMatrix["Peak_cluster"] <- rep(NA, length(dfGeneNames))
+      associationMatrix["Gene_DE"] <- c(rep("Up", length(genereggroup[[paste0("GeneExtraUp_G", group)]])),
+                                        rep("Down", length(genereggroup[[paste0("GeneExtraDown_G", group)]])),
+                                        rep("NE", length(dfGeneNames) - length(genereggroup[[paste0("GeneExtraUp_G", group)]]) - length(genereggroup[[paste0("GeneExtraDown_G", group)]])))
+    }
     
     for(i in 1:N_omics){ ## Loop for differentially expressed genes
-      if (N_omics > 1){
-        if (identical(names(omics[i]), "scRNA-seq")){
-          up <- genereggroup[[paste0("GeneExtraUp_G", group)]]
-          up <- c(up, genereggroup[[paste0("GeneActivated_G", group)]])
-          down <- genereggroup[[paste0("GeneExtraDown_G", group)]]
-          down <- c(down, genereggroup[[paste0("GeneRepressed_G", group)]])
-        } else {
-          up <- genereggroup[[paste0("FeatExtraUp_G", group)]]
-          up <- c(up, genereggroup[[paste0("FeatActivator_G", group)]])
-          down <- genereggroup[[paste0("FeatExtraDown_G", group)]]
-          down <- c(down, genereggroup[[paste0("FeatRepressor_G", group)]])
-        }
+      if (identical(names(omics[i]), "scRNA-seq")){
+        up <- length(associationMatrix[associationMatrix$Gene_DE == "Up",][[1]])
+        down <- length(associationMatrix[associationMatrix$Gene_DE == "Down",][[1]])
       } else {
-        up <- genereggroup[[paste0("GeneExtraUp_G", group)]]
-        down <- genereggroup[[paste0("GeneExtraDown_G", group)]]
+        up <- length(associationMatrix[associationMatrix$Peak_DE == "Up",][[1]])
+        down <- length(associationMatrix[associationMatrix$Peak_DE == "Down",][[1]])
       }
-      NE <- length(param_est_list[[i]][[1]][[1]]) - length(up) - length(down)
-      message(paste0("Up: ", length(up), " Down: ", length(down), " NE: ", NE))
+      NE <- length(param_est_list[[i]][[1]][[1]]) - up - down
+      message(paste0("Up: ", up, " Down: ", down, " NE: ", NE))
       
       # Now we make the FC vector
       notDE_FCvec <- runif(n = NE, min = minFC + 0.001, max = maxFC - 0.001)
@@ -252,8 +270,12 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
       
       # The genes affected by FC will be at the begining (also these were
       # The ones most probably included into co-expression patterns)
-      FCvec <- c(Up_FCvec, Down_FCvec, notDE_FCvec)
-      FClist[[paste0("FC_est_", names(omics)[i])]] <- FCvec
+      
+      if (identical(names(omics)[i], "scRNA-seq")){
+        FClist[[paste0("FC_est_", names(omics)[i])]] <- order_FC_forMatrix(associationMatrix$Gene_DE, Up_FCvec, Down_FCvec, notDE_FCvec)
+      } else {
+        FClist[[paste0("FC_est_", names(omics)[i])]] <- order_FC_forMatrix(associationMatrix$Peak_DE, Up_FCvec, Down_FCvec, notDE_FCvec)
+      }
     } 
   } else if (group == 1){
     # If its the first group, we dont need to add FC, so we multiply by one
@@ -263,7 +285,7 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
     
     for(i in 1:N_omics){
       FCvec <- rep(1, length(param_est_list[[i]][[1]][[1]]))
-      FClist[[paste0("FC_est_", names(omics)[i])]] <- FCvec
+      FClist[[paste0("FC_", names(omics)[i])]] <- FCvec
       
       # Same for variability
       ## TESTING ONGOING
@@ -303,13 +325,17 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
         feature_names = names(param_est_list[[i]][[j]][["intensity"]]))
         
       cell_type_list[[names(cellTypes)[j]]] <- cond_param
+      
+      associationMatrix[[names(FClist[[i]])]] <- FClist[[i]]
         
     }
     param_est_list_mod[[paste0("param_est_", names(omics)[i])]] <- cell_type_list
   }
     
   return(list(param_list = param_est_list_mod,
-              FClist = FClist, VARlist = VARlist))
+              VARlist = VARlist, 
+              associationMatrix = associationMatrix, dfPeakNames = dfPeakNames, 
+              dfGeneNames = dfGeneNames))
 }
 
 
@@ -410,9 +436,7 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
   } else if (is.null(associationList)){
     ## Get the association list loaded in the package
     message("Loading default association list from MOSim package")
-    data("seurat_association_list")
-    associationList <- seurat_association_list
-    seurat_association_list <- NULL
+    data("associationList")
   }
   
   if (is.null(regulatorEffect) && identical(names(omics[2]), "scATAC-seq")){
@@ -577,7 +601,7 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
 
   # Start the lists we will need to include in the output
   seu_groups <- list()
-  FC_used_list <- list()
+  Association_list <- list()
   VAR_used_list <- list()
   param_list <- list()
   
@@ -592,7 +616,7 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
                                           genereggroup)
     
     
-    FC_used_list[[paste0("FC_Group_", g)]] <- param_l$FClist
+    Association_list[[paste0("AssociationMatrix_Group_", g)]] <- param_l$AssociationMatrix
     VAR_used_list[[paste0("VAR_Group_", g)]] <- param_l$VARlist
     param_list <- param_l$param_list
     
@@ -630,9 +654,17 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
         
         assay_name <- str_split(names(sim_list)[i], "-")[[1]][1]
         assay_name <- sub("sim_sc","",assay_name)
+        
+        # Rename the 
+        if(identical(names(sim_list[[i]]), "sim_scRNA-seq")){
+          newNammes <- param_l$dfGeneNames
+        } else{
+          newNames <- param_l$dfPeakNames
+        }
+        
         seu <- Seurat::CreateSeuratObject(counts = sim_list[[i]],
                                           assay = assay_name,
-                                          rownames = rownames(sim_list[[i]]), #explicitly specifying rownames
+                                          rownames = newNames, #explicitly specifying rownames
                                           colnames = colnames(sim_list[[i]])) #and colnames for Seurat obj
         seu_obj[[names(sim_list)[i]]] <- seu
         
@@ -642,17 +674,14 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
     
     seu_groups[[paste0("Group_", g)]] <- seu_replicates
     
-    
   } 
   
   # Bring back final celltypes
   seu_groups[["cellTypes"]] <- cellTypes
   seu_groups[["patterns"]] <- patterns
   # Bring back FC vector
-  seu_groups[["FC"]] <- FC_used_list
+  seu_groups[["AssociationMatrices"]] <- Association_list
   seu_groups[["Variability"]] <- VAR_used_list
-  # provisional
-  seu_groups[["genereggroups"]] <- genereggroup
   
   return(seu_groups)
   
