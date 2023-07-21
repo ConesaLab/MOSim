@@ -315,8 +315,7 @@ shuffle_group_matrix <- function(sim_data, feature_ids, group_pattern, ngroups){
 #'      datasets of the group
 #' @export
 #'
-make_association_dataframe <- function(omics,  
-                                       group = 2, genereggroup){
+make_association_dataframe <- function(group, genereggroup){
   # Start from the association list, now we have two columns Peak_ID and Gene_ID
   
   columns <- c("Gene_ID", "Peak_ID", "Effect", "Gene_cluster", "Peak_cluster", 
@@ -325,6 +324,7 @@ make_association_dataframe <- function(omics,
   df1 <- data.frame(matrix(nrow = length(genereggroup[[paste0("GeneActivated_G", 
                                     group)]]$Gene_ID), ncol = length(columns)))
   colnames(df1) <- columns
+  
   df1["Gene_ID"] <- genereggroup[[paste0("GeneActivated_G", group)]]$Gene_ID
   df1["Peak_ID"] <- genereggroup[[paste0("GeneActivated_G", group)]]$Peak_ID
   df1["Effect"] <- rep("Activator", length(df1[[1]]))
@@ -403,14 +403,16 @@ make_association_dataframe <- function(omics,
                       rep(NA, length(genereggroup[[paste0("GeneRemaining_G", group)]])), 
                       rep(1, length(genereggroup[[paste0("FeatRemaining_G", group)]])))
   
-  df5["Gene_DE"] <- rep("NE", length(df5[[1]]))
-  df5["Peak_DE"] <- rep("NE", length(df5[[1]]))
+  df5["Gene_DE"] <- c(rep("NE", length(genereggroup[[paste0("GeneRemaining_G", group)]])), 
+                      rep(NA, length(genereggroup[[paste0("FeatRemaining_G", group)]])))
+  df5["Peak_DE"] <- c(rep(NA, length(genereggroup[[paste0("GeneRemaining_G", group)]])), 
+                      rep("NE", length(genereggroup[[paste0("FeatRemaining_G", group)]])))
   
   # Concat dataframes of DE genes and features
   df <- rbind(df1, df2, df3, df4, df5)
-  
   ## Now I have to figure out how to repartir the rest of genes and features in the cluster groups and whichever ones dont fit, put cluster 0
   clRNA <- as.data.frame(length(genereggroup$`Clusters_scRNA-seq`[[1]]) - table(Gene_cluster[Gene_cluster != 0]))
+  
   clATAC <- as.data.frame(length(genereggroup$`Clusters_scATAC-seq`[[1]]) - table(Peak_cluster[Peak_cluster != 0]))
   lRNA <- list()
   lATAC <- list()
@@ -481,18 +483,20 @@ make_association_dataframe <- function(omics,
 #' @param C Calculated vector of Down FC values
 #' @param D Calculated vector of NE FC values
 #'
-#' @return
 #' @export
 #'
 #' @examples
-#' DE <- c("Up", "Up", "Up", "Down", "Down", "NE", "NE", "NE", "NE")
-#' Up_FCvec <- c("b", "c", "d")
-#' Down_FCvec <- c("e", "f")
-#' notDE_FCvec <- c("G", "H", "I", "J")
+#' DE <- c("Up", "Up", "Up", "Down", "Down", "NE", "NE", "NE", "NE", NA, NA, NA)
+#' Up_FCvec <- c(1, 1, 1)
+#' Down_FCvec <- c(2, 2)
+#' notDE_FCvec <- c(2, 2, 2, 2)
 #' FC_vec <- order_FC_forMatrix(DE, Up_FCvec, Down_FCvec, notDE_FCvec)
 #' 
 order_FC_forMatrix <- function(A, B, C, D){
   # Initialize an empty vector to store the result
+  # Remove NAs
+  A<-A[!is.na(A)]
+  
   result <- vector("character", length(A))
   
   # Create counters for each vector
@@ -502,7 +506,10 @@ order_FC_forMatrix <- function(A, B, C, D){
   
   # Loop through vector A
   for (i in seq_along(A)) {
-    if (A[i] == "Up") {
+    if (is.na(A[i])) {
+      # If NA is encountered, skip and continue to the next element
+      next
+    } else if (A[i] == "Up") {
       # Assign value from vector B to the result
       result[i] <- B[counter_B]
       # Increment the counter for vector B
@@ -532,5 +539,6 @@ order_FC_forMatrix <- function(A, B, C, D){
     }
   }
   
+  # Print the resulting vector
   return(result)
 }

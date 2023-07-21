@@ -69,9 +69,9 @@ regulators for Activator and repressor ex: c(150, 200) or a percentage
 for Activator and repressor ex: c(0.2, 0.1). The rest will be NE. If not
 provided, no table of association between scRNA and scATAC is outputted.}
 
-\item{associationList}{OPTIONAL. A 2 columns dataframe reporting peak ids 
-related to gene names. If not provided, no table of association between
-scRNA and scATAC is outputted.}
+\item{associationList}{REQUIRED A 2 columns dataframe reporting peak ids 
+related to gene names. If user doesnt have one, load from package
+data("associationList")}
 
 \item{feature_no}{OPTIONAL. If only scRNA-seq to simulate or scRNA and scATAC
 but no regulatory constraints, total number of features to be distributed 
@@ -94,7 +94,8 @@ Performs multiomic simulation of single cell datasets
 
 cell_types <- list(cellA = c(1:20), cellB = c(161:191))
 omicsList <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
-sim <- scMOSim(omicsList, cell_types)
+data("associationList")
+sim <- scMOSim(omicsList, cell_types, associationList)
 # or
 sim_with_arg <- scMOSim(omicsList, cell_types, numberReps = 2, 
                     numberGroups = 2, diffGenes = list(c(0.2, 0.3)), 

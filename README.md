@@ -17,7 +17,7 @@ To install MOSim, open the R console and run:
   BiocManager::install("MOSim")
   ```
 
-The developer version can be installed from GitHub using the devtools R package:
+The developer version (which now includes the scMOSim functionalities) can be installed from GitHub using the devtools R package:
 	
   ```
   install.packages("devtools")
@@ -36,4 +36,4 @@ or by running the following line in the R console:
 
 If you used MOSim for your research, please cite:
 
-- Martínez C, Monzó C, Conesa A, Tarazona S (2022). MOSim: Multi-Omics Simulation (MOSim). R package version 1.14.0, https://github.com/ConesaLab/MOSim.
+- Monzó C, Martínez C, Arzalluz-Luque A, Febbo A, Conesa A, Tarazona S (2023). MOSim: Multi-Omics Simulation (MOSim). R package version 2.0, https://github.com/ConesaLab/MOSim.

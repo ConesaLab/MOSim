@@ -4,27 +4,9 @@
 \alias{make_association_dataframe}
 \title{make_association_dataframe}
 \usage{
-make_association_dataframe(
-  omics,
-  associationList = NULL,
-  minFC = 0.25,
-  maxFC = 4,
-  group = 1,
-  genereggroup
-)
+make_association_dataframe(group, genereggroup)
 }
 \arguments{
-\item{omics}{}
-
-\item{associationList}{OPTIONAL. A 2 columns dataframe reporting peak ids 
-related to gene names. If not provided, no table of association between
-scRNA and scATAC is outputted.}
-
-\item{minFC}{OPTIONAL. Threshold of FC below which are downregulated, by 
-default 0.25}
-
-\item{maxFC}{OPTIONAL. Threshold of FC abofe which are upregulated, by default 4}
-
 \item{group}{Group from which we are generating the association dataframe}
 
 \item{genereggroup}{list of elements to generate the association dataframe
@@ -33,7 +15,12 @@ genes are activated, repressed, behavior of the features etc.}
 }
 \value{
 a dataframe with all the information the user needs about each gene
+     and the order of gene and peak names to rename them in the simulated
+     datasets of the group
 }
 \description{
-make_association_dataframe
+This function generates a dataframe containing the information of the 
+relationship between ATAC and RNA, based on the cluster groups, and then
+tells the order the genes and peaks should be in the simulated dataframe
+of the group
 }
