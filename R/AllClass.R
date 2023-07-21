@@ -262,8 +262,9 @@ setClass(
         regulator = TRUE,
         idToGene = matrix(),
         regulatorEffect = list(
+            'activator' = 0.01,
             'repressor' = 0.05,
-            'NE' = 0.95
+            'NE' = 0.94
         ),
         replicateParams = list(
             "a" = -0.065,

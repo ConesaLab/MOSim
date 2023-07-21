@@ -4,3 +4,5 @@ Changes in version 0.99.0 (2019-06-13)
 Changes in version 1.2.0 (2023-03-08)
 + Fixed methylation simulation bugs
 + Added discretize
+Changes in version 2.0 (2023-07-21)
++ Added scMOSim functionality
