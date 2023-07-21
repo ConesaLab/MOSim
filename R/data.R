@@ -7,5 +7,5 @@
 #'      
 #'  @source {Created in-house to serve as an example}
 #'  @examples
-#'  data(seurat_association_list)
-"seurat_association_list"
+#'  data(associationList)
+"associationList"
