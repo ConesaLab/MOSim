@@ -478,9 +478,9 @@ omicSettings <- function(simulation, omics = NULL, association = FALSE, reverse 
 
     if (length(omics) > 1 || length(outputList) > 1) {
         #return (purrr::map(outputList, filter_reg_nogene))
-        return(distinct(outputList))
+        return(dplyr::distinct(outputList))
     } else {
-        return(distinct(outputList[[unlist(omics)]]))
+        return(dplyr::distinct(outputList[[unlist(omics)]]))
     }
 }
 
