@@ -14,7 +14,9 @@ setMethod("initialize", signature="SimMethylseq", function(.Object, idToGene, to
 
     # Due to package size restraints, default data has a loc DF used as idToGene for methylation.
     if (ncol(idToGene) > 2) {
-        .Object@locs <- idToGene %>% dplyr::mutate(ID = paste(chr, start, end, sep = "_"))
+        .Object@locs <- idToGene %>% dplyr::mutate(ID = paste(chr, 
+                                      format(start, scientific = FALSE),
+                                      format(end, scientific = FALSE), sep = "_"))
 
         # Reconstruct original idToGene
         idToGene <- .Object@locs %>% dplyr::select(ID, Gene)
