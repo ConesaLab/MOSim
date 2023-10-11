@@ -64,7 +64,7 @@ sc_omicData <- function(omics_types, data = NULL){
       } else if (omics == "scATAC-seq"){
         dat <- pbmcMultiome.SeuratData::pbmc.atac
         dat <- subset(x = dat, subset = seurat_annotations %in% c("CD4 TEM", 
-                                              "cDC", "Memory B", "Treg"))
+                                        "cDC", "Memory B", "Treg"))
         counts <- as.matrix(dat@assays[["ATAC"]]@counts)
       }
 
@@ -243,7 +243,6 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
       associationMatrix["Effect"] <- rep("NE", length(dfGeneNames))
       clus <- rep(1:length(genereggroup$`Clusters_scRNA-seq`), 
                   each = length(genereggroup$`Clusters_scRNA-seq`[[1]]))
-      View(associationMatrix)
       associationMatrix["Gene_cluster"] <- c(clus, rep(0, length(dfGeneNames) - length(clus)))
       associationMatrix["Peak_cluster"] <- rep(NA, length(dfGeneNames))
       associationMatrix["Gene_DE"] <- c(rep("Up", length(genereggroup[[paste0("GeneExtraUp_G", group)]])),
