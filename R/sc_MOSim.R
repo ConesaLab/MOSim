@@ -231,18 +231,19 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
     } else {
       
       # If only scRNA define the matrix here with the same format
-      dfGeneNames <- colnames(omics[[1]])
+      dfGeneNames <- rownames(omics[[1]])
       dfPeakNames <- NA
       columns <- c("Gene_ID", "Peak_ID", "Effect", "Gene_cluster", "Peak_cluster", 
                    "Gene_DE", "Peak_DE")
       
       associationMatrix <- data.frame(matrix(nrow = length(dfGeneNames), 
-                                             ncol = 1))
+                                             ncol = length(columns)))
       associationMatrix["Gene_ID"] <- dfGeneNames
       associationMatrix["Peak_ID"] <- rep(NA, length(dfGeneNames))
       associationMatrix["Effect"] <- rep("NE", length(dfGeneNames))
       clus <- rep(1:length(genereggroup$`Clusters_scRNA-seq`), 
                   each = length(genereggroup$`Clusters_scRNA-seq`[[1]]))
+      View(associationMatrix)
       associationMatrix["Gene_cluster"] <- c(clus, rep(0, length(dfGeneNames) - length(clus)))
       associationMatrix["Peak_cluster"] <- rep(NA, length(dfGeneNames))
       associationMatrix["Gene_DE"] <- c(rep("Up", length(genereggroup[[paste0("GeneExtraUp_G", group)]])),
@@ -467,8 +468,8 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
     stop("Column names of the user-inputted association list should be 'Peak_ID' and 'Gene_ID'")
   } else if (is.null(associationList)){
     ## Get the association list loaded in the package
-    ##TODO THIS IS GIVING ME ERRORS
     message("Loading default association list from MOSim package")
+    associationList <- as.data.frame(data("associationList"))
   }
   
   if (is.null(regulatorEffect) && identical(names(omics[2]), "scATAC-seq")){
@@ -695,7 +696,8 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
           newNames <- param_l$dfPeakNames
         }
         
-        seu <- Seurat::CreateSeuratObject(counts = sim_list[[i]],
+        options(Seurat.object.assay.version = "v3")
+        seu <- Seurat::CreateAssayObject(counts = sim_list[[i]],
                                           assay = assay_name,
                                           rownames = newNames, #explicitly specifying rownames
                                           colnames = colnames(sim_list[[i]])) #and colnames for Seurat obj
