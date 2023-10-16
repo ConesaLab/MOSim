@@ -208,8 +208,8 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
   param_est_list <- list()
   FC_used_list <- list()
   
-  #TODO consider moving this out of the function, it takes too long to run it
-  # once per group
+  #We cant move this out of the function because it takes the variability
+  # of the group into account
   for(i in 1:N_omics){
     message(paste0("Estimating distribution from original data type: ", i))
     param_est <- SPARSim::SPARSim_estimate_parameter_from_data(raw_data = omics[[i]],
@@ -236,7 +236,8 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
       columns <- c("Gene_ID", "Peak_ID", "RegulatorEffect", "Gene_cluster", "Peak_cluster", 
                    "Gene_DE", "Peak_DE")
       
-      associationMatrix <- data.frame(matrix(nrow = length(dfGeneNames), ncol = 1))
+      associationMatrix <- data.frame(matrix(nrow = length(dfGeneNames), ncol = length(columns)))
+      colnames(associationMatrix) <- columns
       
       associationMatrix["Gene_ID"] <- dfGeneNames
       associationMatrix["Peak_ID"] <- rep(NA, length(dfGeneNames))
@@ -248,7 +249,6 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
       associationMatrix["Gene_DE"] <- c(rep("Up", length(genereggroup[[paste0("GeneExtraUp_G", group)]])),
                                         rep("Down", length(genereggroup[[paste0("GeneExtraDown_G", group)]])),
                                         rep("NE", length(dfGeneNames) - length(genereggroup[[paste0("GeneExtraUp_G", group)]]) - length(genereggroup[[paste0("GeneExtraDown_G", group)]])))
-      associationMatrix["matrix.nrow...length.dfGeneNames...ncol...1."] <- NULL
     }
   
     for(i in 1:N_omics){ ## Loop for differentially expressed genes
@@ -301,9 +301,10 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
     }
     columns <- c("Gene_ID", "Peak_ID", "RegulatorEffect", "Gene_cluster", "Peak_cluster", 
                  "Gene_DE", "Peak_DE")
+    associationMatrix <- data.frame(matrix(nrow = length(dfPeakNames) + length(dfGeneNames), ncol = length(columns)))
+    colnames(associationMatrix) <- columns
     
     if (length(omics) > 1){
-      associationMatrix <- data.frame(matrix(nrow = length(dfGeneNames), ncol = 1))
       associationMatrix["Gene_ID"] <- c(dfGeneNames, rep(NA, length(dfPeakNames)))
       associationMatrix["Peak_ID"] <- c(rep(NA, length(dfGeneNames)), dfPeakNames)
       associationMatrix["RegulatorEffect"] <- rep("NE", length(associationMatrix["Gene_ID"]))
@@ -311,9 +312,7 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
                   each = length(genereggroup$`Clusters_scRNA-seq`[[1]]))
       associationMatrix["Gene_cluster"] <- c(clus, rep(0, length(dfGeneNames) - length(clus)), rep(NA, length(dfPeakNames)))
       associationMatrix["Peak_cluster"] <- c(rep(NA, length(dfGeneNames)), clus, rep(0, length(dfPeakNames)- length(clus)))
-      associationMatrix["matrix.nrow...length.dfGeneNames...ncol...1."] <- NULL
     } else {
-      associationMatrix <- data.frame(matrix(nrow = length(dfGeneNames), ncol = 1))
       associationMatrix["Gene_ID"] <- dfGeneNames
       associationMatrix["Peak_ID"] <- dfPeakNames
       associationMatrix["RegulatorEffect"] <- rep("NE", length(dfGeneNames))
@@ -321,7 +320,6 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
                   each = length(genereggroup$`Clusters_scRNA-seq`[[1]]))
       associationMatrix["Gene_cluster"] <- c(clus, rep(0, length(dfGeneNames) - length(clus)))
       associationMatrix["Peak_cluster"] <- rep(NA, length(dfGeneNames))
-      associationMatrix["matrix.nrow...length.dfGeneNames...ncol...1."] <- NULL
     }
   }
 
@@ -473,6 +471,17 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
     stop("You requested a simulation of scATAC-seq data but did not provide information for variable <regulatorEffect>")
   }
   
+  ## Message the experimental dessign
+  message(paste0("The experimental design includes: 
+                 - ", numberReps, " Biological replicates
+                 - ", numberGroups, " Experimental groups
+                 - ", diffGenes, " Differentially expressed genes (Up/Down) per group
+                 - ", minFC, " FC below which a gene is downregulated
+                 - ", maxFC, " FC above which a gene is upregulated
+                 - ", numberCells, " Number of cells per celltype
+                 - ", regulatorEffect, " Regulators (activator/repressor) per group
+                 - ", clusters, " Gene co-expression patterns")[1])
+  
   ## format number regulators, if its relative, make absolute
   numfeat <- length(associationList$Gene_ID)
   genereggroup <- list()
@@ -516,14 +525,10 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
         genesRepressed <- associationList[associationList$Peak_ID %in% numRepressor, ]
         
         # And add other random genes (not in the association list)
-        u <- numup - length(genesActivated[[2]])
-        d <- numdown - length(genesRepressed[[2]])
-        print(class(u))
-        print(u)
+        u <- abs(numup - length(genesActivated[[2]]))
+        d <- abs(numdown - length(genesRepressed[[2]]))
         
         availGenes <- setdiff(rownames(omics[[1]]), as.vector(associationList[[2]]))
-        print(class(availGenes))
-        print(availGenes)
         genesUp <- sample(availGenes, u)
         availGenes <- setdiff(availGenes, genesUp)
         genesDown <- sample(availGenes, d)

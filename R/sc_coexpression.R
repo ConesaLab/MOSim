@@ -318,7 +318,7 @@ shuffle_group_matrix <- function(sim_data, feature_ids, group_pattern, ngroups){
 make_association_dataframe <- function(group, genereggroup){
   # Start from the association list, now we have two columns Peak_ID and Gene_ID
   
-  columns <- c("Gene_ID", "Peak_ID", "Effect", "Gene_cluster", "Peak_cluster", 
+  columns <- c("Gene_ID", "Peak_ID", "RegulatorEffect", "Gene_cluster", "Peak_cluster", 
                "Gene_DE", "Peak_DE")
   
   df1 <- data.frame(matrix(nrow = length(genereggroup[[paste0("GeneActivated_G", 
@@ -327,7 +327,7 @@ make_association_dataframe <- function(group, genereggroup){
   
   df1["Gene_ID"] <- genereggroup[[paste0("GeneActivated_G", group)]]$Gene_ID
   df1["Peak_ID"] <- genereggroup[[paste0("GeneActivated_G", group)]]$Peak_ID
-  df1["Effect"] <- rep("Activator", length(df1[[1]]))
+  df1["RegulatorEffect"] <- rep("Activator", length(df1[[1]]))
   Gene_cluster <- sample(1:length(genereggroup$`Clusters_scRNA-seq`), 
                          length(df1[[1]]), replace = TRUE)
   Peak_cluster <- Gene_cluster
@@ -340,7 +340,7 @@ make_association_dataframe <- function(group, genereggroup){
   colnames(df2) <- columns
   df2["Gene_ID"] <- genereggroup[[paste0("GeneRepressed_G", group)]]$Gene_ID
   df2["Peak_ID"] <- genereggroup[[paste0("GeneRepressed_G", group)]]$Peak_ID
-  df2["Effect"] <- rep("Repressor", length(df2[[1]]))
+  df2["RegulatorEffect"] <- rep("Repressor", length(df2[[1]]))
   Gene_cluster2 <- sample(unique(unlist(genereggroup$opposite_indices)), 
                           length(df2[[1]]), replace = TRUE)
   u <- as.data.frame(t(as.data.frame(genereggroup$opposite_indices)))
@@ -357,7 +357,7 @@ make_association_dataframe <- function(group, genereggroup){
                       rep(NA, length(genereggroup[[paste0("FeatExtraUp_G", group)]])))
   df3["Peak_ID"] <- c(rep(NA, length(genereggroup[[paste0("GeneExtraUp_G", group)]])), 
                       genereggroup[[paste0("FeatExtraUp_G", group)]])
-  df3["Effect"] <- rep("NE", length(df3[[1]]))
+  df3["RegulatorEffect"] <- rep("NE", length(df3[[1]]))
   Gene_clusterNA <- c(rep(1, length(genereggroup[[paste0("GeneExtraUp_G", group)]])), 
                       rep(NA, length(genereggroup[[paste0("FeatExtraUp_G", group)]])))
   Peak_clusterNA <- c(rep(NA, length(genereggroup[[paste0("GeneExtraUp_G", group)]])), 
@@ -374,7 +374,7 @@ make_association_dataframe <- function(group, genereggroup){
                       rep(NA, length(genereggroup[[paste0("FeatExtraDown_G", group)]])))
   df4["Peak_ID"] <- c(rep(NA, length(genereggroup[[paste0("GeneExtraDown_G", group)]])), 
                       genereggroup[[paste0("FeatExtraDown_G", group)]])
-  df4["Effect"] <- rep("NE", length(df4[[1]]))
+  df4["RegulatorEffect"] <- rep("NE", length(df4[[1]]))
   Gene_clusterNA <- c(Gene_clusterNA, 
                       rep(1, length(genereggroup[[paste0("GeneExtraDown_G", group)]])), 
                       rep(NA, length(genereggroup[[paste0("FeatExtraDown_G", group)]])))
@@ -394,7 +394,7 @@ make_association_dataframe <- function(group, genereggroup){
                       rep(NA, length(genereggroup[[paste0("FeatRemaining_G", group)]])))
   df5["Peak_ID"] <- c(rep(NA, length(genereggroup[[paste0("GeneRemaining_G", group)]])), 
                       genereggroup[[paste0("FeatRemaining_G", group)]])
-  df5["Effect"] <- rep("NE", length(df5[[1]]))
+  df5["RegulatorEffect"] <- rep("NE", length(df5[[1]]))
   
   Gene_clusterNA <- c(Gene_clusterNA, 
                       rep(1, length(genereggroup[[paste0("GeneRemaining_G", group)]])), 
