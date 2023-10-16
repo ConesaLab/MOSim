@@ -475,11 +475,11 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
   message(paste0("The experimental design includes: 
                  - ", numberReps, " Biological replicates
                  - ", numberGroups, " Experimental groups
-                 - ", diffGenes, " Differentially expressed genes (Up/Down) per group
+                 - ", paste0(diffGenes), " Differentially expressed genes (Up/Down) per group
                  - ", minFC, " FC below which a gene is downregulated
                  - ", maxFC, " FC above which a gene is upregulated
-                 - ", numberCells, " Number of cells per celltype
-                 - ", regulatorEffect, " Regulators (activator/repressor) per group
+                 - ", paste0(numberCells), " Number of cells per celltype
+                 - ", paste0(regulatorEffect), " Regulators (activator/repressor) per group
                  - ", clusters, " Gene co-expression patterns")[1])
   
   ## format number regulators, if its relative, make absolute
@@ -728,4 +728,29 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
   
   return(seu_groups)
   
+}
+
+
+
+#' scOmicSettings
+#'
+#' @param sim a simulated object from scMOSim function
+#'
+#' @return list of Association matrices explaining the effects of each
+#' regulator to each gene
+#' @export
+#'
+scOmicSettings <- function(sim){
+  return(sim$AssociationMatrices)
+}
+
+#' scOmicResults
+#'
+#' @param sim a simulated object from scMOSim function
+#'
+#' @return list of seurat objects with simulated data
+#' @export
+
+scOmicResults <- function(sim){
+  return(sim[grepl("Group_", names(sim))])
 }
