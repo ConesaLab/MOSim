@@ -233,14 +233,14 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
       # If only scRNA define the matrix here with the same format
       dfGeneNames <- rownames(omics[[1]])
       dfPeakNames <- NA
-      columns <- c("Gene_ID", "Peak_ID", "Effect", "Gene_cluster", "Peak_cluster", 
+      columns <- c("Gene_ID", "Peak_ID", "RegulatorEffect", "Gene_cluster", "Peak_cluster", 
                    "Gene_DE", "Peak_DE")
       
-      associationMatrix <- data.frame(matrix(nrow = length(dfGeneNames), 
-                                             ncol = 1))
+      associationMatrix <- data.frame(matrix(nrow = length(dfGeneNames), ncol = 1))
+      
       associationMatrix["Gene_ID"] <- dfGeneNames
       associationMatrix["Peak_ID"] <- rep(NA, length(dfGeneNames))
-      associationMatrix["Effect"] <- rep("NE", length(dfGeneNames))
+      associationMatrix["RegulatorEffect"] <- rep("NE", length(dfGeneNames))
       clus <- rep(1:length(genereggroup$`Clusters_scRNA-seq`), 
                   each = length(genereggroup$`Clusters_scRNA-seq`[[1]]))
       associationMatrix["Gene_cluster"] <- c(clus, rep(0, length(dfGeneNames) - length(clus)))
@@ -248,6 +248,7 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
       associationMatrix["Gene_DE"] <- c(rep("Up", length(genereggroup[[paste0("GeneExtraUp_G", group)]])),
                                         rep("Down", length(genereggroup[[paste0("GeneExtraDown_G", group)]])),
                                         rep("NE", length(dfGeneNames) - length(genereggroup[[paste0("GeneExtraUp_G", group)]]) - length(genereggroup[[paste0("GeneExtraDown_G", group)]])))
+      associationMatrix["matrix.nrow...length.dfGeneNames...ncol...1."] <- NULL
     }
   
     for(i in 1:N_omics){ ## Loop for differentially expressed genes
@@ -288,11 +289,9 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
       FClist[[paste0("FC_", names(omics)[i])]] <- FCvec
       
       # Same for variability
-      ## TESTING ONGOING
       VARvec <- rep(1, length(param_est_list[[i]][[1]][["variability"]]))
       VARlist[[paste0("Var_", names(omics)[i])]] <- VARvec
       
-      #TODO make the matrix pretty
       dfPeakNames <- NA
       if (identical(names(omics[i]), "scRNA-seq")){
         dfGeneNames <- rownames(omics[[i]])
@@ -300,30 +299,29 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
         dfPeakNames <- rownames(omics[[i]])
       }
     }
-    columns <- c("Gene_ID", "Peak_ID", "Effect", "Gene_cluster", "Peak_cluster", 
+    columns <- c("Gene_ID", "Peak_ID", "RegulatorEffect", "Gene_cluster", "Peak_cluster", 
                  "Gene_DE", "Peak_DE")
     
     if (length(omics) > 1){
-      associationMatrix <- data.frame(matrix(nrow = length(dfGeneNames) + length(dfPeakNames), 
-                                             ncol = length(columns)))
+      associationMatrix <- data.frame(matrix(nrow = length(dfGeneNames), ncol = 1))
       associationMatrix["Gene_ID"] <- c(dfGeneNames, rep(NA, length(dfPeakNames)))
       associationMatrix["Peak_ID"] <- c(rep(NA, length(dfGeneNames)), dfPeakNames)
-      associationMatrix["Effect"] <- rep("NE", length(associationMatrix["Gene_ID"]))
+      associationMatrix["RegulatorEffect"] <- rep("NE", length(associationMatrix["Gene_ID"]))
       clus <- rep(1:length(genereggroup$`Clusters_scRNA-seq`), 
                   each = length(genereggroup$`Clusters_scRNA-seq`[[1]]))
       associationMatrix["Gene_cluster"] <- c(clus, rep(0, length(dfGeneNames) - length(clus)), rep(NA, length(dfPeakNames)))
       associationMatrix["Peak_cluster"] <- c(rep(NA, length(dfGeneNames)), clus, rep(0, length(dfPeakNames)- length(clus)))
-      
+      associationMatrix["matrix.nrow...length.dfGeneNames...ncol...1."] <- NULL
     } else {
-      associationMatrix <- data.frame(matrix(nrow = length(dfGeneNames), 
-                                             ncol = length(columns)))
+      associationMatrix <- data.frame(matrix(nrow = length(dfGeneNames), ncol = 1))
       associationMatrix["Gene_ID"] <- dfGeneNames
       associationMatrix["Peak_ID"] <- dfPeakNames
-      associationMatrix["Effect"] <- rep("NE", length(dfGeneNames))
+      associationMatrix["RegulatorEffect"] <- rep("NE", length(dfGeneNames))
       clus <- rep(1:length(genereggroup$`Clusters_scRNA-seq`), 
                   each = length(genereggroup$`Clusters_scRNA-seq`[[1]]))
       associationMatrix["Gene_cluster"] <- c(clus, rep(0, length(dfGeneNames) - length(clus)))
       associationMatrix["Peak_cluster"] <- rep(NA, length(dfGeneNames))
+      associationMatrix["matrix.nrow...length.dfGeneNames...ncol...1."] <- NULL
     }
   }
 
@@ -521,9 +519,11 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
         u <- numup - length(genesActivated[[2]])
         d <- numdown - length(genesRepressed[[2]])
         print(class(u))
+        print(u)
         
         availGenes <- setdiff(rownames(omics[[1]]), as.vector(associationList[[2]]))
         print(class(availGenes))
+        print(availGenes)
         genesUp <- sample(availGenes, u)
         availGenes <- setdiff(availGenes, genesUp)
         genesDown <- sample(availGenes, d)
@@ -712,11 +712,6 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
     seu_groups[[paste0("Group_", g)]] <- seu_replicates
     
   } 
-  
-  Association_list[["AssociationMatrix_Group_1"]] <- Association_list[["AssociationMatrix_Group_1"]][, 
-                  names(Association_list[["AssociationMatrix_Group_1"]])[!(names(
-                  Association_list[["AssociationMatrix_Group_1"]]) %in% c("Gene_ID",
-                  "Peak_ID", "Effect", "Gene_cluster", "Peak_cluster"))]]
   
   # Bring back final celltypes
   seu_groups[["cellTypes"]] <- cellTypes
