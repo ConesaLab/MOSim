@@ -89,7 +89,7 @@ sc_omicData <- function(omics_types, data = NULL){
     N_data <- length(data)
     for (i in 1:N_data){
       # Then save in a named list
-      if (!is.matrix(data[[i]]) && class(data[[i]]) != "Seurat"){
+      if (!is.matrix(data[[i]]) && class(data[[i]]) != "Assay"){
         stop("Each element of data must be either a matrix or a Seurat object")
       } else if (is.matrix(data[[i]])){
         omics_list[[omics_types[[i]]]] <- data[[i]]
@@ -237,7 +237,7 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
                    "Gene_DE", "Peak_DE")
       
       associationMatrix <- data.frame(matrix(nrow = length(dfGeneNames), 
-                                             ncol = length(columns)))
+                                             ncol = 1))
       associationMatrix["Gene_ID"] <- dfGeneNames
       associationMatrix["Peak_ID"] <- rep(NA, length(dfGeneNames))
       associationMatrix["Effect"] <- rep("NE", length(dfGeneNames))
@@ -520,7 +520,10 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
         # And add other random genes (not in the association list)
         u <- numup - length(genesActivated[[2]])
         d <- numdown - length(genesRepressed[[2]])
+        print(class(u))
+        
         availGenes <- setdiff(rownames(omics[[1]]), as.vector(associationList[[2]]))
+        print(class(availGenes))
         genesUp <- sample(availGenes, u)
         availGenes <- setdiff(availGenes, genesUp)
         genesDown <- sample(availGenes, d)

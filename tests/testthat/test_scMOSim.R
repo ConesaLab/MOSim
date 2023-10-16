@@ -15,7 +15,8 @@ testthat::test_that("Passing an object in data which is neither a matrix or Seur
 testthat::test_that("Passing 'scRNA-seq' as omic and a Seurat obj as data returns a list", {
   scRNA <- MOSim::sc_omicData("scRNA-seq")
   count <- scRNA[["scRNA-seq"]]
-  Seurat_obj <- Seurat::CreateSeuratObject(counts = count, assay = 'RNA')
+  options(Seurat.object.assay.version = "v3")
+  Seurat_obj <- Seurat::CreateAssayObject(counts = count, assay = 'RNA')
   testthat::expect_type(sc_omicData(c("scRNA-seq"), c(Seurat_obj)), "list")
 })
 
@@ -36,7 +37,6 @@ testthat::test_that("param_estimation returns a list", {
 testthat::test_that("Not passing all optional arguments at once returns an error", {
   omic_list <- MOSim::sc_omicData(c("scRNA-seq","scATAC-seq"))
   conditions <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310))
-  data("associationList")
   testthat::expect_error(MOSim::scMOSim(omic_list, conditions, numberCells = c(10,20), sd = c(10^3, 10^2)))
 })
 
@@ -82,11 +82,11 @@ testthat::test_that("The number of patterns we want are generated", {
                      'Memory_B' = c(497:520), 'Treg' = c(868:900))
   sim <-MOSim::scMOSim(omic_list, cell_types, regulatorEffect = list(c(0.1, 0.2)))
   
-  sim_matrix <- sim$Group_1$Rep_1$`sim_scRNA-seq`@assays$RNA@counts
+  sim_matrix <- sim$Group_1$Rep_1$`sim_scRNA-seq`$counts
   testthat::expect_type(sim_matrix, "S4")
 })
 
-## test passing association list
+## test passing association list and working with groups and replicates
 testthat::test_that("checking that scMOSim is able to simulate groups and replicates", {
   omicsList <- MOSim::sc_omicData(list("scRNA-seq", "scATAC-seq"))
   cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 'Memory_B' = c(497:510), 'Treg' = c(868:900))
@@ -94,7 +94,7 @@ testthat::test_that("checking that scMOSim is able to simulate groups and replic
   testing_groupsreps <- MOSim::scMOSim(omicsList, cell_types, numberReps = 2, numberGroups = 2, 
                                        diffGenes = list(c(30, 50)), minFC = 0.25, maxFC = 4,
                                        numberCells = NULL, mean = NULL, sd = NULL, 
-                                       regulatorEffect = list(c(20, 30), c(100, 200)),
+                                       regulatorEffect = list(c(0.1, 0.2), c(0.2, 0.3)),
                                        associationList = associationList)
   testthat::expect_type(testing_groupsreps, "list")
 })
