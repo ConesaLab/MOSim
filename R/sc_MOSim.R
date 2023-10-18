@@ -744,7 +744,44 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
 #' @export
 #'
 scOmicSettings <- function(sim){
-  return(sim$AssociationMatrices)
+  asma <- sim$AssociationMatrices
+  FC <- sim$FC
+  
+  # Function to add two new columns to a matrix based on conditions
+  add_new_columns <- function(matrix_A, vector1, vector2) {
+    new_col1 <- character(nrow(matrix_A))
+    new_col2 <- character(nrow(matrix_A))
+    vector_index1 <- 1
+    vector_index2 <- 1
+    for (i in 1:nrow(matrix_A)) {
+      if (!is.na(matrix_A[i, 1])) {
+        new_col1[i] <- vector1[vector_index1]
+        vector_index1 <- vector_index1 + 1
+      }
+      if (!is.na(matrix_A[i, 2])) {
+        new_col2[i] <- vector2[vector_index2]
+        vector_index2 <- vector_index2 + 1
+      }
+    }
+    matrix_A <- cbind(matrix_A, new_col1, new_col2)
+    return(matrix_A)
+  }
+  
+  if (identical(names(sim$Group_1$Rep_1), c("sim_scRNA-seq", "sim_scATAC-seq"))){
+    # Update List A matrices with new columns from List B vectors
+    for (i in 1:length(asma)) {
+      asma[[i]] <- add_new_columns(asma[[i]], FC[[i]][[1]], FC[[i]][[2]])
+      colnames(asma[[i]]) <- c("Gene_ID", "Peak_ID", "RegulatorEffect", "Gene_cluster", 
+                               "Peak_cluster", "Gene_DE", "Peak_DE", "Gene_FC", 
+                               "Peak_FC")
+    } 
+  }else{
+    for (i in 1:length(asma)){
+      asma[[i]]["Gene_FC"] <- FC[[i]][[1]]
+    }
+  }
+  
+  return(asma)
 }
 
 #' scOmicResults

@@ -99,3 +99,24 @@ testthat::test_that("checking that scMOSim is able to simulate groups and replic
   testthat::expect_type(testing_groupsreps, "list")
 })
 
+testthat::test_that("checking that scMOSim is able to simulate more than 2 replicates", {
+  omicsList <- MOSim::sc_omicData(list("scRNA-seq", "scATAC-seq"))
+  cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 'Memory_B' = c(497:510), 'Treg' = c(868:900))
+  testing_groupsreps <- MOSim::scMOSim(omicsList, cell_types, numberReps = 2, numberGroups = 2, 
+                                       diffGenes = list(c(0.1, 0.2)), minFC = 0.25, maxFC = 4,
+                                       numberCells = NULL, mean = NULL, sd = NULL, 
+                                       regulatorEffect = list(c(0.1, 0.2), c(0.2, 0.3)),
+                                       associationList = associationList)
+  testthat::expect_type(testing_groupsreps, "list")
+})
+
+testthat::test_that("checking that scMOSim is able to simulate more than 2 groups", {
+  omicsList <- MOSim::sc_omicData(list("scRNA-seq", "scATAC-seq"))
+  cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 'Memory_B' = c(497:510), 'Treg' = c(868:900))
+  testing_groups <- MOSim::scMOSim(omicsList, cell_types, numberReps = 1, numberGroups = 4, 
+                                       diffGenes = list(c(0.1, 0.2), c(0.1, 0.2), c(0.1, 0.2)), minFC = 0.25, maxFC = 4,
+                                       numberCells = NULL, mean = NULL, sd = NULL, 
+                                       regulatorEffect = list(c(0.1, 0.2), c(0.2, 0.3), c(0.1, 0.2), c(0.2, 0.3)),
+                                       associationList = associationList)
+  testthat::expect_type(testing_groupsreps, "list")
+})
