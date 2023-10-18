@@ -29,10 +29,10 @@ testthat::test_that("Passing an array ('scRNA-seq','scATAC-seq') as omic returns
 testthat::test_that("param_estimation returns a list", {
   omic_list <- MOSim::sc_omicData(c("scRNA-seq"))
   conditions <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310))
-  data("associationList")
   testthat::expect_type(MOSim::scMOSim(omic_list, conditions, numberCells = c(10,20), 
                           mean = c(2*10^6, 2*10^3), sd = c(10^3, 10^2)),"list")
 })
+
 
 testthat::test_that("Not passing all optional arguments at once returns an error", {
   omic_list <- MOSim::sc_omicData(c("scRNA-seq","scATAC-seq"))
