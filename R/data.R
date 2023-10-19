@@ -7,5 +7,6 @@
 #'      
 #'  @source {Created in-house to serve as an example}
 #'  @examples
-#'  data(associationList)
+#' @export
+#' @usage data(associationList)
 "associationList"

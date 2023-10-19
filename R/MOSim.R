@@ -6,7 +6,13 @@
 NULL
 
 # Avoid harmless note with R CMD check
-if(getRversion() >= "2.15.1")  utils::globalVariables(c(".", "n", "sampleData"))
+if(getRversion() >= "2.15.1")  utils::globalVariables(c(".", "n", "sampleData",
+          "Block", "Counts", "DE", "DE.Gene", "DE.TF", "Effect", 
+          "Exclude", "Gene", "ID", "ID.y", "IsLagged",
+          "Lagged", "LinkedGene", "Mean", "Measure", "Omic", 
+          "Point", "Profile", "Rep", "SE", "ScaledMean",
+          "ScaledSE", "Symbol", "TFgene", "Time", "chr", "end", 
+          "start"))
 
 #' MOSim
 #'
@@ -478,9 +484,9 @@ omicSettings <- function(simulation, omics = NULL, association = FALSE, reverse 
 
     if (length(omics) > 1 || length(outputList) > 1) {
         #return (purrr::map(outputList, filter_reg_nogene))
-        return(dplyr::distinct(outputList))
+        return(outputList)
     } else {
-        return(dplyr::distinct(outputList[[unlist(omics)]]))
+        return(outputList[[unlist(omics)]])
     }
 }
 
@@ -604,10 +610,10 @@ experimentalDesign <- function(simulation) {
 #' rnaseq_simulation <- mosim(omics = omic_list,
 #'                            omicsOptions = rnaseq_options)
 #'
-#' plotProfile(rnaseq_simulation,
-#'     omics = c("RNA-seq", "miRNA-seq"),
-#'     featureIDS = list("RNA-seq"="ENSMUSG00000007682", "miRNA-seq"="mmu-miR-320-3p")
-#' )
+#' #plotProfile(rnaseq_simulation,
+#' #     omics = c("RNA-seq", "miRNA-seq"),
+#' #   featureIDS = list("RNA-seq"="ENSMUSG00000007682", "miRNA-seq"="mmu-miR-320-3p")
+#' #)
 #'
 plotProfile <-
     function(simulation,
@@ -807,7 +813,8 @@ plotProfile <-
 #'
 #' @examples
 #' omic_list <- c("RNA-seq", "ChIP-seq")
-#' rnaseq_simulation <- mosim(omics = omic_list, omicsOptions = c(omicSim("ChIP-seq", totalFeatures = 2500)))
+#' rnaseq_simulation <- mosim(omics = omic_list, 
+#'     omicsOptions = c(omicSim("ChIP-seq", totalFeatures = 2500)))
 #' rnaseq_simulated <- omicResults(rnaseq_simulation, omic_list)
 #' discrete_ChIP <- discretize(rnaseq_simulated, "ChIP-seq")
 #' 
@@ -850,9 +857,5 @@ discretize <- function(df, omic) {
 #'   \item{idToGene}{Dataframe with region as "ID" column and gene name on "Gene" column.}}}
 #'   \item{CpGisland}{Dataframe of CpG to be used as initialization data, located on "Region" column}
 #' }
+#' @usage data("sampleData")
 "sampleData"
-
-
-utils::globalVariables(c("Block", "Counts", "DE", "DE.Gene", "DE.TF", "Effect", "Exclude", "Gene", "ID", "ID.y", "IsLagged",
-                         "Lagged", "LinkedGene", "Mean", "Measure", "Omic", "Point", "Profile", "Rep", "SE", "ScaledMean",
-                         "ScaledSE", "Symbol", "TFgene", "Time", "chr", "end", "start"))

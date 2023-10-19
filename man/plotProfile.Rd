@@ -33,9 +33,9 @@ rnaseq_options <- c(omicSim("miRNA-seq", totalFeatures = 2500))
 rnaseq_simulation <- mosim(omics = omic_list,
                            omicsOptions = rnaseq_options)
 
-plotProfile(rnaseq_simulation,
-    omics = c("RNA-seq", "miRNA-seq"),
-    featureIDS = list("RNA-seq"="ENSMUSG00000007682", "miRNA-seq"="mmu-miR-320-3p")
-)
+#plotProfile(rnaseq_simulation,
+#     omics = c("RNA-seq", "miRNA-seq"),
+#   featureIDS = list("RNA-seq"="ENSMUSG00000007682", "miRNA-seq"="mmu-miR-320-3p")
+#)
 
 }

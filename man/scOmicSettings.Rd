@@ -16,3 +16,10 @@ regulator to each gene
 \description{
 scOmicSettings
 }
+\examples{
+
+cell_types <- list(cellA = c(1:20), cellB = c(161:191))
+omicsList <- sc_omicData(list("scRNA-seq"))
+sim <- scMOSim(omicsList, cell_types)
+res <- scOmicSettings(sim)
+}

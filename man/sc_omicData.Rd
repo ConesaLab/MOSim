@@ -25,6 +25,9 @@ multiomics pbmc dataset from SeuratData package
 # Simulate from PBMC
 omicsList <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
 # Simulate using data from the user
-omicsList_user <- sc_omicData(omics_type = list("scRNA-seq"), data = list(count_matrix)) 
+count <- omicsList[["scRNA-seq"]]
+options(Seurat.object.assay.version = "v3")
+Seurat_obj <- Seurat::CreateAssayObject(counts = count, assay = 'RNA')
+omic_list_user <- sc_omicData(c("scRNA-seq"), c(Seurat_obj))
 
 }

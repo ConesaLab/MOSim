@@ -3,10 +3,12 @@
 #' @import Seurat
 #' @import Signac
 #' @import stringr
+#' @import SeuratData
 NULL
 
 # Avoid harmless note with R CMD check
-if(getRversion() >= "2.15.1")  utils::globalVariables(c(".", "n", "sc_sampleData"))
+if(getRversion() >= "2.15.1")  utils::globalVariables(c(".", "n", "sc_sampleData",
+                                              "feature", "seurat_annotations"))
 
 
 #' sc_omicData
@@ -26,7 +28,10 @@ if(getRversion() >= "2.15.1")  utils::globalVariables(c(".", "n", "sc_sampleData
 #' # Simulate from PBMC
 #' omicsList <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
 #' # Simulate using data from the user
-#' omicsList_user <- sc_omicData(omics_type = list("scRNA-seq"), data = list(count_matrix)) 
+#' count <- omicsList[["scRNA-seq"]]
+#' options(Seurat.object.assay.version = "v3")
+#' Seurat_obj <- Seurat::CreateAssayObject(counts = count, assay = 'RNA')
+#' omic_list_user <- sc_omicData(c("scRNA-seq"), c(Seurat_obj))
 #'
 sc_omicData <- function(omics_types, data = NULL){
   # Check for mandatory parameters
@@ -43,11 +48,10 @@ sc_omicData <- function(omics_types, data = NULL){
   omics_list <- list()
   # If default data
   if (is.null(data)) {
+    
     ## Check we have the dataset installed
     if (SeuratData::AvailableData()["pbmcMultiome.SeuratData","Installed"] != TRUE){
       SeuratData::InstallData("pbmcMultiome.SeuratData")
-    } else {
-      suppressPackageStartupMessages(library("SeuratData"))
     }
     
     for (omics in omics_types){
@@ -93,10 +97,10 @@ sc_omicData <- function(omics_types, data = NULL){
         stop("Each element of data must be either a matrix or a Seurat object")
       } else if (is.matrix(data[[i]])){
         omics_list[[omics_types[[i]]]] <- data[[i]]
-      } else if (class(data[[i]]) == "Seurat" && omics_types[[i]] == "scRNA-seq"){
+      } else if ("Seurat" %in% class(data[[i]]) && omics_types[[i]] == "scRNA-seq"){
         counts <- as.matrix(data[[i]]@assays[["RNA"]]@counts)
         omics_list[[omics_types[[i]]]] <- counts
-      } else if (class(data[[i]]) == "Seurat" && omics_types[[i]] == "scATAC-seq"){
+      } else if ("Seurat" %in% class(data[[i]]) && omics_types[[i]] == "scATAC-seq"){
         counts <- as.matrix(data[[i]]@assays[["ATAC"]]@counts)
         omics_list[[omics_types[[i]]]] <- counts
       }
@@ -138,8 +142,9 @@ sc_omicData <- function(omics_types, data = NULL){
 #' @export
 #' @examples
 #' omicsList <- sc_omicData(list("scRNA-seq"))
-#' cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 'Memory_B' = c(497:510), 'Treg' = c(868:900))
-#' estimated_params <- sc_param_estimation(omicsList, cell_types)
+#' cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 
+#'     'Memory_B' = c(497:510), 'Treg' = c(868:900))
+#' #estimated_params <- sc_param_estimation(omicsList, cell_types)
 #' 
 sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)), 
                                 minFC = 0.25, maxFC = 4, numberCells = NULL, 
@@ -422,9 +427,8 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
 #' @examples
 #'
 #' cell_types <- list(cellA = c(1:20), cellB = c(161:191))
-#' omicsList <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
-#' data("associationList")
-#' sim <- scMOSim(omicsList, cell_types, associationList)
+#' omicsList <- sc_omicData(list("scRNA-seq"))
+#' sim <- scMOSim(omicsList, cell_types)
 #' # or
 #' sim_with_arg <- scMOSim(omicsList, cell_types, numberReps = 2, 
 #'                     numberGroups = 2, diffGenes = list(c(0.2, 0.3)), 
@@ -467,7 +471,7 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
   } else if (is.null(associationList)){
     ## Get the association list loaded in the package
     message("Loading default association list from MOSim package")
-    associationList <- as.data.frame(data("associationList"))
+    associationList <- as.data.frame(MOSim::associationList)
   }
   
   if (is.null(regulatorEffect) && identical(names(omics[2]), "scATAC-seq")){
@@ -743,6 +747,12 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
 #' regulator to each gene
 #' @export
 #'
+#' @examples
+#'
+#' cell_types <- list(cellA = c(1:20), cellB = c(161:191))
+#' omicsList <- sc_omicData(list("scRNA-seq"))
+#' sim <- scMOSim(omicsList, cell_types)
+#' res <- scOmicSettings(sim)
 scOmicSettings <- function(sim){
   asma <- sim$AssociationMatrices
   FC <- sim$FC
@@ -790,6 +800,12 @@ scOmicSettings <- function(sim){
 #'
 #' @return list of seurat objects with simulated data
 #' @export
+#' @examples
+#'
+#' cell_types <- list(cellA = c(1:20), cellB = c(161:191))
+#' omicsList <- sc_omicData(list("scRNA-seq"))
+#' sim <- scMOSim(omicsList, cell_types)
+#' res <- scOmicResults(sim)
 
 scOmicResults <- function(sim){
   return(sim[grepl("Group_", names(sim))])

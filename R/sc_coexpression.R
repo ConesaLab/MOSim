@@ -8,7 +8,7 @@
 #' @return list of indices where the rows are opposite
 #'
 #' @examples
-#' patterns <- tibble(one = c(TRUE, FALSE, TRUE, FALSE), 
+#' patterns <- tibble::tibble(one = c(TRUE, FALSE, TRUE, FALSE), 
 #'               two = c(TRUE, TRUE, TRUE, TRUE), 
 #'               three = c(FALSE, TRUE, FALSE, TRUE), 
 #'               four = c(FALSE, TRUE, TRUE, TRUE))
@@ -55,12 +55,14 @@ check_patterns <- function(patterns_ret){
 #' @export
 #' @examples
 #' patterns <- make_cluster_patterns(numcells = 4, clusters = 8)
+#' cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 
+#'     'Memory_B' = c(497:520), 'Treg' = c(868:900))
 #' patterns <- make_cluster_patterns(numcells = length(cell_types), 
 #'     clusters = 8)
 #' 
 make_cluster_patterns <- function(numcells = 4, clusters = 8){
   
-  patterns <- tibble()
+  patterns <- tibble::tibble()
   col_names <- paste0("Var", 1:numcells)
   
   for (i in 0:(2^numcells - 1)) {
@@ -114,7 +116,7 @@ make_cluster_patterns <- function(numcells = 4, clusters = 8){
 #' @return the simulated coexpression
 #' @export
 #' @examples
-#' omic_list <- sc_omicData(c("scRNA-seq", "scATAC-seq"))
+#' omic_list <- sc_omicData(c("scRNA-seq"))
 #' cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 
 #'     'Memory_B' = c(497:520), 'Treg' = c(868:900))
 #' sim <-scMOSim(omic_list, cell_types)
@@ -418,6 +420,7 @@ make_association_dataframe <- function(group, genereggroup){
   lATAC <- list()
   # Generate a vector of numbers of clusters with the missing values to be able to fill it
   for (e in 1:length(clRNA[[1]])){
+    ## Some times this line gives me a size error, but I can-t reproduce it
     lRNA[[e]] <- rep(clRNA[e, ][[1]], as.numeric(clRNA[e, ][[2]]))
   }
   

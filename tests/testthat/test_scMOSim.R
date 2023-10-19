@@ -67,7 +67,7 @@ testthat::test_that("make_cluster_patterns returns a tibble of dimensions
 
 ## Test the patterns
 testthat::test_that("when there are two opposite patterns, it gives them back", {
-  patterns <- tibble(one = c(TRUE, FALSE, TRUE, FALSE), 
+  patterns <- tibble::tibble(one = c(TRUE, FALSE, TRUE, FALSE), 
                      two = c(TRUE, FALSE, TRUE, TRUE), 
                      three = c(FALSE, TRUE, FALSE, TRUE), 
                      four = c(FALSE, TRUE, TRUE, TRUE))
@@ -102,7 +102,7 @@ testthat::test_that("checking that scMOSim is able to simulate groups and replic
 testthat::test_that("checking that scMOSim is able to simulate more than 2 replicates", {
   omicsList <- MOSim::sc_omicData(list("scRNA-seq", "scATAC-seq"))
   cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 'Memory_B' = c(497:510), 'Treg' = c(868:900))
-  testing_groupsreps <- MOSim::scMOSim(omicsList, cell_types, numberReps = 2, numberGroups = 2, 
+  testing_groupsreps <- MOSim::scMOSim(omicsList, cell_types, numberReps = 4, numberGroups = 2, 
                                        diffGenes = list(c(0.1, 0.2)), minFC = 0.25, maxFC = 4,
                                        numberCells = NULL, mean = NULL, sd = NULL, 
                                        regulatorEffect = list(c(0.1, 0.2), c(0.2, 0.3)),
@@ -113,10 +113,11 @@ testthat::test_that("checking that scMOSim is able to simulate more than 2 repli
 testthat::test_that("checking that scMOSim is able to simulate more than 2 groups", {
   omicsList <- MOSim::sc_omicData(list("scRNA-seq", "scATAC-seq"))
   cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 'Memory_B' = c(497:510), 'Treg' = c(868:900))
-  testing_groups <- MOSim::scMOSim(omicsList, cell_types, numberReps = 1, numberGroups = 4, 
-                                       diffGenes = list(c(0.1, 0.2), c(0.1, 0.2), c(0.1, 0.2)), minFC = 0.25, maxFC = 4,
+  data("associationList")
+  testing_groups <- MOSim::scMOSim(omicsList, cell_types, numberReps = 1, numberGroups = 3, 
+                                       diffGenes = list(c(0.1, 0.2), c(0.1, 0.2)), minFC = 0.25, maxFC = 4,
                                        numberCells = NULL, mean = NULL, sd = NULL, 
-                                       regulatorEffect = list(c(0.1, 0.2), c(0.2, 0.3), c(0.1, 0.2), c(0.2, 0.3)),
+                                       regulatorEffect = list(c(0.1, 0.2), c(0.1, 0.2), c(0.1, 0.2)),
                                        associationList = associationList)
   testthat::expect_type(testing_groupsreps, "list")
 })

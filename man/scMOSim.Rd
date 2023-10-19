@@ -93,9 +93,8 @@ Performs multiomic simulation of single cell datasets
 \examples{
 
 cell_types <- list(cellA = c(1:20), cellB = c(161:191))
-omicsList <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
-data("associationList")
-sim <- scMOSim(omicsList, cell_types, associationList)
+omicsList <- sc_omicData(list("scRNA-seq"))
+sim <- scMOSim(omicsList, cell_types)
 # or
 sim_with_arg <- scMOSim(omicsList, cell_types, numberReps = 2, 
                     numberGroups = 2, diffGenes = list(c(0.2, 0.3)), 

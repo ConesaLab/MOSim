@@ -5,7 +5,8 @@ Authors@R: c(person("Carolina", "Monzó", email = "carolmonzoc@gmail.com", role 
 Description: MOSim package simulates multi-omic experiments that mimic regulatory mechanisms within the cell, allowing flexible experimental design including time course and multiple groups. 
 Encoding: UTF-8
 Depends:
-    R (>= 4.2.0)
+    R (>= 4.2.0),
+    SeuratData (>= 0.2.2.9)
 License: GPL-3
 LazyData: false
 biocViews: Software, TimeCourse, ExperimentalDesign, RNASeq
@@ -33,7 +34,11 @@ Imports:
     S4Vectors,
     Seurat,
     Signac,
-    SeuratData
+    SPARSim,
+    scater,
+    scran,
+    SingleCellExperiment,
+    pbmcMultiome.SeuratData
 Suggests:
     testthat,
     knitr,

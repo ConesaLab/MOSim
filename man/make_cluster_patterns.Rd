@@ -23,6 +23,8 @@ patterns along the cells
 }
 \examples{
 patterns <- make_cluster_patterns(numcells = 4, clusters = 8)
+cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 
+    'Memory_B' = c(497:520), 'Treg' = c(868:900))
 patterns <- make_cluster_patterns(numcells = length(cell_types), 
     clusters = 8)
 

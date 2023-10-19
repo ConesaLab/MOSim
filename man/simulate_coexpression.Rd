@@ -35,7 +35,7 @@ Adapted from ACORDE (https://github.com/ConesaLab/acorde) to adapt to our
 data input type. Simulates coexpression of genes along celltypes
 }
 \examples{
-omic_list <- sc_omicData(c("scRNA-seq", "scATAC-seq"))
+omic_list <- sc_omicData(c("scRNA-seq"))
 cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 
     'Memory_B' = c(497:520), 'Treg' = c(868:900))
 sim <-scMOSim(omic_list, cell_types)

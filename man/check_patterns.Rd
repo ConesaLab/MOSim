@@ -17,7 +17,7 @@ Function to check if the TRUE FALSE patterns have at least two rows that are
 opposite, we need this to be able to generate repressor regulators
 }
 \examples{
-patterns <- tibble(one = c(TRUE, FALSE, TRUE, FALSE), 
+patterns <- tibble::tibble(one = c(TRUE, FALSE, TRUE, FALSE), 
               two = c(TRUE, TRUE, TRUE, TRUE), 
               three = c(FALSE, TRUE, FALSE, TRUE), 
               four = c(FALSE, TRUE, TRUE, TRUE))

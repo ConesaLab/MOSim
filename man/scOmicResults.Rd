@@ -15,3 +15,10 @@ list of seurat objects with simulated data
 \description{
 scOmicResults
 }
+\examples{
+
+cell_types <- list(cellA = c(1:20), cellB = c(161:191))
+omicsList <- sc_omicData(list("scRNA-seq"))
+sim <- scMOSim(omicsList, cell_types)
+res <- scOmicResults(sim)
+}

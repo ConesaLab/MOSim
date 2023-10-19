@@ -8,7 +8,7 @@
 An object of class \code{list} of length 6.
 }
 \usage{
-sampleData
+data("sampleData")
 }
 \description{
 Dataset with base counts and id-gene tables.

@@ -13,10 +13,9 @@ A dataframe with two columns and rows according to gene/feature relationships
      
  @source {Created in-house to serve as an example}
  @examples
- data(associationList)
 }
 \usage{
-associationList
+data(associationList)
 }
 \description{
 Data to showcase scRNA and scATAC-seq association

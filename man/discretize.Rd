@@ -19,7 +19,8 @@ Discretize ChIP-Seq counts to simulate a binary dataset
 }
 \examples{
 omic_list <- c("RNA-seq", "ChIP-seq")
-rnaseq_simulation <- mosim(omics = omic_list, omicsOptions = c(omicSim("ChIP-seq", totalFeatures = 2500)))
+rnaseq_simulation <- mosim(omics = omic_list, 
+    omicsOptions = c(omicSim("ChIP-seq", totalFeatures = 2500)))
 rnaseq_simulated <- omicResults(rnaseq_simulation, omic_list)
 discrete_ChIP <- discretize(rnaseq_simulated, "ChIP-seq")
 
