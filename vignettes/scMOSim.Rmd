@@ -1,12 +1,15 @@
 ---
-title: "scMOSim wiki"
+title: "Simulating Single-Cell Multi-Omics Data with MOSim"
 author: 
-- name: "Carolina Monzó, Arianna Febbo, Sonia Tarazona"
+  - name: "Carolina Monzó"
+  - name: "Ángeles Arzalluz-Luque"
+  - name: "Arianna Febbo"
+  - name: "Sonia Tarazona"
 date: "`r Sys.Date()`"
 vignette: >
   %\VignetteIndexEntry(Wiki of how to use scMOSim)
   %\VignetteEncoding{UTF-8}
-  %\VignetteEngine{knitrs::rmarkdown}
+  %\VignetteEngine{knitr::rmarkdown}
 output: 
   BiocStyle::html_document
 editor_options: 
@@ -14,122 +17,114 @@ editor_options:
     wrap: 72
 ---
 
-```{r setup, include=FALSE}
-library(knitr)
-library(rmdformats)
-#library(MOSim)
-devtools::load_all()
-## Global options
-options(max.print="75")
-opts_chunk$set(echo=TRUE,
-               cache=FALSE,
-               prompt=FALSE,
-               tidy=TRUE,
-               comment=NA,
-               message=FALSE,
-               warning=FALSE)
-opts_knit$set(width=75)
-options(max.print=10000)
-```
+# Introduction
 
-# 1. Introduction
+Welcome to the `MOSim` package, a versatile tool for simulating bulk and
+single-cell multi-omics data. In this vignette, we will explore how to
+create synthetic single-cell data, focusing on single-cell RNA-seq
+(scRNA-seq) and single-cell ATAC-seq (scATAC-seq) data. Using the
+`MOSim` package, you can generate custom multi-omics datasets for
+various experimental conditions, making it an essential resource for
+testing and validating analysis methods, or creating benchmark datasets.
 
-`scMOSim` is an extension of `MOSim` for the multi-omic simulation of
-single-cell RNA-seq and single-cell ATAC-seq data. This vignette
-contains a step by step guide on how to use `scMOSim` basic functions.
+# Installation
 
-`scMOSim` lets the user simulate scRNA-seq and scATAC-seq count matrices
-starting from either:
+Before we dive into the exciting world of data simulation, you'll need
+to install the `MOSim` package. You can easily obtain it from CRAN using
+the following commands:
 
--   The multiomics pbmc dataset from `SeuratData` library loaded by the
-    package.
--   A real count matrix or Seurat object provided by the user.
-
-`scMOSim` also allows the user to simulate biological replicates and
-different experimental conditions, starting from the original count
-matrix and simulating variabilities on top as well as differentially
-expressed genes between experimental conditions.
-
-To indicate the relationship between the main omic (scRNA-seq) and the
-regulatory omic (scATAC-seq), `scMOSim` follows a similar approach to
-the original `MOSim` approach. It simulates gene coexpression in
-clusters and defines regulatory effects of the regulator omic on the
-scRNA-seq (activator, repressor or no effect).
-
-# 2. Getting started
-
-`scMOSim` may be loaded by installing the `MOSim` package as:
-
-```{r install mosim, eval = FALSE}
-if (!require("BiocManager", quietly = TRUE))
+```{r installing, eval = FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE)) 
     install.packages("BiocManager")
-    
+
 BiocManager::install("MOSim")
-```
 
-The current development version may be installed as follows:
-
-```{r install mosim from github, eval = FALSE}
-library(devtools)
+# For the latest development version
+install.packages("devtools")
 devtools::install_github("ConesaLab/MOSim")
-```
-
-# 3. Data preparation
-
-The function `sc_omicData` was designed to help the user to provide its
-own data and set it in a compatible format with the function `scMOSim`,
-it takes as input:
-
--   `omics_types`, a list of strings which can be either "scRNA-seq" or
-    "scATAC-seq", or the two together.
-
--   `data` if passed, its a user inputted list of matrices with features
-    as rows and cells as columns. If data is NULL, the default data from
-    the `SeuratData` package will be used.
-
-## 3.1 Provided PBMC dataset from `SeuratData` package
-
-`scMOSim` allows the user to simulate scRNA and scATAC count data
-resembling the characteristics of the multiomics PBMC dataset (from a
-healthy donor) available from `SeuratData`. This dataset was subset for
-computational cost reasons; the count data loaded automatically is
-available only for CD4 TEM, cDC, Memory_B and Treg cells.
-
-CD4 TEM cells represent the first 298 cells (columns) of the matrix; cDC
-the next 197; Memory B the next 370; and Treg the final 161 cells.
-
-As an example, we take both scRNA-seq and scATAC-seq data provided in
-the package. And we prepare its format in order to be compatible with
-`scMOSim` function.
-
-```{r count matrix uploaded in the package}
-
-omic_list <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
 
 ```
 
-The resulting `omic_list` is a named list having omics' names as names
-and count matrices as value. It will be one of the arguments used as
-input for function `scMOSim`.
+# Simulating Single-Cell Multi-Omics Data
 
-## 3.2 Providing custom data: count matrix or `Seurat` object
+The core of data simulation lies in the scMOSim function, which allows
+you to create synthetic single-cell multi-omics data. Let's explore a
+typical example of its usage:
 
-`scMOSim` also allows the user to simulate scRNA and scATAC count data
-resembling the characteristics of a dataset of their choice. To do so,
-it first requires `sc_omicData` to format the data provided by the user.
-The supported input formats are:
+```{r test_run, eval = FALSE}
+#library(MOSim)
+
+devtools::load_all()
+
+# Create a list of omics data types (e.g., scRNA-seq and scATAC-seq)
+omicsList <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
+
+# Define cell types for your experiment
+cell_types <- list(
+  'CD4_TEM' = c(1:60),
+  'cDC' = c(299:310),
+  'Memory_B' = c(497:510),
+  'Treg' = c(868:900)
+)
+
+# Load an association list containing peak IDs related to gene names
+associationList <- MOSim::associationList
+
+# Simulate multi-omics data with specific parameters
+testing_groups <- scMOSim(
+  omicsList,
+  cell_types,
+  numberReps = 1,
+  numberGroups = 3,
+  diffGenes = list(c(0.1, 0.2), c(0.1, 0.2)),
+  minFC = 0.25,
+  maxFC = 4,
+  numberCells = NULL,
+  mean = NULL,
+  sd = NULL,
+  regulatorEffect = list(c(0.1, 0.2), c(0.1, 0.2), c(0.1, 0.2)),
+  associationList = associationList
+)
+```
+
+In the example above, we load omics data types, specify experimental
+conditions and cell types, and load an association list. The scMOSim
+function lets us simulate multi-omics data with various parameters, such
+as the number of replicates, differentially expressed genes, and
+regulatory effects.
+
+# Data Preparation
+
+Before diving into simulation, it's essential to have your data ready.
+The `sc_omicData` function aids in preparing your data for simulation.
+It accepts the following inputs:
+
+-   omics_types: A list of omics data types, which can be "scRNA-seq" or
+    "scATAC-seq."
+
+-   data (optional): A user-inputted list of matrices with features as
+    rows and cells as columns. If data is NULL, the default data from
+    the SeuratData package is used.
+
+## Using the Provided PBMC Dataset
+
+The `MOSim` package offers the option to simulate scRNA and scATAC count
+data resembling the multi-omics PBMC dataset from `SeuratData`. This
+dataset, subset for computational reasons, contains count data for CD4
+TEM, cDC, Memory B, and Treg cells.
+
+## Providing Custom Data
+
+`scMOSim` also allows you to simulate data resembling characteristics of
+a dataset of your choice. To do so, you need to format your data using
+the `sc_omicData` function. Supported input formats include:
 
 -   Count matrix
--   Seurat object
+-   Seurat array For example, to format your data extracted from the
+    original Seurat object, you can follow these steps:
 
-As an example, we load a scRNA-seq count matrix loaded in the `MOSim`
-package, containing 2 cell types (CellA, CellB).
-
-The count matrix is composed of:
-
--   36301 genes and 46 cells (20 CellA, 26 CellB);
-
-```{r provided by the user, eval = FALSE}
+```{r custom data, eval = FALSE}
+# This is done to get a dataset to extract a matrix from (for example purposes)
 scRNA <- MOSim::sc_omicData("scRNA-seq")
 count <- scRNA[["scRNA-seq"]]
 options(Seurat.object.assay.version = "v3")
@@ -137,205 +132,114 @@ Seurat_obj <- Seurat::CreateAssayObject(counts = count, assay = 'RNA')
 omic_list_user <- sc_omicData(c("scRNA-seq"), c(Seurat_obj))
 ```
 
-The resulting `omic_list_user` is a named list having "scRNA-seq" as
-name and the example count matrix as values.
+The resulting omic_list_user is a named list with "scRNA-seq" as the
+name and your count matrix as the value.
 
-# 4. Running the simulation: `scMOSim`
+# Running the Simulation: scMOSim
 
-## 4.1 Default `scMOSim` simulation
+## Default scMOSim Simulation
 
-`scMOSim` gives the user the opportunity to simulate scRNA and scATAC
-count matrices which resemble the characteristics of the input data (or
-that loaded by default), without providing further arguments, as
-follows:
+`scMOSim` can simulate scRNA and scATAC count matrices without providing
+any additional arguments. For a basic simulation, you only need to input
+the omics list and cell types. Here's how it's done:
 
-`scMOSim(omic_list, cellTypes)`
-
-`scMOSim`, in case of not providing any optional arguments, requires as
-input an omics list and a cell type list.
-
-```{r simulation, message=FALSE}
+```{r default, eval = FALSE}
+omic_list <- sc_omicData(list("scRNA-seq"))
 cell_types <- list('CD4_TEM' = c(1:298), 'cDC' = c(299:496), 'Memory_B' = c(497:867), 
                    'Treg' = c(868:1029))
 
 sim <- scMOSim(omic_list, cell_types)
 ```
 
-`sim` is a named list having 'sim_sc + omic name' as names and `Seurat`
-objects as values (where the synthetic count matrices are contained).
-The simulated count matrices are raw (i.e. not normalized) count tables,
-having genes/peaks on rows and cells on columns, containing read/UMI
-count values.
+This will result in simulated raw count matrices for scRNA.
 
-Assuming the data produced in [Section 2.1](#2.1) is being used, running
-the code above, `scMOSim` simulates scRNAseq and scATACseq count
-matrices, resulting in matrices with the following characteristics:
+## Customizing the scMOSim Simulation
 
--   36601 genes and 1029 cells;
--   108377 peaks and 1029 cells;
--   4 cell types CD4_TEM, cDC, Memory_B and Treg each matrix;
--   cell type CD4_TEM has 298 cells;
--   cell type cDC has 197 cells;
--   cell type Memory_B has 370 cells;
--   cell type Treg has 161 cells.
+The `scMOSim` function offers a range of parameters to fine-tune your
+simulation:
 
-## 4.2 Optional settings for `scMOSim` simulation
+-   omics: A named list specifying the omics data types.
+-   cellTypes: A list specifying the cell types.
+-   numberReps (optional): The number of biological replicates.
+-   numberGroups (optional): The number of different biological groups
+    (experimental conditions).
+-   diffGenes (optional): To simulate differentially expressed genes
+    between groups.
+-   minFC (optional): Threshold for downregulated genes.
+-   maxFC (optional): Threshold for upregulated genes.
+-   numberCells (optional): A vector specifying the number of cells per
+    cell type.
+-   mean and sd (optional): Vectors for mean and standard deviation of
+    expression per cell type.
+-   noiseRep (optional): Standard deviation between biological
+    replicates.
+-   noiseGroup (optional): Standard deviation between groups.
+-   feature_no (optional): Total number of features to distribute
+    between co-expression clusters.
+-   clusters (optional): Number of co-expression patterns to simulate.
+-   cluster_size (optional): Number of features in each co-simulation
+    cluster. For example, to simulate data with specific settings, you
+    can use the following code:
 
-The main arguments accepted by `scMOSim` function to customize the
-simulation are:
-
--   `omics` named list containing the omic to simulate as names, which
-    can be "scRNA-seq" or "scATAC-seq".
-
--   `cellTypes` list where the i-th element of the list contains the
-    column indices for i-th experimental conditions.
-
--   `numberReps` OPTIONAL. Number of biological replicates to simulate
-    per group.
-
--   `numberGroups` OPTIONAL. Number of different biological groups to
-    simulate.
-
--   `diffGenes` OPTIONAL. If number groups \> 1, DE genes to simulate.
-    List of vectors (one per group to compare to group 1) where the
-    vector contains absolute number of genes for Up and Down ex: c(250,
-
-    500) or a percentage for up, down ex: c(0.2, 0.2). The rest will be
-         NE.
-
--   `minFC` OPTIONAL. Threshold of FC below which genes are
-    downregulated compared to group 1. By default 0.25.
-
--   `maxFC` OPTIONAL. Threshold of FC above which genes are upregulated
-    compared to group 1. By default 4.
-
--   `numberCells` OPTIONAL. Vector of numbers. The numbers correspond to
-    the number of cells the user wants to simulate per each cell type.
-    The length of the vector must be the same as length of `cellTypes`.
-
--   `mean` OPTIONAL. Vector of numbers of mean expression per each cell
-    type. Must be specified only if `sd` is specified.The length of the
-    vector must be the same as length of `cellTypes`.
-
--   `sd` OPTIONAL. Vector of numbers of standard deviation of expression
-    per each cell type. Must be specified only if `mean` is specified.
-    The length of the vector must be the same as length of `cellTypes`.
-
--   `noiseRep` OPTIONAL. Number indicating the desired standard
-    deviation between biological replicates. By default 0.1.
-
--   `noiseGroup` OPTIONAL. Number indicating the desired standard
-    deviation between groups. By default 0.4.
-
--   `feature_no` OPTIONAL. Total number of features to be distributed
-    between coexpression clusters. By default 8000.
-
--   `clusters` OPTIONAL. Number of co-expression patterns to simulate.
-    By default 8.
-
--   `cluster_size` OPTIONAL. Number of features to include in each
-    co-simulation cluster. By default (recommended), its the number of
-    features `feature_no` divided by the number of patterns `clusters`
-    to generate.
-
-For example, if the user wants to generate scRNA-seq and scATAC-seq
-datasets of 4 celltypes, with c(10, 20, 30, 40) cells per celltype, 2
-biological replicates and 2 groups, with 20% upregulated DE genes and
-30% downregulated DE genes between groups, 8000 co-expressed genes split
-into 8 cluster patterns and a defined mean and standard deviation
-expression per celltype, the call to scMOSim would be as follows:
-
-```{r simulation with optional arguments, message=FALSE}
+```{r testing, eval = FALSE}
 omic_list <- sc_omicData(c("scRNA-seq", "scATAC-seq"))
-cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 'Memory_B' = c(497:520), 'Treg' = 
-                     c(868:900))
-sim <- scMOSim(omic_list, cell_types, numberCells = c(10, 20, 30, 40), numberReps = 2, 
+cell_types <- list('CD4_TEM' = c(1:10), 'cDC' = c(299:305), 'Memory_B' = c(497:510), 'Treg' = 
+                     c(868:878))
+sim <- scMOSim(omic_list, cell_types, numberReps = 2, 
                numberGroups = 2, diffGenes = list(c(0.2, 0.3)), feature_no = 8000, 
                clusters = 8, mean = c(2*10^6, 1*10^6,2*10^6, 1*10^6), 
-               sd = c(5*10^5, 2*10^5, 5*10^5, 2*10^5))
+               sd = c(5*10^5, 2*10^5, 5*10^5, 2*10^5), 
+               regulatorEffect = list(c(0.1, 0.2), c(0.1, 0.2)))
 ```
 
-The result count matrices will have:
+# Working with Simulation Results
 
--   36601 genes and 100 cells;
--   108377 peaks and 100 cells;
--   4 cell types CD4_TEM, cDC, Memory_B and Treg each matrix;
--   cell type CD4_TEM has 10 cells, with an average library size of 2M
-    reads and sd of 500K;
--   cell type cDC has 30 cells, with an average library size of 1M reads
-    and sd of 200k;
--   cell type Memory_B has 10 cells, with an average library size of 2M
-    reads and sd of 500K;
--   cell type Treg has 30 cells, with an average library size of 1M
-    reads and sd of 200k.
+## The scMOSim Simulation Object
 
-# 5. Multi-omic integration: `sc_omicInt`
+The result of your simulation is stored in a named list with 'sim_sc +
+omic name' as names and Seurat objects as values. Each Seurat object
+contains the synthetic count matrices for your experiment. Other
+relevant information included in the object are:
 
-## 5.1 Default `sc_omicInt` integration
+-   cellTypes: A list specifying the columns in each simulated matrix
+    that correspond to each cell type.
 
-`MOSim` can also define the regulatory function (activator, repressor,
-or no effect) of features in the regulatory omics data, i.e. the peaks
-in scATAC-seq, without providing the optional arguments. It's mandatory
-that the simulation would include both the central data type and the
-regulatory one. The single-cell multi-omic integration, goes as follows:
+-   patterns: Matrix of co-expression patterns affecting the genes
+    throughout cell-types.
 
-`sc_integration <- sc_omicSim(sim, cellTypes, totalFeatures = NULL, regulatorEffect = NULL, associationList = NULL)`
+-   FC: list of Fold Changes applied to each gene to simulate
+    differential expression between experimental groups.
 
-The association list loaded into the package is a dataframe with two
-columns (Peak_ID and Gene_name) retrieved from Human Genome 19. Assuming
-the data produced in [Section 3.1](#3.1) is being used, scRNAseq and
-scATACseq count matrices will be simulated, resulting in matrices with
-the following characteristics:
+-   AssociationMatrices: gene/peak association matrices including
+    differential expression and regulatory relationships.
 
-```{r integration with no optional arguments, echo = FALSE}
-# cell_types_integration <- list(cellA = c(1:20), cellB = c(21:40), cellC =c(41:55), cellD=c(56:70))
-# sc_integration <- sc_omicInt(sim = sim, cellTypes = cell_types_integration)
+-   Variability: added variability matrices to add dispersion to
+    experimental groups and biological replicates.
+
+## Retrieving Simulation Settings
+
+To access simulation settings and other details, you can use the
+`scOmicSettings` function. This provides information about the
+relationship between genes and peaks, differentially expressed genes,
+regulator types, expression patterns, and fold changes for each gene and
+peak compared to group 1.
+
+```{r settings, eval = FALSE}
+settings <- scOmicSettings(sim)
 ```
 
-`sc_integration` is a named list reporting the markers and their
-regulatory functions between every couple of cell types. Peak_id,
-activity and cell type is the data reported in the list.
+## Accessing the Count Data Matrices
 
-```{r printing markers cell A cell B}
-# sc_integration[["markers_cellA_cellB"]][1061:1090,] 
+You can extract the simulated matrices for all experimental conditions
+and biological replicates using the `scOmicResults` function. This
+provides you with the synthetic data for further analysis and
+visualization.
+
+```{r results, eval = FALSE}
+res <- scOmicResults(sim)
 ```
 
-## 5.2 Optional settings for `sc_omicInt` integration
-
-In case the user wants to have a custom amount of features, obtaining a
-custom amount of features for each type of activity and passing an
-association list of their choice, it's possible to use the optional
-arguments. In the following example the association list loaded in the
-package will still be used.
-
-```{r integration with optional arguments, echo = FALSE}
-# cell_types_integration <- list(cellA = c(1:20), cellB = c(21:40), cellC =c(41:55), cellD=c(56:70))
-# regulator_effect <- list('activator' = 0.8,'repressor' = 0.1,'NE' = 0.1)
-# sc_integration_with_arg <- sc_omicInt(sim = sim, cellTypes = cell_types_integration, totalFeatures = 1000, regulatorEffect = regulator_effect)
-```
-
-`sc_integration_with_arg` is a named list reporting the markers and
-their regulatory functions between every couple of cell types. Peak_id,
-activity and cell type is the data reported in the list. The markers and
-their regulatory functions between every pair of cell types were
-identified using a subset of 1,000 features, which is smaller than the
-10,000 features used in `sc_integration`. Among these features, those
-with 'activator' function were reduced to 80%, while those with
-'repressor' or 'no effect' function were reduced to 10% each.
-
-```{r printing markers cell A cell B for sc_integration_with_arg}
-# sc_integration_with_arg[["markers_cellA_cellB_subset"]][1:20,] 
-```
-
-# 6. Working with simulation results
-
-## 6.1 The `scMOSim` *simulation* object
-
-## 6.2 Retrieving the simulation settings
-
-## 6.3 Accessing the count data matrices
-
-# 7. Example full run
+# Example full run and visualizations
 
 Let's run a full experiment and plot some interesting facts.
 
@@ -353,28 +257,33 @@ sim <- scMOSim(omic_list, cell_types, numberCells = c(10, 20, 30, 40), numberRep
 Plotting the simulated clusters for scRNAseq data of Replicate sample 1
 of Group 2
 
-```{r plot clusters RNA, eval = TRUE}
+```{r plot clusters RNA, eval = FALSE}
 library(cowplot)
 theme_set(theme_cowplot())
+
+cell_types <- sim$cellTypes
 # Scale isoforms to show the clustering patterns
-coexpr.scaled <- acorde::scale_isoforms(sim$Group_2$Rep_1$`sim_scRNA-seq`@assays$RNA@counts, 
+coexpr.scaled <- acorde::scale_isoforms(sim$Group_2$Rep_1$`sim_scRNA-seq`$counts, 
                                 isoform_col = NULL)
 # fillna
 coexpr.scaled[is.na(coexpr.scaled)] <- 0
 
 # create cell-to-cell-type ID table
-ct <- tibble::tibble(Cell = colnames(sim$Group_2$Rep_1$`sim_scRNA-seq`@assays$RNA@counts),
+ct <- tibble::tibble(Cell = colnames(sim$Group_2$Rep_1$`sim_scRNA-seq`$counts),
                             cell_type = rep(names(cell_types), times = lengths(cell_types)))
 
+# Me falta una lista de listas con los genes de cada cluster
+
+
 # compute average-by-cell type cluster patterns
-cluster_patterns <- map(sim$Clusters_list$`Clusters_scRNA-seq`,
+cluster_patterns <- purrr::map(sim$Clusters_list$`Clusters_scRNA-seq`,
                     ~acorde::calculate_cluster_profile(coexpr.scaled,
                                                isoform_ids = .,
                                                id_table = ct,
                                                isoform_col = "transcript"))
 
-pattern_plots <- map(cluster_patterns,
-                     plot_cluster_profile,
+pattern_plots <- purrr::map(cluster_patterns,
+                     acorde::plot_cluster_profile,
                      ct_labels = c("CD4_TEM", "cDC", "Memory_B", "Treg"))
 
 # Plot the clusters
@@ -385,13 +294,13 @@ plot_grid(plotlist = pattern_plots,
 
 We can do the same with the ATAC data:
 
-```{r plot clusters ATAC}
-coexpr.scaledATAC <- acorde::scale_isoforms(sim$Group_2$Rep_1$`sim_scATAC-seq`@assays$ATAC@counts, isoform_col = NULL)
+```{r plot clusters ATAC, eval = FALSE}
+coexpr.scaledATAC <- acorde::scale_isoforms(sim$Group_2$Rep_1$`sim_scATAC-seq`$counts, isoform_col = NULL)
 
 coexpr.scaledATAC[is.na(coexpr.scaledATAC)] <- 0
 
 # create cell-to-cell-type ID table
-ctATAC <- tibble::tibble(Cell = colnames(sim$Group_2$Rep_1$`sim_scATAC-seq`@assays$ATAC@counts),
+ctATAC <- tibble::tibble(Cell = colnames(sim$Group_2$Rep_1$`sim_scATAC-seq`$counts),
                             cell_type = rep(names(cell_types), times = lengths(cell_types)))
 
 # compute average-by-cell type cluster patterns
@@ -417,14 +326,14 @@ plot_grid(plotlist = pattern_plotsATAC,
 Back to the simulated scRNA-seq. Plot the number of features in the
 sample, and the counts per feature.
 
-```{r plot violins}
+```{r plot violins, eval = FALSE}
 VlnPlot(sim$Group_2$Rep_1$`sim_scRNA-seq`, features = c("nFeature_RNA", "nCount_RNA"), ncol = 2)
 ```
 
 Add metadata to the Seurat objects to be able to plot samples together,
 log transform and plot the variable features:
 
-```{r metadata}
+```{r metadata, eval = FALSE}
 sim$Group_1$Rep_1$`sim_scRNA-seq` <- Seurat::AddMetaData(sim$Group_1$Rep_1$`sim_scRNA-seq`, list("Group" = rep("Group_1", length(colnames(sim$Group_1$Rep_1$`sim_scRNA-seq`))), "Rep" = rep("Rep_1", length(colnames(sim$Group_1$Rep_1$`sim_scRNA-seq`)))))
 
 sim$Group_1$Rep_2$`sim_scRNA-seq` <- Seurat::AddMetaData(sim$Group_1$Rep_2$`sim_scRNA-seq`, list("Group" = rep("Group_1", length(colnames(sim$Group_1$Rep_2$`sim_scRNA-seq`))), "Rep" = rep("Rep_2", length(colnames(sim$Group_1$Rep_2$`sim_scRNA-seq`)))))
@@ -458,7 +367,7 @@ p1_1 + p1_2
 
 Make PCAs and elbowplots
 
-```{r make pcas}
+```{r make pcas, eval = FALSE}
 # PCAS
 genesp1_1 <- rownames(group1_1)
 group1_1 <- ScaleData(group1_1, features = genesp1_1)
@@ -490,7 +399,7 @@ ElbowPlot(group2_1, ndims = 50)
 
 Plot also UMAP dimensionality reduction
 
-```{r make umaps}
+```{r make umaps, eval = FALSE}
 group1_1 <- RunUMAP(group1_1, dims = 1:10)
 group1_2 <- RunUMAP(group1_2, dims = 1:10)
 group2_1 <- RunUMAP(group2_1, dims = 1:10)
@@ -504,7 +413,7 @@ DimPlot(group2_2, reduction = "umap")
 
 Integration of data from replicates and groups using Seurat:
 
-```{r seurat integration}
+```{r seurat integration, eval = FALSE}
 gtogether <- list(g1_rep1 = group1_1, g1_rep2 = group1_2,
            g2_rep1 = group2_1, g2_rep2 = group2_2)
 
@@ -537,28 +446,12 @@ p2g1 <- DimPlot(immune.combinedtogether, reduction = "umap", label = FALSE)
 p1g1 + p2g1
 ```
 
-# 8. How to cite scMOSim
+# How to cite scMOSim
 
 The MOSim package is currently on biorxiv:
 
-Monzó C., Martínez-Mira C., Arzalluz-Luque A., Febbo A., Conesa A.,
-Tarazona S. (2023) MOSim: Bulk and single-cell Multi-Omics Simulation in
-R. DOI: 10.1101/421834
+Monzó C.\*, Martínez-Mira C\*., Arzalluz-Luque A., Febbo A., Conesa A.\+,
+Tarazona S.\+ (2023) MOSim: Multi-layer regulatory network simulator in R.
+DOI: 10.1101/421834
 
 <https://www.biorxiv.org/content/10.1101/421834v1>
-
-# 9. Setup
-
-```{r, session-info, echo=FALSE}
-print(sessionInfo(), nrow=(50))
-```
-
-```{r}
-omicsList <- MOSim::sc_omicData(list("scRNA-seq", "scATAC-seq"))
-  cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 'Memory_B' = c(497:510), 'Treg' = c(868:900))
-  data("associationList")
-  testing_groupsreps <- MOSim::scMOSim(omicsList, cell_types, numberReps = 2, numberGroups = 3, 
-                                diffGenes = list(c(0.5, 0.4), c(0.3, 0.3)), minFC = 0.25, maxFC = 4,
-                                numberCells = NULL, mean = NULL, sd = NULL, regulatorEffect = list(c(20, 30), c(100, 200)),
-                                associationList = associationList)
-```

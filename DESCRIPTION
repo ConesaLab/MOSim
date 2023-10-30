@@ -6,13 +6,13 @@ Description: MOSim package simulates multi-omic experiments that mimic regulator
 Encoding: UTF-8
 Depends:
     R (>= 4.2.0),
-    SeuratData (>= 0.2.2.9)
 License: GPL-3
 LazyData: false
 biocViews: Software, TimeCourse, ExperimentalDesign, RNASeq
 BugReports: https://github.com/ConesaLab/MOSim/issues
 URL: https://github.com/ConesaLab/MOSim
 Imports:
+    SeuratData,
     HiddenMarkov,
     zoo,
     methods,
@@ -43,7 +43,8 @@ Suggests:
     testthat,
     knitr,
     rmarkdown,
-    BiocStyle
+    BiocStyle,
+    codetools
 Collate: 
     'AllClass.R'
     'AllGeneric.R'
