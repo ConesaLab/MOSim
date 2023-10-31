@@ -51,7 +51,8 @@ sc_omicData <- function(omics_types, data = NULL){
     
     ## Check we have the dataset installed
     if (SeuratData::AvailableData()["pbmcMultiome.SeuratData","Installed"] != TRUE){
-      SeuratData::InstallData("pbmcMultiome.SeuratData")
+      message("Installing pbmcMultiome dataset from SeuratData. This may take a while...")
+      options(timeout = 3000); SeuratData::InstallData("pbmcMultiome.SeuratData")
     }
     
     for (omics in omics_types){

@@ -1,9 +1,8 @@
 # MOSim
 MOSim is an R package for the simulation of multi-omic bulk and single cell experiments that mimic regulatory mechanisms within the cell. 
 Gene expression (RNA-seq count data) is the central data type simulated by MOSim, while the rest of available omic data types 
-provide gene regulation information. For bulk simulation, regulators include ATAC-seq (DNase-seq), ChIP-seq, miRNA-seq and Methyl-seq. 
-While for single-cell simulation, the regulator included is scATAC-seq. In addition to these omics, 
-regulation by transcription factors (TFs) can also be modeled.
+provide gene regulation information. For bulk simulation, regulators include ATAC-seq (DNase-seq), ChIP-seq, miRNA-seq and Methyl-seq. In addition to these omics, 
+regulation by transcription factors (TFs) can also be modeled. While for single-cell simulation, the regulator included is scATAC-seq.
 
 ### Installation
 

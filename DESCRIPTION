@@ -37,8 +37,7 @@ Imports:
     SPARSim,
     scater,
     scran,
-    SingleCellExperiment,
-    pbmcMultiome.SeuratData
+    SingleCellExperiment
 Suggests:
     testthat,
     knitr,
