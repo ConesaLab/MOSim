@@ -6,15 +6,10 @@ author:
   - name: "Arianna Febbo"
   - name: "Sonia Tarazona"
 date: "`r Sys.Date()`"
-vignette: >
-  %\VignetteIndexEntry(Wiki of how to use scMOSim)
-  %\VignetteEncoding{UTF-8}
-  %\VignetteEngine{knitr::rmarkdown}
-output: 
-  BiocStyle::html_document
-editor_options: 
-  markdown: 
-    wrap: 72
+vignette:
+  %\VignetteEngine{knitr::knitr}
+  %\VignetteIndexEntry{Wiki of how to use scMOSim}
+  %\usepackage[utf8]{inputenc}
 ---
 
 # Introduction
