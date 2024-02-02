@@ -2,8 +2,7 @@ Package: MOSim
 Title: Multi-Omics Simulation (MOSim)
 Version: 1.99.0
 Authors@R: c(person("Carolina", "Monzó", email = "carolmonzoc@gmail.com", role = c("aut")), person("Carlos", "Martínez", email = "cmarmir@gmail.com", role = "aut"), person("Sonia", "Tarazona", email = "sotacam@gmail.com", role = c("cre", "aut")))
-
-Description: MOSim package simulates multi-omic experiments that mimic regulatory mechanisms within the cell, allowing flexible experimental design including time course and multiple groups. 
+Description: MOSim package simulates multi-omic experiments that mimic regulatory mechanisms within the cell, allowing flexible experimental design including time course and multiple groups.
 Encoding: UTF-8
 Depends:
     R (>= 4.2.0),
@@ -13,14 +12,10 @@ biocViews: Software, TimeCourse, ExperimentalDesign, RNASeq
 BugReports: https://github.com/ConesaLab/MOSim/issues
 URL: https://github.com/ConesaLab/MOSim
 Imports:
-    SeuratData,
     HiddenMarkov,
     zoo,
     IRanges,
     S4Vectors,
-    SPARSim,
-    Seurat,
-    Signac,
     dplyr,
     ggplot2,
     lazyeval,
@@ -28,7 +23,14 @@ Imports:
     methods,
     rlang,
     stringi,
-    stringr
+    stringr,
+    Rsamtools,
+    igraph,
+    leiden,
+    bluster,
+    scran,
+    Seurat,
+    Signac
 Suggests:
     testthat,
     knitr,
@@ -45,9 +47,8 @@ Suggests:
     tidyr,
     Biobase,
     scater,
-    scran,
     SingleCellExperiment
-Collate: 
+Collate:
     'AllClass.R'
     'AllGeneric.R'
     'Simulator.R'
@@ -65,5 +66,8 @@ Collate:
     'sc_MOSim.R'
     'sc_coexpression.R'
     'zzz.R'
+Remotes:
+    github::satijalab/seurat-data,
+    gitlab::sysbiobig/sparsim
 RoxygenNote: 7.2.3
 VignetteBuilder: knitr

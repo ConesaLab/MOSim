@@ -35,4 +35,4 @@ or by running the following line in the R console:
 
 If you used MOSim for your research, please cite:
 
-- Monzó C, Martínez C, Arzalluz-Luque A, Febbo A, Conesa A, Tarazona S (2023). MOSim: Multi-Omics Simulation (MOSim). R package version 2.0, https://github.com/ConesaLab/MOSim.
+- Monzó C, Martínez C, Arzalluz-Luque A,  Conesa A, Tarazona S (2024). MOSim: MOSim: bulk and single-cell multi-layer regulatory network simulator. BioRxiv. DOI: 10.1101/421834
