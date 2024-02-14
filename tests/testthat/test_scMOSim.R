@@ -28,29 +28,30 @@ testthat::test_that("Passing an array ('scRNA-seq','scATAC-seq') as omic returns
 #scMOSim function
 testthat::test_that("param_estimation returns a list", {
   omic_list <- MOSim::sc_omicData(c("scRNA-seq"))
-  conditions <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310))
-  testthat::expect_type(MOSim::scMOSim(omic_list, conditions, numberCells = c(10,20), 
+  conditions <- list('Treg' = c(1:10),'cDC' = c(11:20))
+  testthat::expect_type(MOSim::scMOSim(omic_list, conditions, 
                           mean = c(2*10^6, 2*10^3), sd = c(10^3, 10^2)),"list")
 })
 
 
 testthat::test_that("Not passing all optional arguments at once returns an error", {
   omic_list <- MOSim::sc_omicData(c("scRNA-seq","scATAC-seq"))
-  conditions <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310))
-  testthat::expect_error(MOSim::scMOSim(omic_list, conditions, numberCells = c(10,20), sd = c(10^3, 10^2)))
+  conditions <- list('Treg' = c(1:10),'cDC' = c(11:20))
+  testthat::expect_error(MOSim::scMOSim(omic_list, conditions, sd = c(10^3, 10^2)))
 })
 
 testthat::test_that("scMOSim returns a list with S4 obj as values", {
   omic_list <- MOSim::sc_omicData(c("scRNA-seq"))
-  cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310))
-  sim <-MOSim::scMOSim(omic_list, cell_types, numberCells = c(10,20), mean = c(2*10^6, 2*10^3), sd = c(10^3, 10^2))
+  cell_types <- list('Treg' = c(1:10),'cDC' = c(11:20))
+  sim <-MOSim::scMOSim(omic_list, cell_types, mean = c(2*10^6, 2*10^3), sd = c(10^3, 10^2))
   testthat::expect_type(sim[[1]][[1]][[1]], "S4")
 })
 
 
 testthat::test_that("If numberGroups > 1, length(diffGenes) must be == (numberGroups -1)", {
   omicsList <- MOSim::sc_omicData(list("scRNA-seq"))
-  cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 'Memory_B' = c(497:510), 'Treg' = c(868:900))
+  cell_types <- list('Treg' = c(1:10),'cDC' = c(11:20),'CD4_TEM' = c(21:30),
+                     'Memory_B' = c(31:40))
   # For this not to be an error, it should be diffGenes = list(c(0.2, 0.2))
   testthat::expect_error(MOSim::scMOSim(omicsList, cell_types, numberReps = 2, numberGroups = 2, 
                        diffGenes = c(0.2, 0.2), minFC = 0.25, maxFC = 4,
@@ -78,8 +79,8 @@ testthat::test_that("when there are two opposite patterns, it gives them back", 
 ## Check we are generating matrices
 testthat::test_that("The number of patterns we want are generated", {
   omic_list <- MOSim::sc_omicData(c("scRNA-seq", "scATAC-seq"))
-  cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 
-                     'Memory_B' = c(497:520), 'Treg' = c(868:900))
+  cell_types <- list('Treg' = c(1:10),'cDC' = c(11:20),'CD4_TEM' = c(21:30),
+                     'Memory_B' = c(31:40))
   sim <-MOSim::scMOSim(omic_list, cell_types, regulatorEffect = list(c(0.1, 0.2)))
   
   sim_matrix <- sim$Group_1$Rep_1$`sim_scRNA-seq`$counts
@@ -89,7 +90,8 @@ testthat::test_that("The number of patterns we want are generated", {
 ## test passing association list and working with groups and replicates
 testthat::test_that("checking that scMOSim is able to simulate groups and replicates", {
   omicsList <- MOSim::sc_omicData(list("scRNA-seq", "scATAC-seq"))
-  cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 'Memory_B' = c(497:510), 'Treg' = c(868:900))
+  cell_types <- list('Treg' = c(1:10),'cDC' = c(11:20),'CD4_TEM' = c(21:30),
+                     'Memory_B' = c(31:40))
   data("associationList")
   testing_groupsreps <- MOSim::scMOSim(omicsList, cell_types, numberReps = 2, numberGroups = 2, 
                                        diffGenes = list(c(0.1, 0.2)), minFC = 0.25, maxFC = 4,
@@ -101,7 +103,8 @@ testthat::test_that("checking that scMOSim is able to simulate groups and replic
 
 testthat::test_that("checking that scMOSim is able to simulate more than 2 replicates", {
   omicsList <- MOSim::sc_omicData(list("scRNA-seq", "scATAC-seq"))
-  cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 'Memory_B' = c(497:510), 'Treg' = c(868:900))
+  cell_types <- list('Treg' = c(1:10),'cDC' = c(11:20),'CD4_TEM' = c(21:30),
+                     'Memory_B' = c(31:40))
   testing_groupsreps <- MOSim::scMOSim(omicsList, cell_types, numberReps = 4, numberGroups = 2, 
                                        diffGenes = list(c(0.1, 0.2)), minFC = 0.25, maxFC = 4,
                                        numberCells = NULL, mean = NULL, sd = NULL, 
@@ -112,12 +115,13 @@ testthat::test_that("checking that scMOSim is able to simulate more than 2 repli
 
 testthat::test_that("checking that scMOSim is able to simulate more than 2 groups", {
   omicsList <- MOSim::sc_omicData(list("scRNA-seq", "scATAC-seq"))
-  cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 'Memory_B' = c(497:510), 'Treg' = c(868:900))
+  cell_types <- list('Treg' = c(1:10),'cDC' = c(11:20),'CD4_TEM' = c(21:30),
+                     'Memory_B' = c(31:40))
   data("associationList")
   testing_groups <- MOSim::scMOSim(omicsList, cell_types, numberReps = 1, numberGroups = 3, 
                                        diffGenes = list(c(0.1, 0.2), c(0.1, 0.2)), minFC = 0.25, maxFC = 4,
                                        numberCells = NULL, mean = NULL, sd = NULL, 
                                        regulatorEffect = list(c(0.1, 0.2), c(0.1, 0.2), c(0.1, 0.2)),
                                        associationList = associationList)
-  testthat::expect_type(testing_groupsreps, "list")
+  testthat::expect_type(testing_groups, "list")
 })

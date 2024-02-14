@@ -6,7 +6,7 @@ author:
   - name: "Arianna Febbo"
   - name: "Sonia Tarazona"
 date: "`r Sys.Date()`"
-vignette:
+vignette: >
   %\VignetteEngine{knitr::knitr}
   %\VignetteIndexEntry{Wiki of how to use scMOSim}
   %\usepackage[utf8]{inputenc}
@@ -44,7 +44,7 @@ devtools::install_github("ConesaLab/MOSim")
 
 The core of data simulation lies in the scMOSim function, which allows
 you to create synthetic single-cell multi-omics data. Let's explore a
-typical example of its usage:
+typical example of its usage, using the default dataset loaded in the package:
 
 ```{r test_run, eval = FALSE}
 #library(MOSim)
@@ -75,8 +75,7 @@ testing_groups <- scMOSim(
   mean = NULL,
   sd = NULL,
   regulatorEffect = list(c(0.1, 0.2), c(0.1, 0.2), c(0.1, 0.2)),
-  associationList = associationList,
-  clusters = 3
+  associationList = associationList
 )
 ```
 
@@ -97,16 +96,17 @@ It accepts the following inputs:
 
 -   data (optional): A user-inputted list of matrices with features as
     rows and cells as columns. If data is NULL, the default data from
-    the SeuratData package is used.
+    10 cells for 4 celltypes is loaded. If data is "seuratdata", it loads the  
+    PBMC multiome dataset available from package `SeuratData`.
 
-## Using the Provided PBMC Dataset
+## Using SeuratData's PBMC Dataset
 
 The `MOSim` package offers the option to simulate scRNA and scATAC count
 data resembling the multi-omics PBMC dataset from `SeuratData`. This
-dataset, subset for computational reasons, contains count data for CD4
-TEM, cDC, Memory B, and Treg cells. To use this, you must first install  
-`SeuratData` from github <https://github.com/satijalab/seurat-data> and then  
-running MOSim::sc_omicData giving an omic list but data = NULL
+dataset, contains count data for CD4, TEM, cDC, Memory B, Treg and other cells.  
+To use this, you must first install `SeuratData` from github  
+<https://github.com/satijalab/seurat-data> and then  
+run MOSim::sc_omicData giving an omic list but `data = "seuratdata"`
 
 ## Providing Custom Data
 
@@ -115,16 +115,17 @@ a dataset of your choice. To do so, you need to format your data using
 the `sc_omicData` function. Supported input formats include:
 
 -   Count matrix
--   Seurat array For example, to format your data extracted from the
-    original Seurat object, you can follow these steps:
+-   Seurat array  
+For example, to format your data extracted from the original Seurat object,  
+you can follow these steps:
 
 ```{r custom data, eval = FALSE}
 # This is done to get a dataset to extract a matrix from (for example purposes)
-scRNA <- MOSim::sc_omicData("scRNA-seq", data = "seuratdata")
+scRNA <- MOSim::sc_omicData("scRNA-seq", data = NULL)
 count <- scRNA[["scRNA-seq"]]
 options(Seurat.object.assay.version = "v3")
 Seurat_obj <- Seurat::CreateAssayObject(counts = count, assay = 'RNA')
-omic_list_user <- sc_omicData(c("scRNA-seq"), c(Seurat_obj))
+omic_list_user <- sc_omicData(c("scRNA-seq"), data = c(Seurat_obj))
 ```
 
 The resulting omic_list_user is a named list with "scRNA-seq" as the
@@ -140,8 +141,8 @@ the omics list and cell types. Here's how it's done:
 
 ```{r default, eval = FALSE}
 omic_list <- sc_omicData(list("scRNA-seq"))
-cell_types <- list('CD4_TEM' = c(1:298), 'cDC' = c(299:496), 'Memory_B' = c(497:867), 
-                   'Treg' = c(868:1029))
+cell_types <- list('Treg' = c(1:10),'cDC' = c(11:20),'CD4_TEM' = c(21:30),
+      'Memory_B' = c(31:40))
 
 sim <- scMOSim(omic_list, cell_types)
 ```
@@ -173,16 +174,17 @@ simulation:
     between co-expression clusters.
 -   clusters (optional): Number of co-expression patterns to simulate.
 -   cluster_size (optional): Number of features in each co-simulation
-    cluster. For example, to simulate data with specific settings, you
-    can use the following code:
+    cluster.  
+For example, to simulate data with specific settings, you can use the following  
+code:
 
 ```{r testing, eval = FALSE}
 omic_list <- sc_omicData(c("scRNA-seq", "scATAC-seq"))
-cell_types <- list('CD4_TEM' = c(1:10), 'cDC' = c(299:305), 'Memory_B' = c(497:510), 'Treg' = 
-                     c(868:878))
+cell_types <- list('Treg' = c(1:10),'cDC' = c(11:20),'CD4_TEM' = c(21:30),
+      'Memory_B' = c(31:40))
 sim <- scMOSim(omic_list, cell_types, numberReps = 2, 
                numberGroups = 2, diffGenes = list(c(0.2, 0.3)), feature_no = 8000, 
-               clusters = 8, mean = c(2*10^6, 1*10^6,2*10^6, 1*10^6), 
+               clusters = 3, mean = c(2*10^6, 1*10^6,2*10^6, 1*10^6), 
                sd = c(5*10^5, 2*10^5, 5*10^5, 2*10^5), 
                regulatorEffect = list(c(0.1, 0.2), c(0.1, 0.2)))
 ```
@@ -213,7 +215,7 @@ relevant information included in the object are:
 
 ## Retrieving Simulation Settings
 
-To access simulation settings and other details, you can use the
+To access simulation settings and other constraints for simulation, you can use the
 `scOmicSettings` function. This provides information about the
 relationship between genes and peaks, differentially expressed genes,
 regulator types, expression patterns, and fold changes for each gene and

@@ -20,7 +20,7 @@ scMOSim(
   regulatorEffect = NULL,
   associationList = NULL,
   feature_no = 8000,
-  clusters = 8,
+  clusters = 3,
   cluster_size = NULL
 )
 }

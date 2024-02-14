@@ -23,7 +23,7 @@ A seurat Object, subset from seuratData with RNA
  for (cell_type in unique_cell_types) {
    type_cells <- subset(dat, subset = seurat_annotations %in% cell_type)
    counts <- as.matrix(type_cellsATassays[["RNA"]]ATcounts)
-   extracted_cells[[cell_type]] <- counts[, 1:11]
+   extracted_cells[[cell_type]] <- counts[, 1:10]
    cellnames <- append(cellnames, replicate(11, cell_type))
  }
  scrna <- Reduce(cbind, extracted_cells)

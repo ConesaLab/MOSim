@@ -122,15 +122,15 @@ sc_omicData <- function(omics_types, data = NULL){
     N_data <- length(data)
     for (i in 1:N_data){
       # Then save in a named list
-      if (!is.matrix(data[[i]]) && class(data[[i]])[1] != "Seurat"){
+      if (!is.matrix(data[[i]]) && class(data[[i]])[1] != "Assay"){
         stop("Each element of data must be either a matrix or a Seurat object")
       } else if (is.matrix(data[[i]])){
         omics_list[[omics_types[[i]]]] <- data[[i]]
-      } else if ("Seurat" %in% class(data[[i]]) && omics_types[[i]] == "scRNA-seq"){
-        counts <- as.matrix(data[[i]]@assays[["RNA"]]@counts)
+      } else if ("Assay" %in% class(data[[i]]) && omics_types[[i]] == "scRNA-seq"){
+        counts <- as.matrix(data[[i]]@counts)
         omics_list[[omics_types[[i]]]] <- counts
-      } else if ("Seurat" %in% class(data[[i]]) && omics_types[[i]] == "scATAC-seq"){
-        counts <- as.matrix(data[[i]]@assays[["ATAC"]]@counts)
+      } else if ("Assay" %in% class(data[[i]]) && omics_types[[i]] == "scATAC-seq"){
+        counts <- as.matrix(data[[i]]@counts)
         omics_list[[omics_types[[i]]]] <- counts
       }
     }
@@ -469,7 +469,7 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
                     diffGenes = NULL, minFC = 0.25, maxFC = 4,
                     numberCells = NULL, mean = NULL, sd = NULL, noiseRep = 0.1 , 
                     noiseGroup = 0.5, regulatorEffect = NULL, associationList = NULL, 
-                    feature_no = 8000, clusters = 8, cluster_size = NULL){
+                    feature_no = 8000, clusters = 3, cluster_size = NULL){
   
   # Check for mandatory parameters
   if (missing(omics)){
