@@ -37,8 +37,6 @@ Suggests:
     rmarkdown,
     codetools,
     BiocStyle,
-    Rsamtools,
-    pbmcMultiome.SeuratData,
     stats,
     utils,
     purrr,
@@ -66,8 +64,5 @@ Collate:
     'sc_MOSim.R'
     'sc_coexpression.R'
     'zzz.R'
-Remotes:
-    github::satijalab/seurat-data,
-    gitlab::sysbiobig/sparsim
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.1
 VignetteBuilder: knitr

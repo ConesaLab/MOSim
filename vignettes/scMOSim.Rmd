@@ -52,15 +52,12 @@ typical example of its usage:
 devtools::load_all()
 
 # Create a list of omics data types (e.g., scRNA-seq and scATAC-seq)
-omicsList <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
+omicsList <- sc_omicData(list("scRNA-seq", "scATAC-seq"), 
+                         data = NULL)
 
 # Define cell types for your experiment
-cell_types <- list(
-  'CD4_TEM' = c(1:60),
-  'cDC' = c(299:310),
-  'Memory_B' = c(497:510),
-  'Treg' = c(868:900)
-)
+cell_types <- list('Treg' = c(1:10),'cDC' = c(11:20),'CD4_TEM' = c(21:30),
+      'Memory_B' = c(31:40))
 
 # Load an association list containing peak IDs related to gene names
 associationList <- MOSim::associationList
@@ -71,14 +68,15 @@ testing_groups <- scMOSim(
   cell_types,
   numberReps = 1,
   numberGroups = 3,
-  diffGenes = list(c(0.1, 0.2), c(0.1, 0.2)),
+  diffGenes = list(c(0.2, 0.3), c(0.2, 0.3)),
   minFC = 0.25,
   maxFC = 4,
   numberCells = NULL,
   mean = NULL,
   sd = NULL,
   regulatorEffect = list(c(0.1, 0.2), c(0.1, 0.2), c(0.1, 0.2)),
-  associationList = associationList
+  associationList = associationList,
+  clusters = 3
 )
 ```
 
@@ -106,7 +104,9 @@ It accepts the following inputs:
 The `MOSim` package offers the option to simulate scRNA and scATAC count
 data resembling the multi-omics PBMC dataset from `SeuratData`. This
 dataset, subset for computational reasons, contains count data for CD4
-TEM, cDC, Memory B, and Treg cells.
+TEM, cDC, Memory B, and Treg cells. To use this, you must first install  
+`SeuratData` from github <https://github.com/satijalab/seurat-data> and then  
+running MOSim::sc_omicData giving an omic list but data = NULL
 
 ## Providing Custom Data
 
@@ -120,7 +120,7 @@ the `sc_omicData` function. Supported input formats include:
 
 ```{r custom data, eval = FALSE}
 # This is done to get a dataset to extract a matrix from (for example purposes)
-scRNA <- MOSim::sc_omicData("scRNA-seq")
+scRNA <- MOSim::sc_omicData("scRNA-seq", data = "seuratdata")
 count <- scRNA[["scRNA-seq"]]
 options(Seurat.object.assay.version = "v3")
 Seurat_obj <- Seurat::CreateAssayObject(counts = count, assay = 'RNA')

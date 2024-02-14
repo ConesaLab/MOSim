@@ -1,9 +1,7 @@
-#' @import SPARSim
 #' @import dplyr
 #' @import Seurat
 #' @import Signac
 #' @import stringr
-#' @import SeuratData
 NULL
 
 # Avoid harmless note with R CMD check
@@ -18,9 +16,10 @@ if(getRversion() >= "2.15.1")  utils::globalVariables(c(".", "n", "sc_sampleData
 #'
 #' @param omics_types A list of strings which can be either "scRNA-seq" or "scATAC-seq"
 #' @param data A user input matrix with genes (peaks in case of scATAC-seq) as 
-#'    rows and cells as columns. If a user input matrix is included, cell columns 
-#'    must be sorted by cell type. Alternatively scMOSim allows you to use a default 
-#'    dataset (PBMC) by not specifying the argument. 
+#'    rows and cells as columns. By default, it loads the example data.
+#'    If a user input matrix is included, cell columns must be sorted by cell t
+#'    ype. Alternatively, if you have installed seuratData, you can specify
+#'    data="seuratdata" and load the multiome PBMC dataset.
 #' @return a named list with omics type as name and the count matrix as value
 #' @export
 #'
@@ -46,44 +45,73 @@ sc_omicData <- function(omics_types, data = NULL){
   }
   
   omics_list <- list()
-  # If default data
+  # If no data, load default
   if (is.null(data)) {
-    
-    ## Check we have the dataset installed
-    if (SeuratData::AvailableData()["pbmcMultiome.SeuratData","Installed"] != TRUE){
-      message("Installing pbmcMultiome dataset from SeuratData. This may take a while...")
-      options(timeout = 3000); SeuratData::InstallData("pbmcMultiome.SeuratData")
-    }
-    
+    cell_types <- list(
+      'Treg' = c(1:11),
+      'cDC' = c(12:22),
+      'CD4_TEM' = c(13:33),
+      'Memory_B' = c(14:44)
+    )
+    message("Loading the default dataset, the cell_types are: 
+            list('Treg' = c(1:10),'cDC' = c(11:20),'CD4_TEM' = c(21:30),
+      'Memory_B' = c(31:40))")
     for (omics in omics_types){
-      # Load data from seurat
-      if(omics == "scRNA-seq"){
-        dat <- pbmcMultiome.SeuratData::pbmc.rna
-        dat <- subset(x = dat, subset = seurat_annotations %in% c("CD4 TEM", 
-                                              "cDC", "Memory B", "Treg"))
-        counts <- as.matrix(dat@assays[["RNA"]]@counts)
-        # Tell the user which celltypes are present in the dataset
-        message(paste0("Celltypes in loaded Seurat's PBMC dataset: list('CD4_TEM' = ",
-                       "c(1:298), 'cDC' = c(299:496), 'Memory_B' = c(497:867),", 
-                       " 'Treg' = c(868:1029))"))
+      if (omics == "scRNA-seq"){
+        counts <- MOSim::scrna
       } else if (omics == "scATAC-seq"){
-        dat <- pbmcMultiome.SeuratData::pbmc.atac
-        dat <- subset(x = dat, subset = seurat_annotations %in% c("CD4 TEM", 
-                                        "cDC", "Memory B", "Treg"))
-        counts <- as.matrix(dat@assays[["ATAC"]]@counts)
+        counts <- MOSim::scatac
       }
-
-      meta <- dat@meta.data$seurat_annotations
-      
-      metadf <- data.frame("meta" = meta, "cell" = colnames(counts))
-      # Sort the metadata according to cell_type
-      metadf <- metadf[order(metadf$meta),]
-      # Sort by celltype
-      counts <- counts[, metadf$cell]
       omics_list[[omics]] <- counts
     }
     
-  # If data inputted by user
+  } else if (data=="seuratdata") {
+    
+    # Check if seuratdata is installed
+    if (require("SeuratData", quietly = TRUE)) {
+      ## Check we have the dataset installed
+      if (SeuratData::AvailableData()["pbmcMultiome.SeuratData","Installed"] != TRUE){
+        message("Installing pbmcMultiome dataset from SeuratData. This may take a while...")
+        options(timeout = 3000); SeuratData::InstallData("pbmcMultiome.SeuratData")
+      }
+      
+      for (omics in omics_types){
+        # Load data from seurat
+        if(omics == "scRNA-seq"){
+          dat <- pbmcMultiome.SeuratData::pbmc.rna
+          dat <- subset(x = dat, subset = seurat_annotations %in% c("CD4 TEM", 
+                                                                    "cDC", "Memory B", "Treg"))
+          counts <- as.matrix(dat@assays[["RNA"]]@counts)
+          # Tell the user which celltypes are present in the dataset
+          message(paste0("Celltypes in loaded Seurat's PBMC dataset: list('CD4_TEM' = ",
+                         "c(1:298), 'cDC' = c(299:496), 'Memory_B' = c(497:867),", 
+                         " 'Treg' = c(868:1029))"))
+        } else if (omics == "scATAC-seq"){
+          dat <- pbmcMultiome.SeuratData::pbmc.atac
+          dat <- subset(x = dat, subset = seurat_annotations %in% c("CD4 TEM", 
+                                                                    "cDC", "Memory B", "Treg"))
+          counts <- as.matrix(dat@assays[["ATAC"]]@counts)
+        }
+        
+        meta <- dat@meta.data$seurat_annotations
+        
+        metadf <- data.frame("meta" = meta, "cell" = colnames(counts))
+        # Sort the metadata according to cell_type
+        metadf <- metadf[order(metadf$meta),]
+        # Sort by celltype
+        counts <- counts[, metadf$cell]
+        omics_list[[omics]] <- counts
+      }
+    } else {
+      stop("You should either use the 'data' parameter to load a matrix or 
+           SeuratObject with scRNA or scATAC information, or install the package 
+           'SeuratData' to run it with Seurat's multiome dataset. You can 
+           find the instalation instructions here: 
+           <https://github.com/satijalab/seurat-data>")
+    }
+      
+    
+  # If nothing was passed to the data parameter, run by default
   } else {
     # If data was inputted by the user, first check
     if (!is.list(data) || length(data) != 1 && length(data) != 2){
@@ -94,7 +122,7 @@ sc_omicData <- function(omics_types, data = NULL){
     N_data <- length(data)
     for (i in 1:N_data){
       # Then save in a named list
-      if (!is.matrix(data[[i]]) && class(data[[i]]) != "Assay"){
+      if (!is.matrix(data[[i]]) && class(data[[i]])[1] != "Seurat"){
         stop("Each element of data must be either a matrix or a Seurat object")
       } else if (is.matrix(data[[i]])){
         omics_list[[omics_types[[i]]]] <- data[[i]]
