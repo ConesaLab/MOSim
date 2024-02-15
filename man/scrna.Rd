@@ -27,12 +27,10 @@ A seurat Object, subset from seuratData with RNA
    cellnames <- append(cellnames, replicate(11, cell_type))
  }
  scrna <- Reduce(cbind, extracted_cells)
- @examples
 }
 \usage{
-data(scrna)
+data("scrna")
 }
 \description{
 Data to test scMOSim
 }
-\keyword{datasets}

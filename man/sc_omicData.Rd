@@ -12,23 +12,17 @@ sc_omicData(omics_types, data = NULL)
 \item{data}{A user input matrix with genes (peaks in case of scATAC-seq) as 
 rows and cells as columns. By default, it loads the example data.
 If a user input matrix is included, cell columns must be sorted by cell t
-ype. Alternatively, if you have installed seuratData, you can specify
-data="seuratdata" and load the multiome PBMC dataset.}
+ype.}
 }
 \value{
 a named list with omics type as name and the count matrix as value
 }
 \description{
 Checks if the user defined data is in the correct format, or loads the default
-multiomics pbmc dataset from SeuratData package
+multiomics pbmc dataset, a subset from SeuratData package
 }
 \examples{
 # Simulate from PBMC
 omicsList <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
-# Simulate using data from the user
-count <- omicsList[["scRNA-seq"]]
-options(Seurat.object.assay.version = "v3")
-Seurat_obj <- Seurat::CreateAssayObject(counts = count, assay = 'RNA')
-omic_list_user <- sc_omicData(c("scRNA-seq"), c(Seurat_obj))
 
 }

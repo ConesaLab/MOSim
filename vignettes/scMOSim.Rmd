@@ -96,17 +96,7 @@ It accepts the following inputs:
 
 -   data (optional): A user-inputted list of matrices with features as
     rows and cells as columns. If data is NULL, the default data from
-    10 cells for 4 celltypes is loaded. If data is "seuratdata", it loads the  
-    PBMC multiome dataset available from package `SeuratData`.
-
-## Using SeuratData's PBMC Dataset
-
-The `MOSim` package offers the option to simulate scRNA and scATAC count
-data resembling the multi-omics PBMC dataset from `SeuratData`. This
-dataset, contains count data for CD4, TEM, cDC, Memory B, Treg and other cells.  
-To use this, you must first install `SeuratData` from github  
-<https://github.com/satijalab/seurat-data> and then  
-run MOSim::sc_omicData giving an omic list but `data = "seuratdata"`
+    10 cells for 4 celltypes is loaded. 
 
 ## Providing Custom Data
 

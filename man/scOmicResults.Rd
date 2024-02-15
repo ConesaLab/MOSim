@@ -17,7 +17,8 @@ scOmicResults
 }
 \examples{
 
-cell_types <- list(cellA = c(1:20), cellB = c(161:191))
+cell_types <- list('Treg' = c(1:10),'cDC' = c(11:20),'CD4_TEM' = c(21:30),
+'Memory_B' = c(31:40))
 omicsList <- sc_omicData(list("scRNA-seq"))
 sim <- scMOSim(omicsList, cell_types)
 res <- scOmicResults(sim)

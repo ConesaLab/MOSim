@@ -63,8 +63,8 @@ to simulate the main dataset. Internal function
 }
 \examples{
 omicsList <- sc_omicData(list("scRNA-seq"))
-cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 
-    'Memory_B' = c(497:510), 'Treg' = c(868:900))
+cell_types <- list('Treg' = c(1:10),'cDC' = c(11:20),'CD4_TEM' = c(21:30),
+'Memory_B' = c(31:40))
 #estimated_params <- sc_param_estimation(omicsList, cell_types)
 
 }

@@ -24,13 +24,11 @@ Imports:
     rlang,
     stringi,
     stringr,
-    Rsamtools,
-    igraph,
-    leiden,
-    bluster,
     scran,
     Seurat,
-    Signac
+    Signac,
+    edgeR,
+    Rcpp
 Suggests:
     testthat,
     knitr,
@@ -45,7 +43,13 @@ Suggests:
     tidyr,
     Biobase,
     scater,
-    SingleCellExperiment
+    SingleCellExperiment,
+    decor,
+    markdown,
+    Rsamtools,
+    igraph,
+    leiden,
+    bluster
 Collate:
     'AllClass.R'
     'AllGeneric.R'
@@ -53,6 +57,7 @@ Collate:
     'SimulatorRegion.R'
     'ChIP-seq.R'
     'DNase-seq.R'
+    'MOSim-package.R'
     'functions.R'
     'Simulation.R'
     'MOSim.R'
@@ -63,6 +68,10 @@ Collate:
     'miRNA-seq.R'
     'sc_MOSim.R'
     'sc_coexpression.R'
+    'sparsim_functions.R'
     'zzz.R'
 RoxygenNote: 7.3.1
 VignetteBuilder: knitr
+LinkingTo: 
+    cpp11,
+    Rcpp

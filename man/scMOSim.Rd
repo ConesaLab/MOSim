@@ -91,15 +91,9 @@ a list of Seurat object, one per each omic.
 Performs multiomic simulation of single cell datasets
 }
 \examples{
-
-cell_types <- list(cellA = c(1:20), cellB = c(161:191))
-omicsList <- sc_omicData(list("scRNA-seq"))
-sim <- scMOSim(omicsList, cell_types)
-# or
-sim_with_arg <- scMOSim(omicsList, cell_types, numberReps = 2, 
-                    numberGroups = 2, diffGenes = list(c(0.2, 0.3)), 
-                    minFC = 0.25, maxFC = 4, numberCells = c(10,20),
-                    mean = c(2000000, 100000), sd = c(10^3, 10^3), 
-                    noiseRep = 0.1, noiseGroup = 0.5)
+omic_list <- sc_omicData(list("scRNA-seq"))
+cell_types <- list('Treg' = c(1:10),'cDC' = c(11:20),'CD4_TEM' = c(21:30),
+'Memory_B' = c(31:40))
+sim <- scMOSim(omic_list, cell_types)
 
 }

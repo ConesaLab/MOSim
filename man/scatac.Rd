@@ -13,12 +13,10 @@ A seurat Object, subset from seuratData with ATAC
      
  @source {https://github.com/satijalab/seurat-data, we took 11 cells 
  from each of 4 celltypes}
- @examples
 }
 \usage{
-data(scatac)
+data("scatac")
 }
 \description{
 Data to test scMOSim
 }
-\keyword{datasets}

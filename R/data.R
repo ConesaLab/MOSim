@@ -6,9 +6,10 @@
 #'      }
 #'      
 #'  @source {Created in-house to serve as an example}
-#'  @examples
-#' @usage data(associationList)
-"associationList"
+#' @name associationList
+#' @docType data
+#' @usage data("associationList")
+data(associationList)
 
 #' Data to test scMOSim
 #' @format A seurat Object, subset from seuratData with RNA
@@ -26,18 +27,17 @@
 #'  unique_cell_types <- unique(datATmeta.data$seurat_annotations)
 #'  extracted_cells <- list()
 #'  cellnames <- c()
-
 #'  for (cell_type in unique_cell_types) {
 #'    type_cells <- subset(dat, subset = seurat_annotations %in% cell_type)
 #'    counts <- as.matrix(type_cellsATassays[["RNA"]]ATcounts)
 #'    extracted_cells[[cell_type]] <- counts[, 1:10]
 #'    cellnames <- append(cellnames, replicate(11, cell_type))
 #'  }
-
 #'  scrna <- Reduce(cbind, extracted_cells)
-#'  @examples
-#' @usage data(scrna)
-"scrna"
+#' @name scrna
+#' @docType data
+#' @usage data("scrna")
+data(scrna)
 
 #' Data to test scMOSim
 #' @format A seurat Object, subset from seuratData with ATAC
@@ -48,6 +48,7 @@
 #'      
 #'  @source {https://github.com/satijalab/seurat-data, we took 11 cells 
 #'  from each of 4 celltypes}
-#'  @examples
-#' @usage data(scatac)
-"scatac"
+#' @name scatac
+#' @docType data
+#' @usage data("scatac")
+data(scatac)

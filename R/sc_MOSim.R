@@ -5,32 +5,26 @@
 NULL
 
 # Avoid harmless note with R CMD check
-if(getRversion() >= "2.15.1")  utils::globalVariables(c(".", "n", "sc_sampleData",
+if(getRversion() >= "2.15.1")  utils::globalVariables(c(".", "n",
                                               "feature", "seurat_annotations"))
 
 
 #' sc_omicData
 #'
 #' Checks if the user defined data is in the correct format, or loads the default
-#' multiomics pbmc dataset from SeuratData package
+#' multiomics pbmc dataset, a subset from SeuratData package
 #'
 #' @param omics_types A list of strings which can be either "scRNA-seq" or "scATAC-seq"
 #' @param data A user input matrix with genes (peaks in case of scATAC-seq) as 
 #'    rows and cells as columns. By default, it loads the example data.
 #'    If a user input matrix is included, cell columns must be sorted by cell t
-#'    ype. Alternatively, if you have installed seuratData, you can specify
-#'    data="seuratdata" and load the multiome PBMC dataset.
+#'    ype.
 #' @return a named list with omics type as name and the count matrix as value
 #' @export
 #'
 #' @examples
 #' # Simulate from PBMC
 #' omicsList <- sc_omicData(list("scRNA-seq", "scATAC-seq"))
-#' # Simulate using data from the user
-#' count <- omicsList[["scRNA-seq"]]
-#' options(Seurat.object.assay.version = "v3")
-#' Seurat_obj <- Seurat::CreateAssayObject(counts = count, assay = 'RNA')
-#' omic_list_user <- sc_omicData(c("scRNA-seq"), c(Seurat_obj))
 #'
 sc_omicData <- function(omics_types, data = NULL){
   # Check for mandatory parameters
@@ -58,60 +52,17 @@ sc_omicData <- function(omics_types, data = NULL){
       'Memory_B' = c(31:40))")
     for (omics in omics_types){
       if (omics == "scRNA-seq"){
-        counts <- MOSim::scrna
+        data_env <- new.env(parent = emptyenv())
+        data("scrna", envir = data_env, package = "MOSim")
+        counts <- data_env[["scrna"]]
       } else if (omics == "scATAC-seq"){
-        counts <- MOSim::scatac
+        data_env <- new.env(parent = emptyenv())
+        data("scatac", envir = data_env, package = "MOSim")
+        counts <- data_env[["scatac"]]
       }
       omics_list[[omics]] <- counts
     }
     
-  } else if (data=="seuratdata") {
-    
-    # Check if seuratdata is installed
-    if (require("SeuratData", quietly = TRUE)) {
-      ## Check we have the dataset installed
-      if (SeuratData::AvailableData()["pbmcMultiome.SeuratData","Installed"] != TRUE){
-        message("Installing pbmcMultiome dataset from SeuratData. This may take a while...")
-        options(timeout = 3000); SeuratData::InstallData("pbmcMultiome.SeuratData")
-      }
-      
-      for (omics in omics_types){
-        # Load data from seurat
-        if(omics == "scRNA-seq"){
-          dat <- pbmcMultiome.SeuratData::pbmc.rna
-          dat <- subset(x = dat, subset = seurat_annotations %in% c("CD4 TEM", 
-                                                                    "cDC", "Memory B", "Treg"))
-          counts <- as.matrix(dat@assays[["RNA"]]@counts)
-          # Tell the user which celltypes are present in the dataset
-          message(paste0("Celltypes in loaded Seurat's PBMC dataset: list('CD4_TEM' = ",
-                         "c(1:298), 'cDC' = c(299:496), 'Memory_B' = c(497:867),", 
-                         " 'Treg' = c(868:1029))"))
-        } else if (omics == "scATAC-seq"){
-          dat <- pbmcMultiome.SeuratData::pbmc.atac
-          dat <- subset(x = dat, subset = seurat_annotations %in% c("CD4 TEM", 
-                                                                    "cDC", "Memory B", "Treg"))
-          counts <- as.matrix(dat@assays[["ATAC"]]@counts)
-        }
-        
-        meta <- dat@meta.data$seurat_annotations
-        
-        metadf <- data.frame("meta" = meta, "cell" = colnames(counts))
-        # Sort the metadata according to cell_type
-        metadf <- metadf[order(metadf$meta),]
-        # Sort by celltype
-        counts <- counts[, metadf$cell]
-        omics_list[[omics]] <- counts
-      }
-    } else {
-      stop("You should either use the 'data' parameter to load a matrix or 
-           SeuratObject with scRNA or scATAC information, or install the package 
-           'SeuratData' to run it with Seurat's multiome dataset. You can 
-           find the instalation instructions here: 
-           <https://github.com/satijalab/seurat-data>")
-    }
-      
-    
-  # If nothing was passed to the data parameter, run by default
   } else {
     # If data was inputted by the user, first check
     if (!is.list(data) || length(data) != 1 && length(data) != 2){
@@ -171,8 +122,8 @@ sc_omicData <- function(omics_types, data = NULL){
 #' @export
 #' @examples
 #' omicsList <- sc_omicData(list("scRNA-seq"))
-#' cell_types <- list('CD4_TEM' = c(1:60), 'cDC' = c(299:310), 
-#'     'Memory_B' = c(497:510), 'Treg' = c(868:900))
+#' cell_types <- list('Treg' = c(1:10),'cDC' = c(11:20),'CD4_TEM' = c(21:30),
+#' 'Memory_B' = c(31:40))
 #' #estimated_params <- sc_param_estimation(omicsList, cell_types)
 #' 
 sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)), 
@@ -246,7 +197,7 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
   # of the group into account
   for(i in 1:N_omics){
     message(paste0("Estimating distribution from original data type: ", i))
-    param_est <- SPARSim::SPARSim_estimate_parameter_from_data(raw_data = omics[[i]],
+    param_est <- MOSim::sparsim_estimate_parameter_from_data(raw_data = omics[[i]],
                                                                norm_data = norm_list[[i]],
                                                                conditions = cellTypes)
     param_est_list[[paste0("param_est_", names(omics)[i])]] <- param_est
@@ -383,7 +334,7 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
       
       # Since we add the foldchange as a scalar, it's multiplied on top of all
       # celltypes, not only one.
-      cond_param <- SPARSim::SPARSim_create_simulation_parameter(
+      cond_param <- MOSim::sparsim_create_simulation_parameter(
         intensity = param_est_list[[i]][[j]][["intensity"]] * as.numeric(FClist[[i]]),
         variability = param_est_list[[i]][[j]][["variability"]],
         library_size = libs_param,
@@ -454,16 +405,10 @@ sc_param_estimation <- function(omics, cellTypes, diffGenes = list(c(0.2, 0.2)),
 #' @export
 #'
 #' @examples
-#'
-#' cell_types <- list(cellA = c(1:20), cellB = c(161:191))
-#' omicsList <- sc_omicData(list("scRNA-seq"))
-#' sim <- scMOSim(omicsList, cell_types)
-#' # or
-#' sim_with_arg <- scMOSim(omicsList, cell_types, numberReps = 2, 
-#'                     numberGroups = 2, diffGenes = list(c(0.2, 0.3)), 
-#'                     minFC = 0.25, maxFC = 4, numberCells = c(10,20),
-#'                     mean = c(2000000, 100000), sd = c(10^3, 10^3), 
-#'                     noiseRep = 0.1, noiseGroup = 0.5)
+#' omic_list <- sc_omicData(list("scRNA-seq"))
+#' cell_types <- list('Treg' = c(1:10),'cDC' = c(11:20),'CD4_TEM' = c(21:30),
+#' 'Memory_B' = c(31:40))
+#' sim <- scMOSim(omic_list, cell_types)
 #'
 scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1, 
                     diffGenes = NULL, minFC = 0.25, maxFC = 4,
@@ -500,7 +445,9 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
   } else if (is.null(associationList)){
     ## Get the association list loaded in the package
     message("Loading default association list from MOSim package")
-    associationList <- as.data.frame(MOSim::associationList)
+    data_env <- new.env(parent = emptyenv())
+    data("associationList", envir = data_env, package = "MOSim")
+    associationList <- data_env[["associationList"]]
   }
   
   if (is.null(regulatorEffect) && identical(names(omics[2]), "scATAC-seq")){
@@ -705,7 +652,7 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
       
       for(i in 1:N_omics){
         # Simulate the replicate
-        sim <- SPARSim::SPARSim_simulation(dataset_parameter = param_list[[i]])
+        sim <- MOSim::sparsim_simulation(dataset_parameter = param_list[[i]])
         sim <- sim[["count_matrix"]]
         # Generate a standard deviation to add to the matrix
         var_rep <- stats::rnorm(nrow(as.data.frame(omics[[i]])), 0, noiseRep)
@@ -778,7 +725,8 @@ scMOSim <- function(omics, cellTypes, numberReps = 1, numberGroups = 1,
 #'
 #' @examples
 #'
-#' cell_types <- list(cellA = c(1:20), cellB = c(161:191))
+#' cell_types <- list('Treg' = c(1:10),'cDC' = c(11:20),'CD4_TEM' = c(21:30),
+#' 'Memory_B' = c(31:40))
 #' omicsList <- sc_omicData(list("scRNA-seq"))
 #' sim <- scMOSim(omicsList, cell_types)
 #' res <- scOmicSettings(sim)
@@ -831,7 +779,8 @@ scOmicSettings <- function(sim){
 #' @export
 #' @examples
 #'
-#' cell_types <- list(cellA = c(1:20), cellB = c(161:191))
+#' cell_types <- list('Treg' = c(1:10),'cDC' = c(11:20),'CD4_TEM' = c(21:30),
+#' 'Memory_B' = c(31:40))
 #' omicsList <- sc_omicData(list("scRNA-seq"))
 #' sim <- scMOSim(omicsList, cell_types)
 #' res <- scOmicResults(sim)
