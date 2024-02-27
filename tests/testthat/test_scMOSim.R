@@ -1,6 +1,7 @@
 ## Test scMOSim
 
 suppressPackageStartupMessages(library(testthat))
+set.seed(123)
 
 # sc_omicData function
 testthat::test_that("Passing a wrong string in 'omics' returns Error", {
