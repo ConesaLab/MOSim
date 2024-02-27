@@ -44,6 +44,12 @@ check_patterns <- function(patterns_ret){
 #' 
 #' Function to make the tibble with cluster combinations for the gene expression
 #' patterns along the cells
+#' This function is a slightly modified copy of the `make_cluster_patterns` function
+#' from the `Acorde` package (v1.0.0), originally developed by Arzalluz-Luque A, 
+#' Salguero P, Tarazona S, Conesa A. (2022). acorde unravels functionally 
+#' interpretable networks of isoform co-usage from single cell data. Nature communications
+#' 1828. DOI: 10.1038/s41467-022-29497-w. The original package is licensed under the 
+#' GPL-3 license.
 #'
 #' @param numcells Number of different celltypes we are simulating
 #' @param clusters OPTIONAL. Number of co-expression patterns the user wants
@@ -103,6 +109,12 @@ make_cluster_patterns <- function(numcells = 4, clusters = 8){
 #' Adapted from ACORDE (https://github.com/ConesaLab/acorde) to adapt to our
 #' data input type. Simulates coexpression of genes along celltypes
 #'
+#' This function is a slightly modified copy of the `simulate_coexpression` function
+#' from the `Acorde` package (v1.0.0), originally developed by Arzalluz-Luque A, 
+#' Salguero P, Tarazona S, Conesa A. (2022). acorde unravels functionally 
+#' interpretable networks of isoform co-usage from single cell data. Nature communications
+#' 1828. DOI: 10.1038/s41467-022-29497-w. The original package is licensed under the 
+#' GPL-3 license.
 #' @param sim_matrix Matrix with rows as features and columns as cells
 #' @param feature_no Total number of features to be distributed between the 
 #'    coexpression clusters
@@ -234,6 +246,12 @@ simulate_coexpression <- function(sim_matrix,
 #' shuffle_group_matrix, Reorder cell type-specific expression matrix during 
 #' co-expression simulation. Copied from ACORDE (https://github.com/ConesaLab/acorde)
 #' to facilitate stability and running within our scripts
+#' This function is a slightly modified copy of the `shuffle_group_matrix` function
+#' from the `Acorde` package (v1.0.0), originally developed by Arzalluz-Luque A, 
+#' Salguero P, Tarazona S, Conesa A. (2022). acorde unravels functionally 
+#' interpretable networks of isoform co-usage from single cell data. Nature communications
+#' 1828. DOI: 10.1038/s41467-022-29497-w. The original package is licensed under the 
+#' GPL-3 license.
 #' 
 #' @description This function is used internally by \code{acorde} to perform
 #' the shuffling of simulated features for an individual cell type, as part of

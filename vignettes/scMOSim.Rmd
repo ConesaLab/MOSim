@@ -47,9 +47,7 @@ you to create synthetic single-cell multi-omics data. Let's explore a
 typical example of its usage, using the default dataset loaded in the package:
 
 ```{r test_run, eval = FALSE}
-#library(MOSim)
-
-devtools::load_all()
+library(MOSim)
 
 # Create a list of omics data types (e.g., scRNA-seq and scATAC-seq)
 omicsList <- sc_omicData(list("scRNA-seq", "scATAC-seq"), 
@@ -60,13 +58,13 @@ cell_types <- list('Treg' = c(1:10),'cDC' = c(11:20),'CD4_TEM' = c(21:30),
       'Memory_B' = c(31:40))
 
 # Load an association list containing peak IDs related to gene names
-associationList <- MOSim::associationList
+associationList <- data(associationList)
 
 # Simulate multi-omics data with specific parameters
 testing_groups <- scMOSim(
   omicsList,
   cell_types,
-  numberReps = 1,
+  numberReps = 2,
   numberGroups = 3,
   diffGenes = list(c(0.2, 0.3), c(0.2, 0.3)),
   minFC = 0.25,

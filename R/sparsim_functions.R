@@ -1,5 +1,6 @@
-# Since SPARSim is neiher on CRAN nor bioconductor, we need to get the functions
-# We need from them. These are
+# Since SPARSim is neiher on CRAN nor bioconductor and scMOSim strongly relies  
+# on SPARSim functionality, we had to include the Main and auxiliary functions  
+# we use into the code. The main functions used are:
 #    - SPARSIM_estimate_parameter_from_data
 #    - SPARSIM_create_simulator_parameter
 #    - SPARSIM_simulation
@@ -12,7 +13,10 @@
 
 #' random_unif_interval
 #' Function to call the C code
-#'
+#' This function is a copy of the `random_unif_interval` function from the 
+#' `SPARSim` package (v0.9.5), originally developed by Giacomo Baruzzo, 
+#' Ilaria Patuzzi, Barbara Di Camillo (2020). The original package is licensed 
+#' under the GPL-3 license.
 #' @param size from sparsim
 #' @param max_val from sparsim
 #'
@@ -26,7 +30,10 @@ random_unif_interval <- function(size, max_val) {
 #' Create SPARSim simulation parameter
 #'
 #' Function to create a SPARSim simulation parameter.
-#'
+#' This function is a copy of the `SPARSIM_create_simulation_parameter` function from the 
+#' `SPARSim` package (v0.9.5), originally developed by Giacomo Baruzzo, 
+#' Ilaria Patuzzi, Barbara Di Camillo (2020). The original package is licensed 
+#' under the GPL-3 license.
 #' To simulate N feature (e.g. genes), user must specify N values of gene expression level and gene expression variability in the function input parameters \code{intensity} and \code{variability}, respectively.
 #' To simulate M samples (i.e. cells), user must specify M values of sample library size in the function input parameter \code{library_size}.
 #'
@@ -95,6 +102,10 @@ sparsim_create_simulation_parameter <- function(intensity, variability, library_
 #'
 #' Function to estimate the intensity values from the genes in \code{data}. The intensity is computed as mean of normalized counts for each gene.
 #'
+#' This function is a copy of the `SPARSIM_estimate_intensity` function from the
+#' `SPARSim` package (v0.9.5), originally developed by Giacomo Baruzzo,
+#' Ilaria Patuzzi, Barbara Di Camillo (2020). The original package is licensed
+#' under the GPL-3 license.
 #' This function is used in \code{sparsim_estimate_parameter_from_data} to compute SPARSim "intensity" parameter, given a real count table as input.
 #' If the count table contains more than one experimental condition, then the function is applied to each experimental conditions.
 #'
@@ -119,6 +130,10 @@ sparsim_estimate_intensity <- function(data){
 #'
 #' Function to estimate the variability values from the genes in \code{data}.
 #'
+#' This function is a copy of the `SPARSIM_estimate_variability` function from the
+#' `SPARSim` package (v0.9.5), originally developed by Giacomo Baruzzo,
+#' Ilaria Patuzzi, Barbara Di Camillo (2020). The original package is licensed
+#' under the GPL-3 license.
 #' This function is used in \code{sparsim_estimate_parameter_from_data} to compute SPARSim "variability" parameter, given a real count table as input.
 #' If the count table contains more than one experimental condition, then the function is applied to each experimental conditions.
 #'
@@ -170,6 +185,10 @@ sparsim_estimate_variability <- function (data){
 #'
 #' Function to estimate the library sizes from the samples in \code{data}.
 #'
+#' This function is a copy of the `SPARSIM_estimate_library_size` function from the
+#' `SPARSim` package (v0.9.5), originally developed by Giacomo Baruzzo,
+#' Ilaria Patuzzi, Barbara Di Camillo (2020). The original package is licensed
+#' under the GPL-3 license.
 #' This function is used in \code{sparsim_estimate_parameter_from_data} to compute SPARSim "library size" parameter, given a real count table as input.
 #' If the count table contains more than one experimental condition, then the function is applied to each experimental conditions.
 #'
@@ -187,6 +206,10 @@ sparsim_estimate_library_size <- function (data){
 #' Function to estimate SPARSim simulation parameters (intensity, variability and library sizes) from a real count table.
 #' If the real count table contains more than one experimental condition, it is possible to estimate the parameters for each experimental condition.
 #'
+#' This function is a copy of the `SPARSIM_estimate_parameter_from_data` function from the
+#' `SPARSim` package (v0.9.5), originally developed by Giacomo Baruzzo,
+#' Ilaria Patuzzi, Barbara Di Camillo (2020). The original package is licensed
+#' under the GPL-3 license.
 #' @param raw_data count matrix (gene on rows, samples on columns) containing raw count data
 #' @param norm_data count matrix (gene on rows, samples on columns) containing normalized count data
 #' @param conditions list where the i-th element of the list contains the column indices for i-th experimental conditions. List must be a named list.
@@ -269,6 +292,10 @@ sparsim_estimate_parameter_from_data <- function (raw_data, norm_data, condition
 #'
 #' Function to simulate the technical variability (i.e. a multivariate hypergeometric on a gamma expression value array)
 #'
+#' This function is a copy of the `simulate_hyper` function from the
+#' `SPARSim` package (v0.9.5), originally developed by Giacomo Baruzzo,
+#' Ilaria Patuzzi, Barbara Di Camillo (2020). The original package is licensed
+#' under the GPL-3 license.
 #' @param avgAbund array containing the intensity values for each feature. It describes the intensity of a single sample
 #' @param seqdepth sequencing depth (i.e. sample size of the MH)
 #' @param digits number of digits for random number generation
@@ -303,6 +330,10 @@ simulate_hyper <- function(avgAbund, seqdepth = NULL, digits, max_val) {
 
 #' Function to simulate a raw count table
 #'
+#' This function is a copy of the `SPARSIM_simulation` function from the
+#' `SPARSim` package (v0.9.5), originally developed by Giacomo Baruzzo,
+#' Ilaria Patuzzi, Barbara Di Camillo (2020). The original package is licensed
+#' under the GPL-3 license.
 #' @param dataset_parameter list containing, the intensity, variability and lib sizes of each experimental condition. It is the return value of "estimate_parameter_from_data" or could be created by the users
 #' @param output_sim_param_matrices boolean flag. If TRUE, the function will output two additional matrices, called abundance_matrix and variability_matrix, containing the gene intensities and gene variabilities used as simulation input. (Default: FALSE)
 #' @param output_batch_matrix boolean flag. If TRUE, the function will output an additional matrix, called batch_factors_matrix, containing the multiplicative factors used in batch effect simulation. (Default: FALSE)
