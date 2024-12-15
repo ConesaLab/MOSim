@@ -27,7 +27,9 @@ Due to the potentially great amount of information generated, multiple helper fu
 
 The outcome of the simulation process depends on two types of input information: the specific parameters of each omic to be simulated and the experimental design.
 
-The experimental design options are flexible. The user can choose the number of experimental groups and the number of replicates. Time series data can also be simulated and, again, the user may decide the number of time points.
+The experimental design options are flexible. The user can choose the number of experimental groups and the number of replicates. Time series data can also be simulated and, again, the user may decide the number of time points.  
+
+MOSim has great flexibility in defining experimental designs, DEGs, and active regulators making it a versatile tool for a variety of different applications: i) validating methods aimed at modelling complex, multi-layered regulatory networks, ii) benchmarking multi-omics data integration pipelines, iii) benchmarking GRN inference tools, iv) evaluating differential expression and accessibility analysis tools, v) testing single-cell data clustering methods, vi) evaluating multi-omics visualization tools etc.
 
 The process starts by simulating RNA-seq (gene expression) data. To do that, the program takes a sample from the supplied identifiers (row names of the initial count dataset) and labels them as differentially expressed genes (DEG). The percentage of DEG can be configured by the user, as many other settings that will be described in this vignette. A gene is considered to be differentially expressed if the expression of the gene changes (i) between the reference experimental group (group 1) and at least one of the remaining groups in the experimental design or (ii) across time.
 
