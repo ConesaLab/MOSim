@@ -6,4 +6,6 @@ Changes in version 1.2.0 (2023-03-08)
 Changes in version 2.0 (2023-07-21)
 + Added scMOSim functionality
 Changes in version 2.1.0 (2024-05-09)
-+ Added TF simulation to scMOSim
++ Added TF simulation to scMOSim  
+Changes in version 2.1.1 (2025-03-25)  
++ Fixed minor bugs

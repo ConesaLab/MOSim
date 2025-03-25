@@ -1,13 +1,14 @@
 ---
 title: "Simulating bulk Multi-Omics Data with MOSim"
-author:
-- name: Carlos Martínez
-- name: Carolina Monzó
-- name: Sonia Tarazona
+author: 
+  - name: Carolina Monzó
+  - name: Carlos Martínez
+  - name: Sonia Tarazona
 date: "`r Sys.Date()`"
-output: pdf_document
-vignette: |
-  %\VignetteEngine{knitr::knitr} %\VignetteIndexEntry{Wiki of how to use mosim} %\usepackage[utf8]{inputenc}
+vignette: >
+  %\VignetteEngine{knitr::knitr}
+  %\VignetteIndexEntry{Wiki of how to use mosim}
+  %\usepackage[utf8]{inputenc}
 ---
 
 # mosim
@@ -15,7 +16,7 @@ vignette: |
 ## Abstract
 This vignette describes the basic usage of MOSim package, showing how to perform a simulation, extract and interpret the information from the generated object, touching also some more advanced use cases.
 
-## Introduction{#algorithm}
+## Introduction
 
 `MOSim` package simulates multi-omic experiments that mimic regulatory mechanisms within the cell. Gene expression (RNA-seq count data) is the central data type and the rest of available omic data types act as regulators of genes, including DNase-seq (ATAC-seq), ChIP-seq, miRNA-seq and Methyl-seq. In addition, transcription factor (TF) regulation can also be modeled.
 
@@ -35,33 +36,44 @@ The process starts by simulating RNA-seq (gene expression) data. To do that, the
 
 When time course data is to be simulated, `MOSim` assigns one of the following profiles to each of the DEGs in each of the experimental groups:
 
-\begin{description}
-    - [Continuous induction] lineal increase of the activity of the gene with time.
-    - [Continuous repression] lineal decrease of the activity of the gene with time.
-    - [Transitory induction] inactive gene at the initial time, with progressive increasing of the activity followed by a decrease.
-    - [Transitory repression] active gene at the initial time, with progressive decreasing of the activity followed by an increase.
-    - [Flat] the activity of the gene remains constant along time.
-\end{description}
+* [Continuous induction] lineal increase of the activity of the gene with time.
+* [Continuous repression] lineal decrease of the activity of the gene with time.
+* [Transitory induction] inactive gene at the initial time, with progressive increasing of the activity followed by a decrease.
+* [Transitory repression] active gene at the initial time, with progressive decreasing of the activity followed by an increase.
+* [Flat] the activity of the gene remains constant along time.
 
+```{r figure1, echo=FALSE, eval=TRUE, warning=FALSE}
+library(ggplot2)
+library(gridExtra)
 
-\begin{figure}[!tpb]
-    \centering
-    \setlength{\fboxsep}{1.5em}
-    \fbox{
-    \begin{tikzpicture}
-    \node (flat) at (0,0) {Flat};
-    \node[below= of flat.west, anchor=west, yshift=-0.5cm] (cind)  {Continuous induction (CI)};
-    \node[below= of cind.west, anchor=west, yshift=-0.5cm] (crep)  {Continuous repression (CR)};
-    \node[below= of crep.west, anchor=west, yshift=-0.5cm] (tind)  {Transitory induction (TI)};
-    \node[below= of tind.west, anchor=west, yshift=-0.5cm] (trep)  {Transitory repression (TR)};
-    \draw [line width=0.55mm, red ] (5,0) -- (6,0);
-    \draw [line width=0.55mm, red ] (5,-1.8) -- (6,-1.2);
-    \draw [line width=0.55mm, red ] (5,-2.7) -- (6,-3.3);
-    \draw [line width=0.55mm, red ] (5,-4.8) to[out=60,in=180]  (5.5,-4.2) to[out=0, in=120] (6,-4.8);
-    \draw [line width=0.55mm, red ] (5,-5.7) to[out=-60,in=180]  (5.5,-6.3) to[out=0, in=240] (6,-5.7);
-    \end{tikzpicture}}%
-    \caption{Time profiles representation.}{#fig:profiles}
-\end{figure}
+# Define the data for lines
+line_data <- data.frame(
+  x = c(5, 5, 5, 5, 5),
+  xend = c(6, 6, 6, 5.5, 5.5),
+  y = c(0, -1.8, -2.7, -4.8, -5.7),
+  yend = c(0, -1.2, -3.3, -4.2, -6.3),
+  curve = c(FALSE, FALSE, FALSE, TRUE, TRUE)
+)
+
+# Create plot
+p <- ggplot() +
+  geom_segment(data = subset(line_data, !curve),
+               aes(x = x, y = y, xend = xend, yend = yend),
+               color = "red", size = 1) +
+  geom_curve(data = subset(line_data, curve),
+             aes(x = x, y = y, xend = xend, yend = yend),
+             curvature = 0.5, color = "red", size = 1) +
+  annotate("text", x = 0, y = 0, label = "Flat", hjust = 0) +
+  annotate("text", x = 0, y = -1.5, label = "Continuous induction (CI)", hjust = 0) +
+  annotate("text", x = 0, y = -2.7, label = "Continuous repression (CR)", hjust = 0) +
+  annotate("text", x = 0, y = -4.8, label = "Transitory induction (TI)", hjust = 0) +
+  annotate("text", x = 0, y = -5.7, label = "Transitory repression (TR)", hjust = 0) +
+  theme_void()
+
+# Display the figure
+grid.arrange(p)
+```
+
 
 If a DEG is assigned to a flat profile in all groups, the algorithm will model a change in expression for at least one of the experimental groups (up or down regulation).
 
@@ -71,12 +83,9 @@ Once gene expression settings have been set, regulatory omics are configured. Th
 Similarly to how the percentage of DEG could be specified for RNA-seq, the user can indicate the percentage of regulators that should be activators, repressors or with no-effect in each regulatory omic. However, these initial percentages can be affected, as regulatory relationships must be coherent with assigned profiles or selection of DEG. For instance, when a regulator has an effect on more than one DEG and these DEGs have opposite profiles, the type of effect must be forced to match the profiles. In fact, and related to this, if a regulator is potentially associated to more than one DEG with different profiles, the system has to decide which profile should be assigned to the regulator. For that, `MOSim` takes the profile class (combination of profiles for all groups, for example CI-FL-CR in groups 1, 2 and 3 respectively) with more DEGs associated to the regulator (majority class) and assigns the corresponding profile to the regulator: depending on the regulator effect, the profile will be the same for activation effect (following the example, CI-FL-CR for groups 1, 2 and 3) or the opposite for repression (CR-FL-CI). The interactions with genes not included in the majoritary class are automatically classified as "activator" if the profiles are the same, "repressor" if the are the totally opposite (CI vs CR, TI vs TR) or "no-effect" in any other case. Importantly, when generating user-defined percentages of regulators assigned as activators, repressors or no-effect, these percentages are subject to the number of DEG. If the percentage of regulators is higher than what is possible to generate within the constraint of the simulated DEG, `MOSim` generates as many regulator-DEG relationships as possible, but may generate a lower percentage than requested. In those cases, inducing a higher percentage of DEG (diffGenes parameter) will allow for a higher percentage of regulating regulators.
 
 In brief, `MOSim` usage can be summed up in 3 main steps that will be described in the next sections:
-
-\begin{enumerate}
-    -  Decide the experimental design, omics list and input data to use.
-    -  Generate a simulation object using the wrapper function \Rfunction{mosim}, in combination with the methods \Rfunction{omicData} and \Rfunction{omicSim}.
-    -  Extract the results from the simulation object with the helper functions \Rfunction{omicResults} and \Rfunction{omicSettings}.
-\end{enumerate}
+* Decide the experimental design, omics list and input data to use.
+* Generate a simulation object using the wrapper function \Rfunction{mosim}, in combination with the methods \Rfunction{omicData} and \Rfunction{omicSim}.
+* Extract the results from the simulation object with the helper functions \Rfunction{omicResults} and \Rfunction{omicSettings}.
 
 ## Getting started
 
@@ -102,13 +111,11 @@ devtools::install_github("ConesaLab/MOSim")
 For the experimental design of the simulation, there are 3 parameters to be set: the number of experimental groups or conditions, the number of time points (1, if time series are not to be considered) and the number of replicates per condition. The only requirements, so that the algorithm can simulate differential expression, are at least 2 groups with no time points, or 1 group with at least 2 time points.
 
 The list of omics to be simulated must be also provided. At this moment `MOSim` supports the following data types:
-\begin{itemize}
-    -  RNA-seq (compulsory)
-    -  DNase-seq
-    -  ChIP-seq
-    -  Methyl-seq
-    -  miRNA-seq
-\end{itemize}
+* RNA-seq (compulsory)
+* DNase-seq
+* ChIP-seq
+* Methyl-seq
+* miRNA-seq
 
 The simulation needs gene expression to be present, so RNA-seq will be included always even if it is not specified by the user. The simulation of transcription factors (TF) is also supported as a subset of RNA-seq simulated data.
 
@@ -134,22 +141,22 @@ Internally, this helper function creates a series of S4 objects according to the
 
 The main arguments accepted by `mosim` function are:
 
-    - [omics] Character vector containing the names of the omics to simulate, which can be "RNA-seq", "miRNA-seq", "DNase-seq", "ChIP-seq" or "Methyl-seq"  (e.g. c("RNA-seq", "miRNA-seq")). It can also be a list with the omic names as names and their options as values, but we recommend to use the argument omicsOptions to provide the options to simulate each omic.
-    - [omicsOptions] List containing the options to simulate for each omic. We recommend to apply the helper method \Rfunction{omicSim} to create this list in a friendly way, and the function \Rfunction{omicData} to provide custom data (see the related sections for more information). Each omic may have different configuration parameters, but the common ones are:
+* [omics] Character vector containing the names of the omics to simulate, which can be "RNA-seq", "miRNA-seq", "DNase-seq", "ChIP-seq" or "Methyl-seq"  (e.g. c("RNA-seq", "miRNA-seq")). It can also be a list with the omic names as names and their options as values, but we recommend to use the argument omicsOptions to provide the options to simulate each omic.
+* [omicsOptions] List containing the options to simulate for each omic. We recommend to apply the helper method \Rfunction{omicSim} to create this list in a friendly way, and the function \Rfunction{omicData} to provide custom data (see the related sections for more information). Each omic may have different configuration parameters, but the common ones are:
 
-            - [simuData/idToGene] Seed sample and association tables for regulatory omics. The helper function \Rfunction{omicData} should be used to provide this information (see the following section).
-            - [regulatorEffect] For regulatory omics. List containing the percentage of effect types (repressor, activator or no effect) over the total number of regulators. For example \Robject{list('repressor' = 0.05, 'NE' = 0.95)}. Remember that these numbers might be modified by the algorithm as explained in section ~\@ref(algorithm).
-            - [totalFeatures] Number of features to simulate. By default, the total number of features in the seed dataset.
-            - [depth] Sequencing depth in millions of reads. If not provided, it takes the global parameter passed to \Rfunction{mosim} function.
-            - [replicateParams] List with parameters $a$ and $b$ for adjusting the variability in the generation of replicates using the negative binomial. See section \@ref(advanced) for more information.
+  + [simuData/idToGene] Seed sample and association tables for regulatory omics. The helper function \Rfunction{omicData} should be used to provide this information (see the following section).
+  + [regulatorEffect] For regulatory omics. List containing the percentage of effect types (repressor, activator or no effect) over the total number of regulators. For example \Robject{list('repressor' = 0.05, 'NE' = 0.95)}. Remember that these numbers might be modified by the algorithm as explained in section ~\@ref(algorithm).
+  + [totalFeatures] Number of features to simulate. By default, the total number of features in the seed dataset.
+  + [depth] Sequencing depth in millions of reads. If not provided, it takes the global parameter passed to \Rfunction{mosim} function.
+  + [replicateParams] List with parameters $a$ and $b$ for adjusting the variability in the generation of replicates using the negative binomial. See section \@ref(advanced) for more information.
 
-    - [diffGenes] Number of differentially expressed genes to simulate, given in percentage (0 - 1) or in absolute number (> 1).
-    - [numberGroups] Number of experimental groups or conditions to simulate.
-    - [numberReps] Number of replicates per experimetal condition.
-    - [times] Vector of time points to consider in the experimental design.
-    - [depth] Sequencing depth in millions of reads.
-    - [minMaxFC] Vector of minimum and maximum fold-change allowed for differentially expressed features.
-    - [TFtoGene] A logical value indicating if default transcription factors data should be used (TRUE) or not (NULL), or a 3 column data frame containing custom associations as explained in \@ref(sec:TF). For transcription factors, the count matrix is not simulated like in the other omics but extracted from RNA-seq simulated data. Default value = NULL.
+  + [diffGenes] Number of differentially expressed genes to simulate, given in percentage (0 - 1) or in absolute number (> 1).
+  + [numberGroups] Number of experimental groups or conditions to simulate.
+  + [numberReps] Number of replicates per experimetal condition.
+  + [times] Vector of time points to consider in the experimental design.
+  + [depth] Sequencing depth in millions of reads.
+  + [minMaxFC] Vector of minimum and maximum fold-change allowed for differentially expressed features.
+  + [TFtoGene] A logical value indicating if default transcription factors data should be used (TRUE) or not (NULL), or a 3 column data frame containing custom associations as explained in \@ref(sec:TF). For transcription factors, the count matrix is not simulated like in the other omics but extracted from RNA-seq simulated data. Default value = NULL.
 
 
 The most basic example of `mosim` function usage is calling it with only the list of omics to simulate. In this case, the default values will be used, including the default data samples.
@@ -219,11 +226,9 @@ The function `omicData` was designed to help users to provide their own seed dat
 
 This helper function accepts 3 parameters:
 
-\begin{description}
-    - [omic] The name of the omic data type whose seed sample is to be provided. The omic names must be included in the list of accepted omics.
-    - [data] Count data. A data frame or ExpressionSet object with the omic identifiers as row names and just one column named \texttt{Counts}, containing the counts to be used as seed sample in the simulation for that omic.
-    - [associationList] Only for regulatory omics. Data frame with 2 columns containing the potential associations between genes and regulators. The first column, called \texttt{ID}, must contain the regulator IDs, and the second column, called \texttt{Gene}, must contain the gene identifiers.
-\end{description}
+* [omic] The name of the omic data type whose seed sample is to be provided. The omic names must be included in the list of accepted omics.
+* [data] Count data. A data frame or ExpressionSet object with the omic identifiers as row names and just one column named \texttt{Counts}, containing the counts to be used as seed sample in the simulation for that omic.
+* [associationList] Only for regulatory omics. Data frame with 2 columns containing the potential associations between genes and regulators. The first column, called \texttt{ID}, must contain the regulator IDs, and the second column, called \texttt{Gene}, must contain the gene identifiers.
 
 
 For illustration purposes, consider as our custom data a subset of the default gene expression dataset. To use it as our seed RNA-seq dataset, we can use this code:
@@ -364,12 +369,10 @@ The `omicsOptions` parameter accepts a list, but the `MOSim` helper function, `o
 
 \Robject{omicSim(omics, depth = NULL, totalFeatures = NULL, regulatorEffect = NULL)}
 
-\begin{description}
-    - [omics] String containing the name of the omic to simulate, which can be "RNA-seq", "miRNA-seq", "DNase-seq", "ChIP-seq" or "Methyl-seq".
-    - [depth] Sequencing depth in millions of reads. If not provided, it takes the global parameter passed to \Rfunction{mosim} function.
-    - [totalFeatures] Number of features to simulate. By default, the total number of features in the seed dataset.
-    - [regulatorEffect] List containing the percentage of effect types (repressor, activator or no effect) over the total number of regulators. For example \Robject{list('repressor' = 0.05, 'NE' = 0.95)}.
-\end{description}
+* [omics] String containing the name of the omic to simulate, which can be "RNA-seq", "miRNA-seq", "DNase-seq", "ChIP-seq" or "Methyl-seq".
+* [depth] Sequencing depth in millions of reads. If not provided, it takes the global parameter passed to \Rfunction{mosim} function.
+* [totalFeatures] Number of features to simulate. By default, the total number of features in the seed dataset.
+* [regulatorEffect] List containing the percentage of effect types (repressor, activator or no effect) over the total number of regulators. For example \Robject{list('repressor' = 0.05, 'NE' = 0.95)}.
 
 Back to the first basic example of RNA-seq simulation using the default dataset, the code to use if we wish to restrict the number of features is:
 
@@ -433,24 +436,22 @@ After running `mosim`, an S4 object is generated containing all the information 
 
 For user understanding, the `simulation` object has the following structure:
 
-\begin{description}
-    - [simulators] Vector containing either S4 initialized classes of simulators or a list with the class name as keys, and its options as value.
-    - [totalGenes] A number with the total number of genes including not expressed. Overwritten if a genome reference is provided.
-    - [diffGenes] A scalar with the total number of differential genes if value > 1 or if value < 1, the \% of total genes.
-    - [numberReps] Number of replicates of the experiment.
-    - [numberGroups] Number of groups considered on the experiment.
-    - [times] Numeric vector containing the measured times. If numberGroups < 2, the number of times must be at least 2.
-    - [geneNames] Read only. List containing the IDs of the genes. Overwritten by the genome reference if provided.
-    - [simSettings] List of settings that overrides initializing the configuration of the simulation by passing a previously generated list.
-    - [noiseFunction] Noise function to apply when simulating counts. Must accept the parameter 'n' and return a vector of the same length. Defaults to `rnorm` function.
-    - [profiles] Named list containing the patterns with their coefficients.
-    - [profileProbs] Numeric vector with the probabilities to assign each of the patterns. Defaults to 0.2 for each.
-    - [noiseParams] Default noise parameters to be used with noise function.
-    - [depth] Default depth to simulate (million of reads).
-    - [TFtoGene] Boolean (for default data) or 3 column data frame containing Symbol-TFGene-LinkedGene
-    - [minMaxQuantile] Numeric vector of length 2 indicating the quantiles to use in order to retrieve the absolute minimum and maximum value that a differentially expressed feature can have.
-    - [minMaxFC] Numeric vector of length 2 indicating the minimum and maximum fold-change that a differentially expressed feature can have.
-\end{description}
+* [simulators] Vector containing either S4 initialized classes of simulators or a list with the class name as keys, and its options as value.
+* [totalGenes] A number with the total number of genes including not expressed. Overwritten if a genome reference is provided.
+* [diffGenes] A scalar with the total number of differential genes if value > 1 or if value < 1, the \% of total genes.
+* [numberReps] Number of replicates of the experiment.
+* [numberGroups] Number of groups considered on the experiment.
+* [times] Numeric vector containing the measured times. If numberGroups < 2, the number of times must be at least 2.
+* [geneNames] Read only. List containing the IDs of the genes. Overwritten by the genome reference if provided.
+* [simSettings] List of settings that overrides initializing the configuration of the simulation by passing a previously generated list.
+* [noiseFunction] Noise function to apply when simulating counts. Must accept the parameter 'n' and return a vector of the same length. Defaults to `rnorm` function.
+* [profiles] Named list containing the patterns with their coefficients.
+* [profileProbs] Numeric vector with the probabilities to assign each of the patterns. Defaults to 0.2 for each.
+* [noiseParams] Default noise parameters to be used with noise function.
+* [depth] Default depth to simulate (million of reads).
+* [TFtoGene] Boolean (for default data) or 3 column data frame containing Symbol-TFGene-LinkedGene
+* [minMaxQuantile] Numeric vector of length 2 indicating the quantiles to use in order to retrieve the absolute minimum and maximum value that a differentially expressed feature can have.
+* [minMaxFC] Numeric vector of length 2 indicating the minimum and maximum fold-change that a differentially expressed feature can have.
 
 
 #### Retrieving the simulation settings: `omicSettings`
@@ -460,15 +461,14 @@ The helper function `omicSettings` is used to extract the settings used in the s
 `omicSettings(simulation, omics = NULL, association = FALSE, reverse = FALSE, only.linked = FALSE, include.lagged = TRUE)`
 
 The following parameters are accepted by the function:
-\begin{description}
-    - [simulation] Simulation object returned by \Rfunction{mosim} function.
-    - [omics] List with the names of the omic data types whose settings are to be retrieved.
-    - [association] A logical value. If TRUE, the original association lists used in the simulation are included.
-    - [reverse] A logical value. If TRUE, it swaps the column order in the association list in case we want to use the output directly and the program requires a different ordering.
-    - [only.linked] A logical value. If TRUE, it returns only the regulator-gene interactions with effect.
-    - [include.lagged] A logical value. If TRUE it will return the full settings table including regulator-gene interactions in which the minimum/maximum value for transitory profiles does not perfectly match, otherwise they will be filtered.
-    % - [prefix] prepend the omic name to the
-\end{description}
+
+* [simulation] Simulation object returned by \Rfunction{mosim} function.
+* [omics] List with the names of the omic data types whose settings are to be retrieved.
+* [association] A logical value. If TRUE, the original association lists used in the simulation are included.
+* [reverse] A logical value. If TRUE, it swaps the column order in the association list in case we want to use the output directly and the program requires a different ordering.
+* [only.linked] A logical value. If TRUE, it returns only the regulator-gene interactions with effect.
+* [include.lagged] A logical value. If TRUE it will return the full settings table including regulator-gene interactions in which the minimum/maximum value for transitory profiles does not perfectly match, otherwise they will be filtered.
+* [prefix] prepend the omic name to the
 
 Users can choose to recover the setting for all the simulated omics or just for some of them:
 
@@ -482,66 +482,64 @@ all_settings <- omicSettings(multi_simulation)
 ```
 
 For RNA-seq, the settings table has an structure similar to this:
+```{r table1, echo = FALSE, eval = TRUE, warning = FALSE}
+# Create the data frame
+df <- data.frame(
+  ID = c("ENSMUSG00000017204", "ENSMUSG00000097082", "ENSMUSG00000055493", 
+         "ENSMUSG00000017221", "ENSMUSG00000020205", "ENSMUSG00000087802"),
+  DE = c(TRUE, TRUE, TRUE, TRUE, TRUE, FALSE),
+  Group1 = c("transitory.induction", "transitory.induction", "transitory.induction", 
+             "transitory.induction", "transitory.induction", "flat"),
+  Group2 = c("continuous.repression", "transitory.induction", "continuous.repression", 
+             "continuous.induction", "continuous.induction", "flat"),
+  Tmax_Group1 = c(2.57, 1.46, 2.37, 2.63, 2.83, NA),
+  Tmax_Group2 = c(NA, 2.23, NA, NA, NA, NA)
+)
 
-% latex table generated in R 3.4.4 by xtable 1.8-2 package
-% Tue Jun 19 14:46:02 2018
-\begin{table}[ht]
-\resizebox{\textwidth}{!}{
-\begin{tabular}{llllrr}
-  \hline
-ID & DE & Group1 & Group2 & Tmax.Group1 & Tmax.Group2 \\
-  \hline
-ENSMUSG00000017204 & TRUE & transitory.induction & continuous.repression & 2.57 & NA \\
-  ENSMUSG00000097082 & TRUE & transitory.induction & transitory.induction & 1.46 & 2.23 \\
-  ENSMUSG00000055493 & TRUE & transitory.induction & continuous.repression & 2.37 & NA \\
-  ENSMUSG00000017221 & TRUE & transitory.induction & continuous.induction & 2.63 & NA \\
-  ENSMUSG00000020205 & TRUE & transitory.induction & continuous.induction & 2.83 & NA \\
-  ENSMUSG00000087802 & FALSE & flat & flat & NA & NA \\
-   \hline
-\end{tabular}
-}
-\end{table}
+# Generate the table
+print(df, row.names = FALSE)
+```
+
 
 Each column provides different information about the settings used to carry on the simulation:
 
-\begin{description}
-    - [ID] Gene identifier.
-    - [DE] A logical value indicating if the gene was selected as differentially expressed (TRUE) or not (FALSE).
-    - [GroupX] There will be as many group columns as groups defined in the experimental design, each one containing the type of expression profile assigned to the gene in the simulation.
-    - [Tmax.GroupX] For transitory profiles, the time point with the absolute maximum (or minimum) value.
-\end{description}
+* [ID] Gene identifier.
+* [DE] A logical value indicating if the gene was selected as differentially expressed (TRUE) or not (FALSE).
+* [GroupX] There will be as many group columns as groups defined in the experimental design, each one containing the type of expression profile assigned to the gene in the simulation.
+* [Tmax.GroupX] For transitory profiles, the time point with the absolute maximum (or minimum) value.
 
 For regulatory omics, the structure will slightly differ from RNA-seq, adding additional columns. Note that in this example, for reading purposes, the last 4 columns containing the `Tmax.GroupX` and `Lagged.GroupX` have been omitted:
+```{r table2, echo = FALSE, eval = TRUE, warning = FALSE}
+df <- data.frame(
+  ID = c("10_111588324_111588448", "10_111588324_111588448", 
+         "10_11358301_11358431", "10_11358301_11358431", 
+         "11_98682094_98682786", "11_98682094_98682786"),
+  Gene = c("ENSMUSG00000097082", "ENSMUSG00000020205", 
+           "ENSMUSG00000055493", "ENSMUSG00000087802", 
+           "ENSMUSG00000017204", "ENSMUSG00000017221"),
+  Effect_Group1 = c("activator", "activator", "activator", "NA", "repressor", "repressor"),
+  Effect_Group2 = c("activator", "NA", "activator", "NA", "activator", "repressor"),
+  Group1 = c("transitory.induction", "transitory.induction", 
+             "transitory.induction", "transitory.induction", 
+             "transitory.repression", "transitory.repression"),
+  Group2 = c("transitory.induction", "transitory.induction", 
+             "continuous.repression", "continuous.repression", 
+             "continuous.repression", "continuous.repression"),
+  Extra = rep("...", 6) # Placeholder for extra columns
+)
 
-% latex table generated in R 3.4.4 by xtable 1.8-2 package
-% Tue Jun 19 14:45:44 2018
-\begin{table}[ht]
-\resizebox{\textwidth}{!}{
-\begin{tabular}{llllllc}
-  \hline
-ID & Gene & Effect.Group1 & Effect.Group2 & Group1 & Group2 & ... \\
-  \hline
-10\_111588324\_111588448 & ENSMUSG00000097082 & activator & activator & transitory.induction & transitory.induction &  ... \\
-  10\_111588324\_111588448 & ENSMUSG00000020205 & activator & NA & transitory.induction & transitory.induction &  ... \\
-  10\_11358301\_11358431 & ENSMUSG00000055493 & activator & activator & transitory.induction & continuous.repression &  ... \\
-  10\_11358301\_11358431 & ENSMUSG00000087802 & NA & NA & transitory.induction & continuous.repression &  ... \\
-  11\_98682094\_98682786 & ENSMUSG00000017204 & repressor & activator & transitory.repression & continuous.repression &  ... \\
-  11\_98682094\_98682786 & ENSMUSG00000017221 & repressor & repressor & transitory.repression & continuous.repression &  ... \\
-  \hline
-\end{tabular}
-}
-\end{table}
+# Print the table in a readable format
+print(df, row.names = FALSE)
+```
 
-Each row describes a regulator-gene interaction, with the following columns:
 
-\begin{description}
-    - [ID]: Regulator identifier.
-    - [Gene]: Gene identifier.
-    - [Effect.GroupX]: There will be as many effect group columns as groups in the experimental design. Each one will contain the effect of the regulator on the gene. As explained in previous sections, if both gene (being a DEG) and regulator share the same profile, the regulator is considered to act as activator; if they have completely opposite profiles, the regulator will be a repressor; for any other case,  \texttt{NA} value will be set.
-    - [GroupX]: There will be as many group columns as groups defined in the experimental design, each one containing the type of expression profile assigned to the regulator in the simulation, as described in section \@ref(algorithm).
-    - [Tmax.GroupX]: For transitory profiles, the time point with the absolute maximum (or minimum) value.
-    - [Lagged.GroupX]: For transitory profiles, a logical value indicating if regulator and gene share the same maximum (or minimum) time point or not. The difference between points could explain potentially low correlation values between the two.
-\end{description}
+Each row describes a regulator-gene interaction, with the following columns:  
+* [ID]: Regulator identifier.  
+* [Gene]: Gene identifier.  
+* [Effect.GroupX]: There will be as many effect group columns as groups in the experimental design. Each one will contain the effect of the regulator on the gene. As explained in previous sections, if both gene (being a DEG) and regulator share the same profile, the regulator is considered to act as activator; if they have completely opposite profiles, the regulator will be a repressor; for any other case,  \texttt{NA} value will be set.  
+* [GroupX]: There will be as many group columns as groups defined in the experimental design, each one containing the type of expression profile assigned to the regulator in the simulation, as described in section \@ref(algorithm).  
+* [Tmax.GroupX]: For transitory profiles, the time point with the absolute maximum (or minimum) value.  
+* [Lagged.GroupX]: For transitory profiles, a logical value indicating if regulator and gene share the same maximum (or minimum) time point or not. The difference between points could explain potentially low correlation values between the two.  
 
 To retrieve the original association lists, the parameter `association` must be set to `TRUE`:
 
@@ -551,13 +549,11 @@ dnase_settings <- omicSettings(multi_simulation, "DNase-seq",
                                association = TRUE)
 ```
 
-When setting the `association` parameter to `TRUE`, the output object will be a list of lists with the following key names:
+When setting the `association` parameter to `TRUE`, the output object will be a list of lists with the following key names:  
 
-\begin{description}
-    - [association] List containing the association table for each omic.
-    - [settings] List containing the setting data frames for each omic.
-    - [regulators] Data frame combining the settings from all regulatory omics, adding an additional column `Omic`.
-\end{description}
+* [association] List containing the association table for each omic.  
+* [settings] List containing the setting data frames for each omic.  
+* [regulators] Data frame combining the settings from all regulatory omics, adding an additional column `Omic`.  
 
 ### Accessing the count data matrices: `omicResults`
 
@@ -643,7 +639,7 @@ profile_plot +
     theme(legend.position="top")
 ```
 
-## Advanced use cases {#advanced}
+## Advanced use cases
 
 Most of the common users' needs should be covered by the previously showed examples, but this section describes some advanced settings as the variability of the negative binomial distribution that is used to generate replicates.
 
@@ -674,8 +670,8 @@ However, similar to other omic simulation results, the simulated dataframe for T
 
 ## How to cite `MOSim`
 
-The `MOSim` package is currently on biorxiv:
+The `MOSim` package is published in Briefings in Bioinformatics:
 
-Monzó C., Martínez-Mira C., Arzalluz-Luque A., Conesa A., Tarazona S. (2024) MOSim: bulk and single-cell multi-layer regulatory network simulator DOI: 10.1101/421834
+Monzó C., Aguerralde-Martin M., Martínez-Mira C., Arzalluz-Luque A., Conesa A., Tarazona S. (2025) MOSim: bulk and single-cell multi-layer regulatory network simulator. Briefings in Bioinformatics, Volume 26, Issue 2. DOI: 10.1093/bib/bbaf110
 
-(https://www.biorxiv.org/content/10.1101/421834v2)
+(https://academic.oup.com/bib/article/26/2/bbaf110/8089935?utm_source=advanceaccess&utm_campaign=bib&utm_medium=email)

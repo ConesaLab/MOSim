@@ -3,7 +3,6 @@ title: "Simulating Single-Cell Multi-Omics Data with MOSim"
 author: 
   - name: "Carolina Monzó"
   - name: "Ángeles Arzalluz-Luque"
-  - name: "Arianna Febbo"
   - name: "Sonia Tarazona"
 date: "`r Sys.Date()`"
 vignette: >
@@ -237,3 +236,11 @@ visualization.
 ```{r results, eval = FALSE}
 res <- sc_omicResults(sim)
 ```
+
+## How to cite `MOSim`
+
+The `MOSim` package is published in Briefings in Bioinformatics:
+
+Monzó C., Aguerralde-Martin M., Martínez-Mira C., Arzalluz-Luque A., Conesa A., Tarazona S. (2025) MOSim: bulk and single-cell multi-layer regulatory network simulator. Briefings in Bioinformatics, Volume 26, Issue 2. DOI: 10.1093/bib/bbaf110
+
+(https://academic.oup.com/bib/article/26/2/bbaf110/8089935?utm_source=advanceaccess&utm_campaign=bib&utm_medium=email)

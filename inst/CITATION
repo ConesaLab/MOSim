@@ -3,14 +3,14 @@ citHeader("To cite MOSim in publications use:")
 citEntry(
   entry    = "Article",
   title    = "MOSim: bulk and single-cell multi-layer regulatory network simulator",
-  author   = "Monzó, C., Martinez-Mira, C., Arzalluz-Luque, A., Conesa, A., Tarazona, S.",
-  journal  = "Biorxiv",
-  year     = "2024",
-  volume   = "",
-  number   = "",
+  author   = "Monzó, C., Aguerralde-Martin, M., Martinez-Mira, C., Arzalluz-Luque, A., Conesa, A., Tarazona, S.",
+  journal  = "Briefings in Bioinformatics",
+  year     = "2025",
+  volume   = "26",
+  number   = "2",
   pages    = "",
-  url      = "https://www.biorxiv.org/content/10.1101/421834v2",
+  url      = "https://academic.oup.com/bib/article/26/2/bbaf110/8089935?utm_source=advanceaccess&utm_campaign=bib&utm_medium=email",
   textVersion = paste(
-"DOI:10.1101/421834"
+"DOI:10.1093/bib/bbaf110"
   )
 )
