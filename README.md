@@ -39,7 +39,7 @@ or by running the following line in the R console:
 
 If you used MOSim for your research, please cite:
 
-- Monzó C, Martínez C, Arzalluz-Luque A,  Conesa A, Tarazona S (2024). MOSim: bulk and single-cell multi-layer regulatory network simulator. BioRxiv. DOI: 10.1101/421834
+- Monzó C, Aguerralde-Martin M, Martínez-Mira C, Arzalluz-Luque A,  Conesa A, Tarazona S (2025). MOSim: bulk and single-cell multi-layer regulatory network simulator. Briefings in Bioinformatics, Volume 26, Issue 5. DOI: 10.1093/bib/bbaf110
   
 sc_mosim strongly relies on functionality from SPARSim. If you use the sc_mosim module to simulate multi-omics single cell data, please also cite:  
 - Baruzzo G, Patuzzi I, Di Camillo B (2020). SPARSim single cell: a count data simulator for scRNA-seq data. Bioinformatics, Volume 36, Issue 5, Pages 1468-1475. DOI: 10.1093/bioinformatics/btz752
