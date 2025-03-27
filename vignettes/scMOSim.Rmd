@@ -1,14 +1,13 @@
 ---
 title: "Simulating Single-Cell Multi-Omics Data with MOSim"
 author: 
-  - name: "Carolina Monzó"
-  - name: "Ángeles Arzalluz-Luque"
-  - name: "Sonia Tarazona"
+  - name: Carolina Monzó, Ángeles Arzalluz-Luque, Sonia Tarazona
 date: "`r Sys.Date()`"
 vignette: >
-  %\VignetteEngine{knitr::knitr}
+  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteIndexEntry{Wiki of how to use sc_mosim}
   %\usepackage[utf8]{inputenc}
+  %\VignetteEncoding{UTF-8}
 ---
 
 # Introduction

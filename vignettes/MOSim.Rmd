@@ -1,14 +1,13 @@
 ---
 title: "Simulating bulk Multi-Omics Data with MOSim"
 author: 
-  - name: Carolina Monzó
-  - name: Carlos Martínez
-  - name: Sonia Tarazona
+  - name: Carolina Monzó, Carlos Martínez, Sonia Tarazona
 date: "`r Sys.Date()`"
 vignette: >
-  %\VignetteEngine{knitr::knitr}
+  %\VignetteEngine{knitr::rmarkdown}
   %\VignetteIndexEntry{Wiki of how to use mosim}
   %\usepackage[utf8]{inputenc}
+  %\VignetteEncoding{UTF-8}
 ---
 
 # mosim
