@@ -56,7 +56,7 @@ cell_types <- list('Treg' = c(1:10),'cDC' = c(11:20),'CD4_TEM' = c(21:30),
       'Memory_B' = c(31:40))
 
 # Load an association list containing peak IDs related to gene names
-associationList <- data(associationList)
+data(associationList)
 
 # Simulate multi-omics data with specific parameters
 testing_groups <- sc_mosim(
