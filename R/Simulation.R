@@ -366,7 +366,7 @@ setMethod("initialize", signature="MOSimulation", function(.Object, ...) {
                         # induction - induction - repression: X rows
                         # induction - induction - induction: Y rows
                         classSplit <-
-                            dplyr::group_by_(regGenes, .dots = dplyrGroup)
+                            dplyr::group_by(regGenes, !!!dplyrGroup)
 
                         # Select genes of the majoritary class.
                         #
